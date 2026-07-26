@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useCaptchaConfig } from "./captcha-config";
-import { MotionCaptcha } from "./MotionCaptcha";
+import { MotionCaptcha } from "@whoize/captcha-react";
+import { useCaptchaConfig } from "@/app/captcha-config";
 
 type Proof = {
   id: string;
@@ -241,6 +241,7 @@ export function CaptchaDemo() {
             aria-label="WHOIZE CAPTCHA"
           >
             <MotionCaptcha
+              config={config}
               onPass={handlePass}
               onClose={() => setCaptchaOpen(false)}
             />

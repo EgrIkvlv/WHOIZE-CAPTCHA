@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_CAPTCHA_CONFIG,
+  inShape,
+  randomPointInShape,
+  shapeAreaRatio,
+  shapeGlyph,
   type CaptchaConfig,
   type ShapeName,
-  useCaptchaConfig,
-} from "./captcha-config";
+} from "@whoize/captcha-core";
 
 type ChallengeStatus =
   | "playing"
@@ -20,57 +23,19 @@ type Point = { x: number; y: number; stable: boolean };
 const WIDTH = 640;
 const HEIGHT = 360;
 
-function inShape(shape: ShapeName, x: number, y: number) {
-  if (shape === "Круг") return x * x + y * y <= 1;
-  if (shape === "Ромб") return Math.abs(x) + Math.abs(y) <= 1;
-  if (shape === "Треугольник") {
-    return y >= -0.92 && y <= 0.72 && Math.abs(x) <= (y + 0.92) / 1.64;
-  }
-  const angle = Math.atan2(y, x);
-  const radius = Math.sqrt(x * x + y * y);
-  const segment =
-    ((angle + Math.PI * 2 + Math.PI / 2) / (Math.PI / 5)) % 2;
-  const edge =
-    segment < 1 ? 1 - segment * 0.5 : 0.5 + (segment - 1) * 0.5;
-  return radius <= edge;
-}
-
-function shapeAreaRatio(shape: ShapeName) {
-  if (shape === "Круг") return Math.PI / 4;
-  if (shape === "Ромб" || shape === "Треугольник") return 0.5;
-  return 0.42;
-}
-
-function randomPointInShape(shape: ShapeName): Omit<Point, "stable"> {
-  let x = 0;
-  let y = 0;
-  do {
-    x = Math.random() * 2 - 1;
-    y = Math.random() * 2 - 1;
-  } while (!inShape(shape, x, y));
-  return { x, y };
-}
-
-function glyph(shape: ShapeName) {
-  if (shape === "Круг") return "●";
-  if (shape === "Треугольник") return "▲";
-  if (shape === "Ромб") return "◆";
-  return "★";
-}
+export type MotionCaptchaProps = {
+  onPass: (token: string) => void;
+  onClose?: () => void;
+  embedded?: boolean;
+  config?: CaptchaConfig;
+};
 
 export function MotionCaptcha({
   onPass,
   onClose,
   embedded = false,
-  configOverride,
-}: {
-  onPass: (token: string) => void;
-  onClose?: () => void;
-  embedded?: boolean;
-  configOverride?: CaptchaConfig;
-}) {
-  const serverConfig = useCaptchaConfig();
-  const config = configOverride ?? serverConfig;
+  config = DEFAULT_CAPTCHA_CONFIG,
+}: MotionCaptchaProps) {
   const configRef = useRef(config);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const aimCursorRef = useRef<HTMLDivElement>(null);
@@ -367,7 +332,7 @@ export function MotionCaptcha({
   }[status];
 
   return (
-    <>
+    <section className="whoize-captcha">
       <div className="captcha-topline">
         <div className="captcha-logo">
           WHOIZE<span>/</span>VERIFY
@@ -391,7 +356,7 @@ export function MotionCaptcha({
 
       <div className="captcha-instruction">
         <div className="captcha-target">
-          <span>{glyph(shape)}</span>
+          <span>{shapeGlyph(shape)}</span>
           <div>
             <small>НАЙДИТЕ ФИГУРУ</small>
             <strong>{shape}</strong>
@@ -458,6 +423,6 @@ export function MotionCaptcha({
           </button>
         )}
       </div>
-    </>
+    </section>
   );
 }

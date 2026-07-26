@@ -19,7 +19,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@whoize/captcha-core": ["./packages/captcha-core/src/index.ts"],
+      "@whoize/captcha-react": ["./packages/captcha-react/src/index.ts"],
+      "@whoize/captcha-react/styles.css": [
+        "./packages/captcha-react/src/styles.css"
+      ]
     }
   },
   "include": [

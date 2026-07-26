@@ -4,6 +4,9 @@
   "description": "A motion-defined CAPTCHA research prototype and interactive perception lab.",
   "license": "MIT",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=22.13.0"
   },
@@ -16,6 +19,8 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@whoize/captcha-core": "0.1.0",
+    "@whoize/captcha-react": "0.1.0",
     "@vercel/blob": "^2.6.1",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",

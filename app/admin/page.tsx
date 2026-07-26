@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { AdminLogin } from "../AdminLogin";
-import { AdminPanel } from "../AdminPanel";
-import { isAdminAuthenticated } from "../server/admin-auth";
-import { readServerCaptchaConfig } from "../server/captcha-config-store";
+import { AdminLogin } from "@/apps/control-plane/components/AdminLogin";
+import { AdminPanel } from "@/apps/control-plane/components/AdminPanel";
+import { isAdminAuthenticated } from "@/apps/control-plane/server/admin-auth";
+import { readServerCaptchaConfig } from "@/apps/control-plane/server/captcha-config-store";
 
 export const metadata: Metadata = {
   title: "Control Plane",

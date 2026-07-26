@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@whoize/captcha-core", "@whoize/captcha-react"],
 };
 
 export default nextConfig;

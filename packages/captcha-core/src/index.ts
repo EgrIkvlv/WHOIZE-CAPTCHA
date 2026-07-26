@@ -163,3 +163,42 @@ export function normalizeCaptchaConfig(value: unknown): CaptchaConfig {
 export function getAllShapes() {
   return ALL_SHAPES;
 }
+
+export function inShape(shape: ShapeName, x: number, y: number) {
+  if (shape === "Круг") return x * x + y * y <= 1;
+  if (shape === "Ромб") return Math.abs(x) + Math.abs(y) <= 1;
+  if (shape === "Треугольник") {
+    return y >= -0.92 && y <= 0.72 && Math.abs(x) <= (y + 0.92) / 1.64;
+  }
+
+  const angle = Math.atan2(y, x);
+  const radius = Math.sqrt(x * x + y * y);
+  const segment =
+    ((angle + Math.PI * 2 + Math.PI / 2) / (Math.PI / 5)) % 2;
+  const edge =
+    segment < 1 ? 1 - segment * 0.5 : 0.5 + (segment - 1) * 0.5;
+  return radius <= edge;
+}
+
+export function shapeAreaRatio(shape: ShapeName) {
+  if (shape === "Круг") return Math.PI / 4;
+  if (shape === "Ромб" || shape === "Треугольник") return 0.5;
+  return 0.42;
+}
+
+export function randomPointInShape(shape: ShapeName) {
+  let x = 0;
+  let y = 0;
+  do {
+    x = Math.random() * 2 - 1;
+    y = Math.random() * 2 - 1;
+  } while (!inShape(shape, x, y));
+  return { x, y };
+}
+
+export function shapeGlyph(shape: ShapeName) {
+  if (shape === "Круг") return "●";
+  if (shape === "Треугольник") return "▲";
+  if (shape === "Ромб") return "◆";
+  return "★";
+}

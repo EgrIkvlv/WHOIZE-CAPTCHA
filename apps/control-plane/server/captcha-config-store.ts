@@ -7,7 +7,7 @@ import {
   DEFAULT_CAPTCHA_CONFIG,
   normalizeCaptchaConfig,
   type CaptchaConfig,
-} from "../captcha-config-shared";
+} from "@whoize/captcha-core";
 
 const CURRENT_CONFIG_PATH = "whoize/control-plane/config.json";
 const AUDIT_PREFIX = "whoize/control-plane/audit";

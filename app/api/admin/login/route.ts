@@ -4,7 +4,7 @@ import {
   adminCookieOptions,
   createAdminSession,
   verifyAdminPassword,
-} from "../../../server/admin-auth";
+} from "@/apps/control-plane/server/admin-auth";
 
 export async function POST(request: Request) {
   const payload = (await request.json().catch(() => null)) as {

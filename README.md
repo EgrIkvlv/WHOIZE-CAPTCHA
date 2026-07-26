@@ -44,7 +44,17 @@ flowchart LR
 
 ## Current prototype
 
-The project now has three connected surfaces:
+The repository is an npm workspace with reusable public packages and two
+research applications:
+
+- `@whoize/captcha-core` — framework-independent configuration, presets, masks,
+  and geometry;
+- `@whoize/captcha-react` — the reusable React challenge component;
+- `apps/demo` — the public CAPTCHA demo and Motion Lab;
+- `apps/control-plane` — an open reference implementation for shared research
+  configuration.
+
+The deployed site has three connected surfaces:
 
 - `/` — a complete client-side CAPTCHA flow with a protected demo action;
 - `/lab` — the original perception laboratory for tuning the signal;
@@ -81,6 +91,27 @@ record.
 The proof and answer verification are still client-side and are intentionally
 labelled as such. Moving generation, answers, and proof redemption to the
 server is the next security milestone.
+
+## Repository structure
+
+```text
+WHOIZE-CAPTCHA/
+├── packages/
+│   ├── captcha-core/
+│   └── captcha-react/
+├── apps/
+│   ├── demo/
+│   └── control-plane/
+├── app/                    # thin Next.js route adapters
+├── docs/
+└── tests/
+```
+
+See [Architecture and repository boundary](docs/architecture.md) for the
+public/private split and [React integration](docs/integration.md) for SDK usage.
+The future private `WHOIZE-CLOUD` repository will contain production-only
+verification, adaptive risk policy, attack telemetry, and infrastructure—not
+the reproducible research mechanism.
 
 ## Run locally
 
@@ -189,6 +220,9 @@ flowchart LR
 
 CAPTCHA should remain one signal inside a broader anti-abuse system that also
 uses rate limits, session risk, replay prevention, and business-level controls.
+Those hosted operational controls belong in the future private
+`WHOIZE-CLOUD`; the public repository will continue to provide the research
+engine, SDK, protocol documentation, and reference implementation.
 
 ## Accessibility
 

@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import {
   DEFAULT_CAPTCHA_CONFIG,
   type CaptchaConfig,
-} from "./captcha-config-shared";
+} from "@whoize/captcha-core";
 
 export {
   DEFAULT_CAPTCHA_CONFIG,
@@ -14,7 +14,7 @@ export {
   type CaptchaConfig,
   type MotionPresetName,
   type ShapeName,
-} from "./captcha-config-shared";
+} from "@whoize/captcha-core";
 
 const listeners = new Set<() => void>();
 let currentConfig = DEFAULT_CAPTCHA_CONFIG;

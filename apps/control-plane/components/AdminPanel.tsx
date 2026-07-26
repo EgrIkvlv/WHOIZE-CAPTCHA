@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { MotionCaptcha } from "@whoize/captcha-react";
 import {
   DEFAULT_CAPTCHA_CONFIG,
   getAllShapes,
@@ -11,8 +12,7 @@ import {
   MOTION_PRESETS,
   normalizeCaptchaConfig,
   saveServerCaptchaConfig,
-} from "./captcha-config";
-import { MotionCaptcha } from "./MotionCaptcha";
+} from "@/app/captcha-config";
 
 type NumericConfigKey = {
   [Key in keyof CaptchaConfig]: CaptchaConfig[Key] extends number ? Key : never;
@@ -397,7 +397,7 @@ export function AdminPanel({
             <MotionCaptcha
               key={previewKey}
               embedded
-              configOverride={draft}
+              config={draft}
               onPass={() => setPreviewResult("Проверка пройдена")}
             />
           </div>

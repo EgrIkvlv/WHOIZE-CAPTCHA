@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE, adminCookieOptions } from "../../../server/admin-auth";
+import {
+  ADMIN_COOKIE,
+  adminCookieOptions,
+} from "@/apps/control-plane/server/admin-auth";
 
 export async function POST(request: Request) {
   const response = NextResponse.redirect(new URL("/admin", request.url), 303);

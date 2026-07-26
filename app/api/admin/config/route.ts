@@ -1,9 +1,9 @@
-import { isAdminAuthenticated } from "../../../server/admin-auth";
+import { isAdminAuthenticated } from "@/apps/control-plane/server/admin-auth";
 import {
   ConfigRevisionConflictError,
   readServerCaptchaConfig,
   writeServerCaptchaConfig,
-} from "../../../server/captcha-config-store";
+} from "@/apps/control-plane/server/captcha-config-store";
 
 export const dynamic = "force-dynamic";
 

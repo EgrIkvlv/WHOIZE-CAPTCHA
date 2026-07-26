@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CaptchaDemo } from "./CaptchaDemo";
+import { CaptchaDemo } from "@/apps/demo/components/CaptchaDemo";
 
 export const metadata: Metadata = {
   title: "Motion CAPTCHA",

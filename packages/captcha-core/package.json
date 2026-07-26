@@ -1,0 +1,17 @@
+{
+  "name": "@whoize/captcha-core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic primitives for the WHOIZE motion CAPTCHA experiment.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  }
+}

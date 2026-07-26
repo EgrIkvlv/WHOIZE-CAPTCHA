@@ -1,4 +1,4 @@
-import { readServerCaptchaConfig } from "../../server/captcha-config-store";
+import { readServerCaptchaConfig } from "@/apps/control-plane/server/captcha-config-store";
 
 export const dynamic = "force-dynamic";
 
