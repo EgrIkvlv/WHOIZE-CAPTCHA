@@ -7,6 +7,7 @@ import {
   createFixture,
   createRasterFixture,
   createV14Fixture,
+  createV15Fixture,
   evaluatePrediction,
   runSolver,
   summarize,
@@ -16,6 +17,7 @@ import {
   runClientExposureAudit,
   runReplayProbe,
   runWebmOnlyExposureAudit,
+  runMatchedMotionExposureAudit,
 } from "./security-probes.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -24,6 +26,9 @@ const samples = sampleArg ? Math.max(1, Number(sampleArg.split("=")[1])) : 24;
 const includeGemini = args.has("--gemini");
 const includeRaster = args.has("--raster");
 const includeWebm = args.has("--webm");
+const includeV15 = args.has("--webm-v15");
+const productionOnly = args.has("--production-only");
+const includeProductionWebm = includeWebm || includeV15;
 const seedBase = 0x51a7c000;
 const results: SolverResult[] = [];
 const seeds = Array.from(
@@ -31,22 +36,55 @@ const seeds = Array.from(
   (_, index) => seedBase + index * 7919,
 );
 const fixtures = seeds.map((seed) =>
-  includeWebm ? createV14Fixture(seed) : createFixture(seed),
+  includeV15
+    ? createV15Fixture(seed)
+    : includeWebm
+      ? createV14Fixture(seed)
+      : createFixture(seed),
 );
 const productionWebmFixtures = [];
-if (includeWebm) {
+const comparisonV14WebmFixtures = [];
+if (includeProductionWebm) {
   const { createProductionWebmFixture } = await import(
     "./production-webm.ts"
   );
   for (const seed of seeds) {
-    productionWebmFixtures.push(await createProductionWebmFixture(seed));
+    if (includeV15) {
+      comparisonV14WebmFixtures.push(
+        await createProductionWebmFixture(seed, "v14"),
+      );
+    }
+    productionWebmFixtures.push(
+      await createProductionWebmFixture(seed, includeV15 ? "v15" : "v14"),
+    );
   }
 }
-const includeRepresentations = includeRaster || includeWebm;
+const includeRepresentations = includeRaster || includeProductionWebm;
 const representations = includeRepresentations
-  ? [
+  ? productionOnly && includeProductionWebm
+    ? [
+        ...(includeV15
+          ? [
+              {
+                id: "v14-production-webm-decoded",
+                fixtures: comparisonV14WebmFixtures,
+              },
+            ]
+          : []),
+        {
+          id: includeV15
+            ? "v15-production-webm-decoded"
+            : "production-webm-decoded",
+          fixtures: productionWebmFixtures,
+        },
+      ]
+    : [
       {
-        id: includeWebm ? "v14-exact-cells" : "wsp1-exact",
+        id: includeV15
+          ? "v15-exact-cells"
+          : includeWebm
+            ? "v14-exact-cells"
+            : "wsp1-exact",
         fixtures,
       },
       {
@@ -59,8 +97,23 @@ const representations = includeRepresentations
           createRasterFixture(fixture, blurPx),
         ),
       })),
-      ...(includeWebm
-        ? [{ id: "production-webm-decoded", fixtures: productionWebmFixtures }]
+      ...(includeProductionWebm
+        ? [
+            ...(includeV15
+              ? [
+                  {
+                    id: "v14-production-webm-decoded",
+                    fixtures: comparisonV14WebmFixtures,
+                  },
+                ]
+              : []),
+            {
+              id: includeV15
+                ? "v15-production-webm-decoded"
+                : "production-webm-decoded",
+              fixtures: productionWebmFixtures,
+            },
+          ]
         : []),
     ]
   : [{ id: "wsp1-exact", fixtures }];
@@ -134,6 +187,7 @@ const theoreticalRandomRates = fixtures.map((fixture) => {
 const protocolProbes = {
   clientExposure: await runClientExposureAudit(),
   webmOnlyExposure: await runWebmOnlyExposureAudit(),
+  matchedMotionExposure: await runMatchedMotionExposureAudit(),
   replay: await runReplayProbe(),
 };
 
@@ -147,12 +201,18 @@ function median(values: number[]) {
 }
 
 const report = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   generatedAt: new Date().toISOString(),
   target: {
-    version: includeWebm ? "v1.4" : "v1.3a/v1.3b",
-    format: includeWebm
-      ? "same-scene exact cells, raster, blur, and production VP8/WebM"
+    version: includeV15
+      ? "v1.5 compared with v1.4"
+      : includeWebm
+        ? "v1.4"
+        : "v1.3a/v1.3b",
+    format: includeV15
+      ? "same-target v1.4 and v1.5 production VP8/WebM plus v1.5 exact/raster representations"
+      : includeWebm
+        ? "same-scene exact cells, raster, blur, and production VP8/WebM"
       : "WSP1 sparse final frames",
     width: fixtures[0].scene.width,
     height: fixtures[0].scene.height,
@@ -164,28 +224,41 @@ const report = {
     samples,
     syntheticFixtures: true,
     representations: representations.map((item) => item.id),
+    productionOnly,
     seeds: fixtures.map((fixture) => fixture.seed),
     successDefinition: "Predicted point passes the real private shape hit test.",
     timing: "Local wall-clock analysis time; excludes fixture generation.",
     cost: "Algorithmic operation count; Gemini token usage when requested.",
   },
-  webmTransport: includeWebm
+  webmTransport: includeProductionWebm
     ? {
         codec: "production webm-wasm VP8, decoded by FFmpeg to gray8",
-        medianMediaBytes: median(
-          productionWebmFixtures.map(
-            (fixture) => fixture.transportMetrics?.mediaBytes ?? 0,
-          ),
-        ),
-        medianEncodeMs: median(
-          productionWebmFixtures.map(
-            (fixture) => fixture.transportMetrics?.encodeMs ?? 0,
-          ),
-        ),
-        medianDecodeMs: median(
-          productionWebmFixtures.map(
-            (fixture) => fixture.transportMetrics?.decodeMs ?? 0,
-          ),
+        variants: Object.fromEntries(
+          [
+            ...(includeV15
+              ? [["v1.4", comparisonV14WebmFixtures] as const]
+              : []),
+            [includeV15 ? "v1.5" : "v1.4", productionWebmFixtures] as const,
+          ].map(([version, versionFixtures]) => [
+            version,
+            {
+              medianMediaBytes: median(
+                versionFixtures.map(
+                  (fixture) => fixture.transportMetrics?.mediaBytes ?? 0,
+                ),
+              ),
+              medianEncodeMs: median(
+                versionFixtures.map(
+                  (fixture) => fixture.transportMetrics?.encodeMs ?? 0,
+                ),
+              ),
+              medianDecodeMs: median(
+                versionFixtures.map(
+                  (fixture) => fixture.transportMetrics?.decodeMs ?? 0,
+                ),
+              ),
+            },
+          ]),
         ),
       }
     : undefined,
@@ -200,7 +273,7 @@ const outputDirectory = resolve("outputs/attack-benchmark");
 await mkdir(outputDirectory, { recursive: true });
 const outputPath = resolve(
   outputDirectory,
-  `report-${Date.now()}${includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
+  `report-${Date.now()}${includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
 );
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
@@ -221,12 +294,16 @@ console.log(
     100
   ).toFixed(2)}% theoretical success.`,
 );
-if (includeWebm && report.webmTransport) {
-  console.log(
-    `Production WebM: ${Math.round(report.webmTransport.medianMediaBytes / 1024)} KiB/segment, ` +
-      `${report.webmTransport.medianEncodeMs.toFixed(0)} ms encode, ` +
-      `${report.webmTransport.medianDecodeMs.toFixed(0)} ms decode.`,
-  );
+if (includeProductionWebm && report.webmTransport) {
+  for (const [version, metrics] of Object.entries(
+    report.webmTransport.variants,
+  )) {
+    console.log(
+      `${version} production WebM: ${Math.round(metrics.medianMediaBytes / 1024)} KiB/segment, ` +
+        `${metrics.medianEncodeMs.toFixed(0)} ms encode, ` +
+        `${metrics.medianDecodeMs.toFixed(0)} ms decode.`,
+    );
+  }
 } else if (includeRaster) {
   console.log(
     "Raster note: clean frames are APNG-equivalent after lossless decoding; " +
@@ -242,16 +319,20 @@ if (gemini?.result) {
   );
 }
 console.log(
-  `${includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
-    (includeWebm
-      ? protocolProbes.webmOnlyExposure
+  `${includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
+    (includeV15
+      ? protocolProbes.matchedMotionExposure
+      : includeWebm
+        ? protocolProbes.webmOnlyExposure
       : protocolProbes.clientExposure
     ).passed
       ? "PASS"
       : "FAIL"
   }; exact occupancy stream exposed: ${
-    (includeWebm
-      ? protocolProbes.webmOnlyExposure
+    (includeV15
+      ? protocolProbes.matchedMotionExposure
+      : includeWebm
+        ? protocolProbes.webmOnlyExposure
       : protocolProbes.clientExposure
     ).exactOccupancyFramesExposed
   }.`,

@@ -129,6 +129,47 @@ motion-matched decoys and removing the “one low-change/coherent region”
 property. Codec or blur tuning alone is unlikely to create meaningful cost
 separation.
 
+## v1.5 matched-motion production WebM comparison
+
+Version v1.5 implements that signal change. Every scene contains the requested
+target and five decoy shapes with comparable point count, radius, speed, and
+temporal persistence. Most background points move continuously at target-like
+speeds; a smaller layer is renewed. All target, decoy, and background motion
+parameters stay server-side, and the browser receives only decoded VP8/WebM
+pixels and non-secret playback metadata.
+
+The controlled comparison used the same 24 seeds, target shapes, target
+trajectories, production encoder, FFmpeg decoder, and private hit test for v1.4
+and v1.5.
+
+| Decoded production WebM attack | v1.4 success | v1.5 success | v1.5 median error | v1.5 median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 4.2% | 4.2% | 220.4 px | 0.01 ms |
+| Single-frame density | 20.8% | 16.7% | 190.2 px | 1.91 ms |
+| Two-frame difference | 100.0% | 0.0% | 228.4 px | 3.35 ms |
+| Temporal persistence | 50.0% | 16.7% | 186.2 px | 11.90 ms |
+| Coherent flow | 100.0% | 16.7% | 187.7 px | 146.67 ms |
+| Multi-frame tracking | 100.0% | 16.7% | 188.4 px | 1,035.39 ms |
+| Public-shape template | 16.7% | 58.3% | 7.8 px | 58.64 ms |
+
+The intended effect is clearly present: the exact v1.4 shortcut disappeared.
+Raw frame difference found no target in 24 v1.5 scenes, while coherent flow and
+tracking fell from 24/24 to 4/24. However, the new shape-aware baseline solved
+14/24 v1.5 scenes from one frame. Decoys therefore increase the required attack
+complexity, but do not make the challenge robust against an attacker that uses
+the publicly requested shape.
+
+Median one-second transport costs were:
+
+- v1.4: 1,224 KiB, 1,232 ms encode, 72 ms decode;
+- v1.5: 1,170 KiB, 1,036 ms encode, 68 ms decode.
+
+Matched motion slightly improved compression and encoding time because more of
+the field persists between frames, but both versions remain expensive for
+continuous serverless generation. Before promoting v1.5, the next work should
+measure human completion time and error rate, then strengthen the benchmark
+with multi-frame shape classification and learned video models.
+
 ## Gemini smoke test
 
 One opt-in smoke test sent eight chronological synthetic PNG frames to
@@ -148,14 +189,17 @@ documentation.
 
 - Client-state audit: no direct center, trajectory, seed, radius, or mask field
   is present before verification.
-- Exposure finding: the complete exact occupancy sequence is present in client
-  state and is sufficient for the successful temporal solvers above.
+- v1.3 exposure finding: the complete exact occupancy sequence is present in
+  client state and is sufficient for the successful temporal solvers above.
+- v1.4/v1.5 exposure finding: only decoded WebM pixels and public playback
+  metadata reach the client; private scene and exact occupancy arrays are
+  absent.
 - Challenge replay: rejected after a successful verification.
 - Proof replay: first redemption succeeds; the second is rejected as used.
 
 ## Next benchmark increments
 
-1. Add motion-matched decoy clusters and rerun the production WebM benchmark.
+1. Add multi-frame shape classification for the v1.5 decoy scene.
 2. Sweep raster thresholds and use grayscale correlation without binarization.
 3. Sweep coherence, density, radius, speed, frame spacing, and frames observed.
 4. Add subpixel optical flow and robust clustering rather than integer shifts.
@@ -167,5 +211,6 @@ documentation.
    latency, and coordinate-error definitions.
 
 The research objective is cost separation, not an “unbreakable” label. The
-current result shows that WSP1 is an efficient transport format but a weak
-security representation against a purpose-built temporal solver.
+current result shows that WSP1 is a weak security representation, v1.4 fixes
+that boundary without hiding the temporal signal, and v1.5 raises the attack
+from simple motion localization to shape-aware classification.

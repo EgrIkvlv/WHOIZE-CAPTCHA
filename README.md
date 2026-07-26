@@ -55,8 +55,8 @@ research applications:
 - `apps/server-captcha` — the server-rendered challenge, verification, and
   one-time proof reference flow;
 - `apps/captcha-versions` — runnable preserved implementations and comparison
-  data for client Canvas, server APNG, server WebM, sparse final-frame, and
-  browser-blur and dynamic WebM-only builds;
+  data for client Canvas, server APNG, server WebM, sparse final-frame,
+  browser-blur, dynamic WebM-only, and matched-motion decoy builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -64,8 +64,8 @@ The deployed site has four connected surfaces:
 
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
-  server WebM, sparse final-frame, browser-blur, and dynamic WebM-only
-  implementations;
+  server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
+  matched-motion decoy implementations;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -78,6 +78,16 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.5` changes the visual signal instead of only changing its
+transport. One requested target moves beside five decoy shapes with matched
+density, persistence, radius, and speed ranges. Most background particles also
+move continuously at target-like speeds, with a smaller renewed-noise layer.
+The browser still receives WebM pixels only and verification remains
+server-side. In the first 24-scene production-codec benchmark, the v1.4
+two-frame, coherent-flow, and tracking attacks fell from 100% success to
+0%, 16.7%, and 16.7%. A new one-frame public-shape template attack reached
+58.3%, so v1.5 is a meaningful iteration rather than a solved security claim.
 
 Version `v1.4` is the first full-quality dynamic-noise build that never sends
 WSP1 occupied cells to the browser. A private server scene generates a fresh

@@ -12,6 +12,7 @@ import {
   positionAtFrame,
 } from "../../apps/server-captcha/server/challenge-engine.ts";
 import { createDynamicNoiseOccupancyRenderer } from "../../apps/captcha-versions/server/webm-only-engine.ts";
+import { createMatchedMotionOccupancyRenderer } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
 
 export type Point = { x: number; y: number };
 
@@ -24,6 +25,7 @@ export type BenchmarkFixture = {
   representation:
     | "wsp1-exact"
     | "v14-exact-cells"
+    | "v15-exact-cells"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -373,6 +375,94 @@ function linearPrediction(
   return { x: project("x"), y: project("y") };
 }
 
+function targetShapeTemplateScan(fixture: BenchmarkFixture) {
+  const { width, height } = fixture.stream;
+  const mask = frameMask(
+    fixtureFrame(fixture, fixture.targetFrame),
+    width * height,
+  );
+  const binSize = 4;
+  const binWidth = Math.ceil(width / binSize);
+  const binHeight = Math.ceil(height / binSize);
+  const bins = new Uint16Array(binWidth * binHeight);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!mask[y * width + x]) continue;
+      bins[Math.floor(y / binSize) * binWidth + Math.floor(x / binSize)] += 1;
+    }
+  }
+
+  let bestScore = Number.NEGATIVE_INFINITY;
+  let bestPoint = { x: width / 2, y: height / 2 };
+  let operations = width * height;
+  for (const radius of [56, 64, 72, 80]) {
+    const binRadius = Math.ceil((radius * 1.12) / binSize);
+    for (
+      let centerY = Math.ceil(radius / 8) * 8;
+      centerY <= height - radius;
+      centerY += 8
+    ) {
+      for (
+        let centerX = Math.ceil(radius / 8) * 8;
+        centerX <= width - radius;
+        centerX += 8
+      ) {
+        const centerBinX = Math.floor(centerX / binSize);
+        const centerBinY = Math.floor(centerY / binSize);
+        let inside = 0;
+        let insideArea = 0;
+        let outside = 0;
+        let outsideArea = 0;
+        for (let offsetY = -binRadius; offsetY <= binRadius; offsetY += 1) {
+          for (let offsetX = -binRadius; offsetX <= binRadius; offsetX += 1) {
+            const normalizedX = (offsetX * binSize) / radius;
+            const normalizedY = (offsetY * binSize) / radius;
+            if (
+              Math.abs(normalizedX) > 1.12 ||
+              Math.abs(normalizedY) > 1.12
+            ) {
+              continue;
+            }
+            const binX = centerBinX + offsetX;
+            const binY = centerBinY + offsetY;
+            if (
+              binX < 0 ||
+              binX >= binWidth ||
+              binY < 0 ||
+              binY >= binHeight
+            ) {
+              continue;
+            }
+            const value = bins[binY * binWidth + binX];
+            operations += 1;
+            if (
+              inShape(
+                fixture.scene.shape,
+                normalizedX,
+                normalizedY,
+              )
+            ) {
+              inside += value;
+              insideArea += 1;
+            } else {
+              outside += value;
+              outsideArea += 1;
+            }
+          }
+        }
+        const score =
+          inside / Math.max(1, insideArea) -
+          outside / Math.max(1, outsideArea);
+        if (score > bestScore) {
+          bestScore = score;
+          bestPoint = { x: centerX, y: centerY };
+        }
+      }
+    }
+  }
+  return { point: bestPoint, operations };
+}
+
 export function createFixture(seed: number): BenchmarkFixture {
   const scene = generateSparseScene(DEFAULT_CAPTCHA_CONFIG, seed);
   const payload = encodeSparseFrames(scene);
@@ -387,6 +477,17 @@ export function createFixture(seed: number): BenchmarkFixture {
 }
 
 export function createV14Fixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v14");
+}
+
+export function createV15Fixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v15");
+}
+
+function createWebmFixture(
+  seed: number,
+  version: "v14" | "v15",
+): BenchmarkFixture {
   const challengeScene = generateChallengeScene(DEFAULT_CAPTCHA_CONFIG, seed);
   const targetFrame = Math.min(
     challengeScene.durationFrames - 1,
@@ -412,7 +513,9 @@ export function createV14Fixture(seed: number): BenchmarkFixture {
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    createDynamicNoiseOccupancyRenderer(challengeScene);
+    version === "v15"
+      ? createMatchedMotionOccupancyRenderer(challengeScene)
+      : createDynamicNoiseOccupancyRenderer(challengeScene);
   for (
     let frameIndex = targetFrame - 7;
     frameIndex <= targetFrame;
@@ -421,7 +524,7 @@ export function createV14Fixture(seed: number): BenchmarkFixture {
     frames[frameIndex] = renderOccupancy(frameIndex);
   }
   return {
-    id: `v14-${seed.toString(16).padStart(8, "0")}`,
+    id: `${version}-${seed.toString(16).padStart(8, "0")}`,
     seed,
     scene,
     stream: {
@@ -435,7 +538,8 @@ export function createV14Fixture(seed: number): BenchmarkFixture {
       frames,
     },
     targetFrame,
-    representation: "v14-exact-cells",
+    representation:
+      version === "v15" ? "v15-exact-cells" : "v14-exact-cells",
   };
 }
 
@@ -656,6 +760,19 @@ export const baselineSolvers: Solver[] = [
         framesUsed: 8,
         operations,
         notes: "Fits a short local track to seven coherent-flow observations.",
+      };
+    },
+  },
+  {
+    id: "public-shape-template",
+    solve(fixture) {
+      const scan = targetShapeTemplateScan(fixture);
+      return {
+        prediction: scan.point,
+        framesUsed: 1,
+        operations: scan.operations,
+        notes:
+          "Sweeps public target-shape templates over one frame without using private radius or trajectory data.",
       };
     },
   },

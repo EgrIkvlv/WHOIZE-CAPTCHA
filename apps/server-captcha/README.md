@@ -43,3 +43,19 @@ seeds are never serialized to the client. This closes the point-stream shortcut
 measured against v1.3a/v1.3b. It does not hide the decoded pixels from a client
 that records the video, so the next benchmark must operate on the actual
 production-codec output.
+
+## v1.5 matched-motion decoy experiment
+
+`/api/versions/webm-v15/challenge` preserves the v1.4 WebM-only and private
+verification boundary, but replaces the unique moving target signal with six
+coherent clusters: one requested shape and five decoys. The clusters use
+similar point counts, radius ranges, persistence, and speeds. Most background
+points also move continuously at target-like speeds, while a smaller fraction
+renews between frames.
+
+The target and decoy trajectories, particle roles, radius, velocity, seeds,
+and hit test remain inside the session-bound server record. The public response
+adds only a static `matched-motion-decoys` variant label. This makes simple
+frame differencing and global coherent-flow clustering choose among several
+plausible regions instead of isolating the target. It deliberately leaves
+shape recognition as an attack surface to measure.

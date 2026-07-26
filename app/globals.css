@@ -158,25 +158,37 @@ button {
     rgba(242, 241, 234, 0.94);
 }
 
+.version-card.version-webm15 {
+  background:
+    radial-gradient(circle at 18% 78%, rgba(182, 240, 58, 0.2), transparent 26%),
+    radial-gradient(circle at 76% 22%, rgba(18, 19, 16, 0.1), transparent 29%),
+    linear-gradient(145deg, rgba(182, 240, 58, 0.1), transparent 64%),
+    rgba(242, 241, 234, 0.94);
+}
+
 .version-card.version-blur .version-card-body,
-.version-card.version-webm14 .version-card-body {
+.version-card.version-webm14 .version-card-body,
+.version-card.version-webm15 .version-card-body {
   padding: 12px 0 10px;
 }
 
 .version-card.version-blur .version-index,
-.version-card.version-webm14 .version-index {
+.version-card.version-webm14 .version-index,
+.version-card.version-webm15 .version-index {
   font-size: 29px;
 }
 
 .version-card.version-blur h2,
-.version-card.version-webm14 h2 {
+.version-card.version-webm14 h2,
+.version-card.version-webm15 h2 {
   margin-top: 10px;
   font-size: clamp(21px, 1.7vw, 26px);
   line-height: 0.94;
 }
 
 .version-card.version-blur .version-card-body p,
-.version-card.version-webm14 .version-card-body p {
+.version-card.version-webm14 .version-card-body p,
+.version-card.version-webm15 .version-card-body p {
   min-height: 26px;
   margin-top: 5px;
   font-size: 7px;

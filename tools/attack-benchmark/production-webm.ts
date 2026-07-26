@@ -6,9 +6,11 @@ import {
   generateChallengeScene,
 } from "../../apps/server-captcha/server/challenge-engine.ts";
 import { renderWebmOnlySegment } from "../../apps/captcha-versions/server/webm-only-engine.ts";
+import { renderMatchedMotionSegment } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
 import {
   createDecodedWebmFixture,
   createV14Fixture,
+  createV15Fixture,
   type BenchmarkFixture,
 } from "./benchmark-core.ts";
 
@@ -94,18 +96,27 @@ function decodeWebmToGray(
 
 export async function createProductionWebmFixture(
   seed: number,
+  version: "v14" | "v15" = "v14",
 ): Promise<BenchmarkFixture> {
-  const source = createV14Fixture(seed);
+  const source =
+    version === "v15" ? createV15Fixture(seed) : createV14Fixture(seed);
   const scene = generateChallengeScene(DEFAULT_CAPTCHA_CONFIG, seed);
   const segmentIndex = Math.floor(
     source.targetFrame / scene.segmentFrames,
   );
   const encodeStartedAt = performance.now();
-  const webm = await renderWebmOnlySegment({
-    scene,
-    segmentIndex,
-    wasmBinary: await readCodec(),
-  });
+  const webm =
+    version === "v15"
+      ? await renderMatchedMotionSegment({
+          scene,
+          segmentIndex,
+          wasmBinary: await readCodec(),
+        })
+      : await renderWebmOnlySegment({
+          scene,
+          segmentIndex,
+          wasmBinary: await readCodec(),
+        });
   const encodeMs = performance.now() - encodeStartedAt;
   const decodeStartedAt = performance.now();
   const decodedDarknessFrames = await decodeWebmToGray(

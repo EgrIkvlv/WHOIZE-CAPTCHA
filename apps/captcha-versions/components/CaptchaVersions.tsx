@@ -15,17 +15,18 @@ type VersionId =
   | "webm"
   | "sparse"
   | "blur"
-  | "webm14";
+  | "webm14"
+  | "webm15";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 06 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 07 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented six different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented seven different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -66,6 +67,8 @@ const COPY = {
         "The v1.3a security boundary with a softer presentation layer. Useful for measuring eye strain and readability; the removable CSS filter itself adds no security.",
       webm14:
         "The first v1.3-quality build that removes the exact point stream from client state. It closes the WSP1 shortcut, but pixel-level computer vision remains the next measured attack surface.",
+      webm15:
+        "The first version that changes the visual signal itself: five motion-matched decoy shapes and a moving background remove the single obvious coherent region. Human readability and stronger shape-aware attacks now need measurement.",
     },
     versions: {
       canvas: {
@@ -210,8 +213,8 @@ const COPY = {
           ["Frame", "640×360"],
           ["Signal", "7,200 dots · 2.4 px"],
           ["Motion", "48 fps · non-looping"],
-          ["Noise", "100% fresh each frame"],
-          ["Exposure", "Decoded pixels only"],
+          ["Media", "≈ 1.20 MB/s"],
+          ["Solver", "100% · two-frame diff"],
         ],
         pros: [
           "No WSP1 cells, mask, seed, center, or trajectory enter client state",
@@ -224,6 +227,32 @@ const COPY = {
           "Cold-start latency and sustained segment rendering require measurement",
         ],
       },
+      webm15: {
+        name: "Matched Motion Decoys",
+        version: "v1.5",
+        subtitle: "Six coherent shapes · motion-matched background",
+        summary:
+          "The target moves beside five decoy shapes with comparable density, speed, and persistence. Most background points also move continuously, so raw frame difference and global optical flow no longer isolate one special region.",
+        architecture:
+          "Private target + decoy scene · matched particle motion · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Clusters", "1 target + 5 decoys"],
+          ["Media", "≈ 1.14 MB/s"],
+          ["Old attacks", "0–16.7%"],
+          ["Shape-aware", "58.3%"],
+        ],
+        pros: [
+          "Removes the unique low-change window exploited against v1.4",
+          "Gives coherent-flow solvers several statistically similar candidates",
+          "Keeps the target, seed, trajectories, and hit test on the server",
+        ],
+        cons: [
+          "The denser moving scene may increase human search time and eye strain",
+          "Shape classification can still distinguish the requested target",
+          "Security and usability claims require direct benchmark and human testing",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -231,17 +260,18 @@ const COPY = {
       webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
       blur: ["Softened", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
-      webm14: ["High", "No", "To measure", "Continuous", "Non-looping", "Experimental"],
+      webm14: ["High", "No", "≈ 1.20 MB/s", "≈ 1.23 s/segment", "Non-looping", "CV: 100%"],
+      webm15: ["High / busy", "No", "≈ 1.14 MB/s", "≈ 1.04 s/segment", "Non-looping", "CV: 58.3% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 06 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 07 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная шестью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная семью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -282,6 +312,8 @@ const COPY = {
         "Граница безопасности v1.3a с более мягким визуальным слоем. Полезно для измерения нагрузки на глаза и читаемости; снимаемый CSS-фильтр сам по себе защиты не добавляет.",
       webm14:
         "Первая версия с качеством v1.3, которая убирает точный point-stream из состояния клиента. WSP1-shortcut закрыт, но следующим объектом измерения остаётся компьютерное зрение по пикселям.",
+      webm15:
+        "Первая версия, которая меняет сам визуальный сигнал: пять motion-matched decoy-фигур и движущийся фон убирают единственную очевидную когерентную область. Теперь нужно измерить читаемость для людей и более сильные shape-aware атаки.",
     },
     versions: {
       canvas: {
@@ -426,8 +458,8 @@ const COPY = {
           ["Кадр", "640×360"],
           ["Сигнал", "7 200 точек · 2.4 px"],
           ["Движение", "48 fps · без цикла"],
-          ["Шум", "100% новый каждый кадр"],
-          ["Доступ", "Только декодированные пиксели"],
+          ["Медиа", "≈ 1.20 МБ/с"],
+          ["Solver", "100% · разность кадров"],
         ],
         pros: [
           "WSP1, маска, seed, центр и траектория не попадают в состояние клиента",
@@ -440,6 +472,32 @@ const COPY = {
           "Нужно измерить cold start и постоянную стоимость рендера сегментов",
         ],
       },
+      webm15: {
+        name: "Matched Motion Decoys",
+        version: "v1.5",
+        subtitle: "Шесть когерентных фигур · motion-matched фон",
+        summary:
+          "Цель движется рядом с пятью ложными фигурами сопоставимой плотности, скорости и устойчивости. Большая часть фоновых точек тоже движется непрерывно, поэтому простая разность кадров и глобальный optical flow больше не выделяют одну особую область.",
+        architecture:
+          "Приватная сцена цели и decoy · matched motion частиц · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Кластеры", "1 цель + 5 decoy"],
+          ["Медиа", "≈ 1.14 МБ/с"],
+          ["Старые атаки", "0–16.7%"],
+          ["Shape-aware", "58.3%"],
+        ],
+        pros: [
+          "Убирает уникальное low-change окно, на котором ломалась v1.4",
+          "Даёт coherent-flow solver несколько статистически похожих кандидатов",
+          "Цель, seed, траектории и hit test остаются на сервере",
+        ],
+        cons: [
+          "Более насыщенная сцена может увеличить время поиска и нагрузку на глаза",
+          "Классификация формы всё ещё может отличить нужную цель",
+          "Защиту и удобство нужно подтвердить benchmark и тестами на людях",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -447,7 +505,8 @@ const COPY = {
       webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
       blur: ["Смягчённое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
-      webm14: ["Высокое", "Нет", "Предстоит измерить", "Постоянные", "Без цикла", "Эксперимент"],
+      webm14: ["Высокое", "Нет", "≈ 1.20 МБ/с", "≈ 1.23 с/сегмент", "Без цикла", "CV: 100%"],
+      webm15: ["Высокое / насыщенное", "Нет", "≈ 1.14 МБ/с", "≈ 1.04 с/сегмент", "Без цикла", "CV: 58.3% лучший"],
     },
   },
 } as const;
@@ -459,6 +518,7 @@ const VERSION_IDS: VersionId[] = [
   "sparse",
   "blur",
   "webm14",
+  "webm15",
 ];
 
 export function CaptchaVersions() {
@@ -520,7 +580,7 @@ export function CaptchaVersions() {
                 <span className={current ? "current" : ""}>
                   {current
                     ? copy.current
-                    : id === "blur" || id === "webm14"
+                    : id === "blur" || id === "webm14" || id === "webm15"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -744,12 +804,22 @@ export function CaptchaVersions() {
                         onClose={() => setActiveVersion(null)}
                       />
                     </div>
-                  ) : (
+                  ) : activeVersion === "webm14" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v14/challenge"
                       webmOnly
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v15/challenge"
+                      webmOnly
+                      matchedMotion
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

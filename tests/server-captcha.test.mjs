@@ -34,6 +34,16 @@ import {
   verifyWebmOnlyChallenge,
   webmOnlyPublicChallenge,
 } from "../apps/captcha-versions/server/webm-only-service.ts";
+import {
+  createMatchedMotionFrameRenderer,
+  MATCHED_MOTION_DECOY_COUNT,
+} from "../apps/captcha-versions/server/matched-motion-engine.ts";
+import {
+  createMatchedMotionChallenge,
+  matchedMotionPublicChallenge,
+  readMatchedMotionSegment,
+  verifyMatchedMotionChallenge,
+} from "../apps/captcha-versions/server/matched-motion-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -274,6 +284,66 @@ test("keeps v1.4 private scene data out of its WebM-only response", async () => 
   );
   const center = positionAtFrame(record.scene, 0);
   const result = await verifyWebmOnlyChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+  assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
+});
+
+test("keeps v1.5 target and decoy motion behind the WebM-only boundary", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v15";
+  const { record } = await createMatchedMotionChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = matchedMotionPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm15_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "matched-motion-decoys");
+  assert.equal(MATCHED_MOTION_DECOY_COUNT, 5);
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "start",
+    "positions",
+    "frames",
+    "decoys",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const renderer = createMatchedMotionFrameRenderer(record.scene);
+  const first = renderer(0);
+  const second = renderer(1);
+  assert.equal(first.length, 640 * 360 * 4);
+  assert.notDeepEqual(first, second);
+
+  assert.equal(
+    (
+      await readMatchedMotionSegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 0);
+  const result = await verifyMatchedMotionChallenge({
     id: record.id,
     sessionHash,
     x: center.x,

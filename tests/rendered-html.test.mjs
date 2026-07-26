@@ -70,6 +70,10 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /v1\.3a/);
   assert.match(html, /Sparse \+ Browser Blur/);
   assert.match(html, /v1\.3b/);
+  assert.match(html, /Dynamic WebM Only/);
+  assert.match(html, /v1\.4/);
+  assert.match(html, /Matched Motion Decoys/);
+  assert.match(html, /v1\.5/);
   assert.match(html, /class="version-open"/);
   assert.match(html, />Open</);
 });

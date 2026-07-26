@@ -30,8 +30,8 @@ export type WebmOnlyChallengeRecord = {
   proofToken: string | null;
 };
 
-function challengeKey(id: string) {
-  return `webm-v14/challenges/${id}`;
+function challengeKey(id: string, namespace = "webm-v14") {
+  return `${namespace}/challenges/${id}`;
 }
 
 export function webmOnlyPublicChallenge(record: WebmOnlyChallengeRecord) {
@@ -57,13 +57,17 @@ export function webmOnlyPublicChallenge(record: WebmOnlyChallengeRecord) {
 export async function createWebmOnlyChallenge({
   config,
   sessionHash,
+  namespace = "webm-v14",
+  tokenPrefix = "webm14",
   now = Date.now(),
 }: {
   config: CaptchaConfig;
   sessionHash: string;
+  namespace?: string;
+  tokenPrefix?: string;
   now?: number;
 }) {
-  const id = createOpaqueToken("webm14");
+  const id = createOpaqueToken(tokenPrefix);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const scene = generateChallengeScene(config, seed);
   const expiresAt = now + config.durationSeconds * 1000;
@@ -77,7 +81,11 @@ export async function createWebmOnlyChallenge({
     used: false,
     proofToken: null,
   };
-  await writeRecord({ key: challengeKey(id), value: record, expiresAt });
+  await writeRecord({
+    key: challengeKey(id, namespace),
+    value: record,
+    expiresAt,
+  });
   return { record };
 }
 
@@ -92,15 +100,17 @@ export async function readWebmOnlySegment({
   id,
   sessionHash,
   segmentIndex,
+  namespace = "webm-v14",
   now = Date.now(),
 }: {
   id: string;
   sessionHash: string;
   segmentIndex: number;
+  namespace?: string;
   now?: number;
 }): Promise<ReadWebmOnlyChallengeResult> {
   const stored = await readRecord<WebmOnlyChallengeRecord>(
-    challengeKey(id),
+    challengeKey(id, namespace),
     Number.NEGATIVE_INFINITY,
   );
   if (!stored) return { success: false, reason: "not_found" };
@@ -132,6 +142,7 @@ export async function verifyWebmOnlyChallenge({
   y,
   frameIndex,
   proofTtlSeconds,
+  namespace = "webm-v14",
   now = Date.now(),
 }: {
   id: string;
@@ -140,11 +151,12 @@ export async function verifyWebmOnlyChallenge({
   y: number;
   frameIndex: number;
   proofTtlSeconds: number;
+  namespace?: string;
   now?: number;
 }) {
   for (let retry = 0; retry < 3; retry += 1) {
     const stored = await readRecord<WebmOnlyChallengeRecord>(
-      challengeKey(id),
+      challengeKey(id, namespace),
       Number.NEGATIVE_INFINITY,
     );
     if (!stored) return { success: false, reason: "not_found" as const };
@@ -214,7 +226,7 @@ export async function verifyWebmOnlyChallenge({
     const proof = hit
       ? await issueProof({
           challengeId: challenge.id,
-          challengeRecordKey: challengeKey(challenge.id),
+          challengeRecordKey: challengeKey(challenge.id, namespace),
           sessionHash,
           proofTtlSeconds,
           now,
@@ -224,7 +236,7 @@ export async function verifyWebmOnlyChallenge({
 
     try {
       await writeRecord({
-        key: challengeKey(id),
+        key: challengeKey(id, namespace),
         value: next,
         expiresAt: challenge.expiresAt,
         expectedVersion: stored.version,

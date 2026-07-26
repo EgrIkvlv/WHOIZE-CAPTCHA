@@ -1,9 +1,9 @@
 # WHOIZE attack benchmark
 
 This runner measures reproducible baseline attacks against synthetic
-`v1.3a`/`v1.3b` sparse-frame challenges and real locally encoded `v1.4`
-production WebM segments. It never contacts the deployed challenge API and
-never stores production answers, proof tokens, sessions, or telemetry.
+`v1.3a`/`v1.3b` sparse-frame challenges and real locally encoded `v1.4` and
+`v1.5` production WebM segments. It never contacts the deployed challenge API
+and never stores production answers, proof tokens, sessions, or telemetry.
 
 ## Included attacks
 
@@ -13,10 +13,12 @@ never stores production answers, proof tokens, sessions, or telemetry.
 4. `temporal-persistence` — repeated coordinates across eight frames.
 5. `coherent-flow` — integer optical-flow correlation and local clustering.
 6. `multi-frame-tracking` — short track fitted over seven flow observations.
-7. `gemini-multiframe` — optional eight-frame multimodal coordinate prediction.
-8. `client-code-exposure` — audits client challenge state for direct answer
+7. `public-shape-template` — sweeps the publicly requested shape over one frame
+   without using the private radius or trajectory.
+8. `gemini-multiframe` — optional eight-frame multimodal coordinate prediction.
+9. `client-code-exposure` — audits client challenge state for direct answer
    fields and records exposure of the exact occupancy stream.
-9. `challenge-and-proof-replay` — verifies that solved challenges and
+10. `challenge-and-proof-replay` — verifies that solved challenges and
    single-use proofs reject a second use.
 
 Every run records success under the real private shape hit test, coordinate
@@ -32,6 +34,7 @@ npm run benchmark:attack
 npm run benchmark:attack -- --samples=100
 npm run benchmark:attack -- --samples=24 --raster
 npm run benchmark:attack -- --samples=24 --webm
+npm run benchmark:attack -- --samples=24 --webm-v15 --production-only
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -47,6 +50,11 @@ segment is piped through FFmpeg to gray8 frames; set `FFMPEG_PATH` when
 `ffmpeg` is not on `PATH`. The report records encoded bytes, server-side encode
 time, decoder time, and solver time separately. The deployed API is never
 called.
+
+`--webm-v15` uses identical seeds and target scenes to compare decoded v1.4
+and v1.5 production WebM. It also evaluates v1.5 exact, clean-raster, and blur
+representations unless `--production-only` is supplied. The production-only
+mode is the fastest direct codec comparison and still runs every solver.
 
 Gemini is opt-in and reads secrets only from the process environment:
 
@@ -71,5 +79,7 @@ cost and reliability of attacks under explicit assumptions. The CSS blur in
 read the unfiltered Canvas data, so sparse-stream attacks should be assumed to
 have the same input as `v1.3a`. The blurred raster cases answer a narrower
 counterfactual question: what if an attacker were restricted to screenshots?
-The v1.4 WebM case is different: exact cells are absent from client state, but
-decoded pixels remain attacker-controlled input.
+The v1.4 and v1.5 WebM cases are different: exact cells are absent from client
+state, but decoded pixels remain attacker-controlled input. v1.5 intentionally
+converts the problem from locating the only coherent region into recognizing
+the requested shape among several motion-matched candidates.

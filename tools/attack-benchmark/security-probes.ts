@@ -9,6 +9,10 @@ import {
   createWebmOnlyChallenge,
   webmOnlyPublicChallenge,
 } from "../../apps/captcha-versions/server/webm-only-service.ts";
+import {
+  createMatchedMotionChallenge,
+  matchedMotionPublicChallenge,
+} from "../../apps/captcha-versions/server/matched-motion-service.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -81,6 +85,49 @@ export async function runWebmOnlyExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.4 public state contains playback metadata only; private scene fields and exact occupancy frames are absent.",
+  };
+}
+
+export async function runMatchedMotionExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createMatchedMotionChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "matched-motion-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = matchedMotionPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "decoys",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "matched-motion-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "matched-motion-decoys" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.5 exposes only playback metadata and its public variant label; target, decoy, and background motion remain server-side.",
   };
 }
 

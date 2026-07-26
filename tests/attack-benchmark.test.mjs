@@ -6,6 +6,7 @@ import {
   createFixture,
   createRasterFixture,
   createV14Fixture,
+  createV15Fixture,
   runSolver,
   summarize,
 } from "../tools/attack-benchmark/benchmark-core.ts";
@@ -13,6 +14,7 @@ import {
   runClientExposureAudit,
   runReplayProbe,
   runWebmOnlyExposureAudit,
+  runMatchedMotionExposureAudit,
 } from "../tools/attack-benchmark/security-probes.ts";
 import { createProductionWebmFixture } from "../tools/attack-benchmark/production-webm.ts";
 
@@ -24,7 +26,7 @@ const hasFfmpeg =
 test("runs reproducible attack baselines against sparse fixtures", () => {
   const fixture = createFixture(0x51a7c000);
   const results = baselineSolvers.map((solver) => runSolver(solver, fixture));
-  assert.equal(results.length, 6);
+  assert.equal(results.length, 7);
   assert.ok(
     results.every(
       (result) =>
@@ -35,7 +37,7 @@ test("runs reproducible attack baselines against sparse fixtures", () => {
   );
   assert.ok(results.every((result) => result.expected.x > 0));
   assert.ok(results.every((result) => result.expected.y > 0));
-  assert.equal(summarize(results).length, 6);
+  assert.equal(summarize(results).length, 7);
 });
 
 test("runs the same attacks on clean and blurred raster-only fixtures", () => {
@@ -45,7 +47,7 @@ test("runs the same attacks on clean and blurred raster-only fixtures", () => {
     createRasterFixture(source, 1.2),
   ]) {
     const results = baselineSolvers.map((solver) => runSolver(solver, fixture));
-    assert.equal(results.length, 6);
+    assert.equal(results.length, 7);
     assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
   }
 });
@@ -63,7 +65,24 @@ test(
     assert.ok((webm.transportMetrics?.encodeMs ?? 0) > 0);
     assert.ok((webm.transportMetrics?.decodeMs ?? 0) > 0);
     const results = baselineSolvers.map((solver) => runSolver(solver, webm));
-    assert.equal(results.length, 6);
+    assert.equal(results.length, 7);
+    assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
+  },
+);
+
+test(
+  "decodes the real v1.5 production WebM before running attacks",
+  { skip: !hasFfmpeg },
+  async () => {
+    const exact = createV15Fixture(0x51a7c000);
+    const webm = await createProductionWebmFixture(0x51a7c000, "v15");
+    assert.equal(exact.targetFrame, webm.targetFrame);
+    assert.equal(exact.representation, "v15-exact-cells");
+    assert.equal(webm.representation, "webm-decoded");
+    assert.equal(webm.transportMetrics?.decodedFrames, 48);
+    assert.ok((webm.transportMetrics?.mediaBytes ?? 0) > 50_000);
+    const results = baselineSolvers.map((solver) => runSolver(solver, webm));
+    assert.equal(results.length, 7);
     assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
   },
 );
@@ -98,6 +117,11 @@ test("audits client exposure and rejects challenge and proof replay", async () =
   assert.equal(webmExposure.passed, true);
   assert.equal(webmExposure.exactOccupancyFramesExposed, false);
   assert.deepEqual(webmExposure.exposedPrivateFields, []);
+
+  const matchedMotionExposure = await runMatchedMotionExposureAudit();
+  assert.equal(matchedMotionExposure.passed, true);
+  assert.equal(matchedMotionExposure.exactOccupancyFramesExposed, false);
+  assert.deepEqual(matchedMotionExposure.exposedPrivateFields, []);
 
   const replay = await runReplayProbe();
   assert.equal(replay.passed, true);
