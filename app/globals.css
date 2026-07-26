@@ -1965,3 +1965,252 @@ footer p {
     gap: 7px;
   }
 }
+
+.admin-nav-actions form {
+  margin: 0;
+}
+
+.admin-nav-actions form button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: 7px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.admin-nav-actions form button:hover {
+  color: var(--coral);
+}
+
+.admin-publish-bar {
+  min-height: 68px;
+  padding: 12px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  background: #dcdbd3;
+}
+
+.admin-publish-bar > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.admin-save-state {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.admin-save-state i {
+  width: 8px;
+  height: 8px;
+  display: block;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: #9b9d94;
+}
+
+.admin-save-state.state-dirty i {
+  background: var(--coral);
+}
+
+.admin-save-state.state-saving i {
+  background: #f0c43a;
+  animation: status-pulse 0.8s infinite alternate;
+}
+
+@keyframes status-pulse {
+  from {
+    opacity: 0.35;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.admin-save-state.state-saved i,
+.admin-save-state.state-clean i {
+  background: var(--acid);
+}
+
+.admin-save-state.state-error {
+  color: #9c301e;
+}
+
+.admin-save-state.state-error i {
+  background: var(--coral);
+}
+
+.admin-publish-bar small {
+  color: var(--muted);
+  font: 7px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.admin-publish-bar button {
+  min-width: 163px;
+  min-height: 39px;
+  padding: 8px 14px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--acid);
+  cursor: pointer;
+  font: 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+
+.admin-publish-bar button:disabled {
+  background: transparent;
+  color: #9a9c94;
+  cursor: default;
+}
+
+.admin-server-note {
+  border-color: #83a82d;
+  background: #edf5d9;
+}
+
+.admin-server-note > span {
+  background: var(--acid);
+}
+
+.admin-server-note p {
+  color: #516127;
+}
+
+.admin-login-page {
+  min-height: 100vh;
+  padding: 28px 34px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background:
+    linear-gradient(#dfded7 1px, transparent 1px),
+    linear-gradient(90deg, #dfded7 1px, transparent 1px),
+    var(--paper);
+  background-size: 28px 28px;
+  color: var(--ink);
+}
+
+.admin-login-page > .brand {
+  width: fit-content;
+}
+
+.admin-login-card {
+  width: min(100%, 520px);
+  margin: 64px auto;
+  padding: 42px;
+  align-self: center;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 12px 12px 0 rgba(18, 19, 16, 0.18);
+}
+
+.admin-login-card h1 {
+  margin: 14px 0 17px;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 0.91;
+  letter-spacing: -0.06em;
+}
+
+.admin-login-card > p:not(.admin-eyebrow) {
+  max-width: 390px;
+  margin: 0 0 30px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.admin-login-card form,
+.admin-login-card label {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-login-card label > span {
+  font: 7px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+}
+
+.admin-login-card input {
+  width: 100%;
+  height: 49px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: #e6e5de;
+  color: var(--ink);
+  font: 16px ui-monospace, monospace;
+  outline: none;
+}
+
+.admin-login-card input:focus {
+  box-shadow: 0 0 0 3px var(--acid);
+}
+
+.admin-login-card form > button {
+  height: 49px;
+  margin-top: 5px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--acid);
+  cursor: pointer;
+  font: 9px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+}
+
+.admin-login-card form > button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-login-error {
+  padding: 11px 12px;
+  border: 1px solid var(--coral);
+  background: #fff0ec;
+  color: #8c321f;
+  font-size: 9px;
+}
+
+.admin-login-back {
+  margin-top: 23px;
+  display: inline-block;
+  color: var(--muted);
+  font-size: 9px;
+  text-decoration: none;
+}
+
+.admin-login-foot {
+  margin: 0;
+  color: var(--muted);
+  font: 7px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 720px) {
+  .admin-publish-bar {
+    padding: 14px 18px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 13px;
+  }
+
+  .admin-publish-bar > div {
+    justify-content: space-between;
+  }
+
+  .admin-login-page {
+    padding: 20px 18px;
+  }
+
+  .admin-login-card {
+    margin: 40px auto;
+    padding: 30px 22px;
+  }
+}

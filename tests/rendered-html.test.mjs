@@ -51,7 +51,7 @@ test("server-renders the separate motion lab route", async () => {
   assert.match(html, /Найдите движущуюся фигуру/);
 });
 
-test("server-renders the local owner control plane", async () => {
+test("server-renders the protected owner login", async () => {
   const response = await render("/admin");
   assert.equal(response.status, 200);
 
@@ -59,7 +59,32 @@ test("server-renders the local owner control plane", async () => {
   assert.match(html, /<title>Control Plane · WHOIZE<\/title>/i);
   assert.match(html, /WHOIZE/);
   assert.match(html, /CONTROL PLANE/);
-  assert.match(html, /Управление CAPTCHA/);
-  assert.match(html, /LOCAL CONFIG ONLINE/);
-  assert.match(html, /Этот браузер/);
+  assert.match(html, /Вход владельца/);
+  assert.match(html, /ПАРОЛЬ CONTROL PLANE/);
+  assert.doesNotMatch(html, /SERVER CONFIG ONLINE/);
+});
+
+test("serves the public read-only CAPTCHA config", async () => {
+  const response = await render("/api/captcha-config");
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") ?? "", /^application\/json/i);
+  assert.match(response.headers.get("cache-control") ?? "", /no-store/i);
+
+  const payload = await response.json();
+  assert.equal(payload.config.schemaVersion, 1);
+  assert.ok(payload.config.revision >= 1);
+  assert.deepEqual(payload.config.shapes, [
+    "Круг",
+    "Треугольник",
+    "Ромб",
+    "Звезда",
+  ]);
+});
+
+test("rejects unauthenticated Control Plane API access", async () => {
+  const response = await render("/api/admin/config");
+  assert.equal(response.status, 401);
+
+  const payload = await response.json();
+  assert.match(payload.error, /вход владельца/i);
 });

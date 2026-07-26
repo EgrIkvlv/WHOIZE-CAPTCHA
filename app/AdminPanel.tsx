@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  applyMotionPreset,
+  DEFAULT_CAPTCHA_CONFIG,
   getAllShapes,
   type CaptchaConfig,
   type MotionPresetName,
   type ShapeName,
   MOTION_PRESETS,
-  resetCaptchaConfig,
-  updateCaptchaConfig,
-  useCaptchaConfig,
+  normalizeCaptchaConfig,
+  saveServerCaptchaConfig,
 } from "./captcha-config";
 import { MotionCaptcha } from "./MotionCaptcha";
 
@@ -19,47 +18,110 @@ type NumericConfigKey = {
   [Key in keyof CaptchaConfig]: CaptchaConfig[Key] extends number ? Key : never;
 }[keyof CaptchaConfig];
 
+type SaveState = "clean" | "dirty" | "saving" | "saved" | "error";
+
 const PRESET_NAMES = Object.keys(MOTION_PRESETS) as Array<
   Exclude<MotionPresetName, "Custom">
 >;
 
-export function AdminPanel() {
-  const config = useCaptchaConfig();
+export function AdminPanel({
+  initialConfig,
+  initialUpdatedAt,
+  storage,
+}: {
+  initialConfig: CaptchaConfig;
+  initialUpdatedAt: string | null;
+  storage: "blob" | "memory" | "default";
+}) {
+  const [draft, setDraft] = useState(initialConfig);
+  const [published, setPublished] = useState(initialConfig);
+  const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
+  const [saveState, setSaveState] = useState<SaveState>("clean");
+  const [saveMessage, setSaveMessage] = useState(
+    initialUpdatedAt ? "Серверная версия загружена" : "Работают значения по умолчанию",
+  );
   const [previewKey, setPreviewKey] = useState(0);
   const [previewResult, setPreviewResult] = useState("Ожидает решения");
+
+  const dirty = useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(published),
+    [draft, published],
+  );
+
+  const patchDraft = (patch: Partial<CaptchaConfig>) => {
+    setDraft((current) =>
+      normalizeCaptchaConfig({
+        ...current,
+        ...patch,
+        revision: current.revision,
+      }),
+    );
+    setSaveState("dirty");
+    setSaveMessage("Есть неопубликованные изменения");
+  };
 
   const updateNumber = (
     key: NumericConfigKey,
     value: number,
     motionSetting = false,
   ) => {
-    updateCaptchaConfig({
+    patchDraft({
       [key]: value,
       ...(motionSetting ? { profileName: "Custom" as const } : {}),
     });
   };
 
   const toggleShape = (shape: ShapeName) => {
-    const enabled = config.shapes.includes(shape);
-    if (enabled && config.shapes.length === 1) return;
-    updateCaptchaConfig({
+    const enabled = draft.shapes.includes(shape);
+    if (enabled && draft.shapes.length === 1) return;
+    patchDraft({
       shapes: enabled
-        ? config.shapes.filter((item) => item !== shape)
-        : [...config.shapes, shape],
+        ? draft.shapes.filter((item) => item !== shape)
+        : [...draft.shapes, shape],
     });
-    setPreviewKey((value) => value + 1);
-    setPreviewResult("Конфигурация обновлена");
+    restartPreview("Preview обновлён");
   };
 
-  const restartPreview = () => {
+  const restartPreview = (message = "Ожидает решения") => {
     setPreviewKey((value) => value + 1);
-    setPreviewResult("Ожидает решения");
+    setPreviewResult(message);
+  };
+
+  const publish = async (value = draft) => {
+    setSaveState("saving");
+    setSaveMessage("Публикуем серверную ревизию…");
+    try {
+      const saved = await saveServerCaptchaConfig(value);
+      setDraft(saved);
+      setPublished(saved);
+      setUpdatedAt(new Date().toISOString());
+      setSaveState("saved");
+      setSaveMessage(`Ревизия #${saved.revision} опубликована`);
+    } catch (error) {
+      const conflict = error as Error & {
+        status?: number;
+        currentConfig?: CaptchaConfig;
+      };
+      if (conflict.status === 409 && conflict.currentConfig) {
+        setDraft(conflict.currentConfig);
+        setPublished(conflict.currentConfig);
+        setSaveMessage("Конфиг обновился в другой сессии — загружена новая версия");
+      } else {
+        setSaveMessage(conflict.message);
+      }
+      setSaveState("error");
+    }
   };
 
   const resetAll = () => {
-    if (!window.confirm("Сбросить все локальные настройки CAPTCHA?")) return;
-    resetCaptchaConfig();
-    restartPreview();
+    if (!window.confirm("Опубликовать значения CAPTCHA по умолчанию?")) return;
+    const defaults = {
+      ...DEFAULT_CAPTCHA_CONFIG,
+      revision: published.revision,
+    };
+    setDraft(defaults);
+    restartPreview("Preview сброшен");
+    void publish(defaults);
   };
 
   return (
@@ -71,25 +133,48 @@ export function AdminPanel() {
         <div className="admin-nav-actions">
           <span>
             <i />
-            LOCAL CONFIG ONLINE
+            SERVER CONFIG ONLINE
           </span>
           <Link href="/">CAPTCHA</Link>
           <Link href="/lab">MOTION LAB</Link>
+          <form action="/api/admin/logout" method="post">
+            <button type="submit">ВЫЙТИ</button>
+          </form>
         </div>
       </header>
 
       <section className="admin-heading">
         <div>
-          <p className="admin-eyebrow">OWNER SURFACE · CONFIG V1</p>
+          <p className="admin-eyebrow">OWNER SURFACE · CONFIG V2</p>
           <h1>Управление CAPTCHA</h1>
         </div>
         <div className="admin-scope-card">
           <span>ОБЛАСТЬ ДЕЙСТВИЯ</span>
-          <strong>Этот браузер</strong>
+          <strong>Все посетители</strong>
           <p>
-            Настройки сохраняются локально и синхронизируются между открытыми
-            вкладками. Серверная Control Plane появится на следующем этапе.
+            Опубликованная ревизия хранится на сервере. Новые CAPTCHA получают
+            её при загрузке, а открытые вкладки проверяют обновления каждые 30
+            секунд.
           </p>
+        </div>
+      </section>
+
+      <section className="admin-publish-bar">
+        <div className={`admin-save-state state-${saveState}`}>
+          <i />
+          <span>{saveMessage}</span>
+        </div>
+        <div>
+          <small>
+            {dirty ? "DRAFT НЕ ОПУБЛИКОВАН" : `LIVE · REV ${published.revision}`}
+          </small>
+          <button
+            type="button"
+            disabled={!dirty || saveState === "saving"}
+            onClick={() => void publish()}
+          >
+            {saveState === "saving" ? "ПУБЛИКУЕМ…" : "ОПУБЛИКОВАТЬ →"}
+          </button>
         </div>
       </section>
 
@@ -99,16 +184,19 @@ export function AdminPanel() {
             <BlockTitle
               number="01"
               title="Профиль движения"
-              note={`ACTIVE / ${config.profileName.toUpperCase()}`}
+              note={`DRAFT / ${draft.profileName.toUpperCase()}`}
             />
             <div className="admin-presets">
               {PRESET_NAMES.map((preset) => (
                 <button
                   key={preset}
-                  className={config.profileName === preset ? "active" : ""}
+                  className={draft.profileName === preset ? "active" : ""}
                   type="button"
                   onClick={() => {
-                    applyMotionPreset(preset);
+                    patchDraft({
+                      profileName: preset,
+                      ...MOTION_PRESETS[preset],
+                    });
                     restartPreview();
                   }}
                 >
@@ -126,79 +214,79 @@ export function AdminPanel() {
             <BlockTitle
               number="02"
               title="Модель сигнала"
-              note="LIVE PARAMETERS"
+              note="DRAFT PARAMETERS"
             />
             <div className="admin-control-grid">
               <AdminRange
                 label="Плотность"
-                value={config.density}
+                value={draft.density}
                 min={2200}
                 max={7200}
                 step={100}
-                output={config.density.toLocaleString("ru-RU")}
+                output={draft.density.toLocaleString("ru-RU")}
                 onChange={(value) => updateNumber("density", value, true)}
               />
               <AdminRange
                 label="Размер точки"
-                value={config.dotSize}
+                value={draft.dotSize}
                 min={0.8}
                 max={2.4}
                 step={0.05}
-                output={`${config.dotSize.toFixed(2)} px`}
+                output={`${draft.dotSize.toFixed(2)} px`}
                 onChange={(value) => updateNumber("dotSize", value, true)}
               />
               <AdminRange
                 label="Связность"
-                value={config.coherence}
+                value={draft.coherence}
                 min={35}
                 max={100}
                 step={1}
-                output={`${config.coherence}%`}
+                output={`${draft.coherence}%`}
                 onChange={(value) => updateNumber("coherence", value, true)}
               />
               <AdminRange
                 label="Скорость"
-                value={config.speed}
+                value={draft.speed}
                 min={18}
                 max={90}
                 step={1}
-                output={`${config.speed} px/s`}
+                output={`${draft.speed} px/s`}
                 onChange={(value) => updateNumber("speed", value, true)}
               />
               <AdminRange
                 label="Частота"
-                value={config.fps}
+                value={draft.fps}
                 min={12}
                 max={48}
                 step={1}
-                output={`${config.fps} fps`}
+                output={`${draft.fps} fps`}
                 onChange={(value) => updateNumber("fps", value, true)}
               />
               <div className="radius-pair">
                 <AdminRange
                   label="Мин. размер"
-                  value={config.radiusMin}
+                  value={draft.radiusMin}
                   min={42}
                   max={90}
                   step={1}
-                  output={`${config.radiusMin} px`}
+                  output={`${draft.radiusMin} px`}
                   onChange={(value) =>
-                    updateCaptchaConfig({
-                      radiusMin: Math.min(value, config.radiusMax - 2),
+                    patchDraft({
+                      radiusMin: Math.min(value, draft.radiusMax - 2),
                       profileName: "Custom",
                     })
                   }
                 />
                 <AdminRange
                   label="Макс. размер"
-                  value={config.radiusMax}
+                  value={draft.radiusMax}
                   min={44}
                   max={112}
                   step={1}
-                  output={`${config.radiusMax} px`}
+                  output={`${draft.radiusMax} px`}
                   onChange={(value) =>
-                    updateCaptchaConfig({
-                      radiusMax: Math.max(value, config.radiusMin + 2),
+                    patchDraft({
+                      radiusMax: Math.max(value, draft.radiusMin + 2),
                       profileName: "Custom",
                     })
                   }
@@ -216,65 +304,57 @@ export function AdminPanel() {
             <div className="admin-control-grid">
               <AdminRange
                 label="Время задачи"
-                value={config.durationSeconds}
+                value={draft.durationSeconds}
                 min={15}
                 max={180}
                 step={5}
-                output={`${config.durationSeconds} sec`}
-                onChange={(value) =>
-                  updateNumber("durationSeconds", value)
-                }
+                output={`${draft.durationSeconds} sec`}
+                onChange={(value) => updateNumber("durationSeconds", value)}
               />
               <AdminRange
                 label="Попытки"
-                value={config.maxAttempts}
+                value={draft.maxAttempts}
                 min={1}
                 max={8}
                 step={1}
-                output={String(config.maxAttempts)}
+                output={String(draft.maxAttempts)}
                 onChange={(value) => updateNumber("maxAttempts", value)}
               />
               <AdminRange
                 label="Пауза после промаха"
-                value={config.retryDelayMs}
+                value={draft.retryDelayMs}
                 min={300}
                 max={3000}
                 step={100}
-                output={`${config.retryDelayMs} ms`}
+                output={`${draft.retryDelayMs} ms`}
                 onChange={(value) => updateNumber("retryDelayMs", value)}
               />
               <AdminRange
                 label="Имитация проверки"
-                value={config.verificationDelayMs}
+                value={draft.verificationDelayMs}
                 min={0}
                 max={2000}
                 step={50}
-                output={`${config.verificationDelayMs} ms`}
-                onChange={(value) =>
-                  updateNumber("verificationDelayMs", value)
-                }
+                output={`${draft.verificationDelayMs} ms`}
+                onChange={(value) => updateNumber("verificationDelayMs", value)}
               />
               <AdminRange
                 label="Срок proof"
-                value={config.proofTtlSeconds}
+                value={draft.proofTtlSeconds}
                 min={15}
                 max={600}
                 step={15}
-                output={`${config.proofTtlSeconds} sec`}
-                onChange={(value) =>
-                  updateNumber("proofTtlSeconds", value)
-                }
+                output={`${draft.proofTtlSeconds} sec`}
+                onChange={(value) => updateNumber("proofTtlSeconds", value)}
               />
               <AdminRange
                 label="Закрытие после успеха"
-                value={config.autoCloseDelayMs}
+                value={draft.autoCloseDelayMs}
                 min={0}
                 max={5000}
                 step={100}
-                output={`${config.autoCloseDelayMs} ms`}
-                onChange={(value) =>
-                  updateNumber("autoCloseDelayMs", value)
-                }
+                output={`${draft.autoCloseDelayMs} ms`}
+                onChange={(value) => updateNumber("autoCloseDelayMs", value)}
               />
             </div>
           </section>
@@ -283,7 +363,7 @@ export function AdminPanel() {
             <BlockTitle number="04" title="Набор фигур" note="OBJECT POOL" />
             <div className="shape-toggles">
               {getAllShapes().map((shape) => {
-                const enabled = config.shapes.includes(shape);
+                const enabled = draft.shapes.includes(shape);
                 return (
                   <button
                     key={shape}
@@ -291,7 +371,7 @@ export function AdminPanel() {
                     type="button"
                     onClick={() => toggleShape(shape)}
                     aria-pressed={enabled}
-                    disabled={enabled && config.shapes.length === 1}
+                    disabled={enabled && draft.shapes.length === 1}
                   >
                     <span>{shapeGlyph(shape)}</span>
                     <strong>{shape}</strong>
@@ -306,10 +386,10 @@ export function AdminPanel() {
         <aside className="admin-preview-column">
           <div className="admin-preview-head">
             <div>
-              <span>LIVE PREVIEW</span>
+              <span>DRAFT PREVIEW</span>
               <strong>{previewResult}</strong>
             </div>
-            <button type="button" onClick={restartPreview}>
+            <button type="button" onClick={() => restartPreview()}>
               ↻ Перезапустить
             </button>
           </div>
@@ -317,44 +397,44 @@ export function AdminPanel() {
             <MotionCaptcha
               key={previewKey}
               embedded
+              configOverride={draft}
               onPass={() => setPreviewResult("Проверка пройдена")}
             />
           </div>
 
           <div className="admin-config-meta">
             <div>
-              <span>CONFIG REVISION</span>
-              <strong>#{String(config.revision).padStart(4, "0")}</strong>
+              <span>LIVE REVISION</span>
+              <strong>#{String(published.revision).padStart(4, "0")}</strong>
             </div>
             <div>
               <span>STORAGE</span>
-              <strong>LOCAL</strong>
+              <strong>{storage === "memory" ? "MEMORY" : "BLOB"}</strong>
             </div>
             <div>
               <span>ACTIVE SHAPES</span>
-              <strong>{config.shapes.length}/4</strong>
+              <strong>{draft.shapes.length}/4</strong>
             </div>
           </div>
 
-          <div className="admin-warning">
-            <span>!</span>
+          <div className="admin-warning admin-server-note">
+            <span>✓</span>
             <p>
-              Эта версия не является защищённой админкой: любой пользователь с
-              доступом к этому браузеру может менять настройки. Для production
-              понадобятся персональный вход, серверное хранилище и журнал
-              изменений.
+              Запись защищена серверной сессией владельца. Каждая публикация
+              создаёт новую ревизию и отдельную запись в журнале. Последнее
+              обновление: {formatTimestamp(updatedAt)}.
             </p>
           </div>
 
           <button className="admin-reset" type="button" onClick={resetAll}>
-            Сбросить конфигурацию к значениям по умолчанию
+            Опубликовать значения по умолчанию
           </button>
         </aside>
       </section>
 
       <footer className="admin-footer">
-        <p>WHOIZE CONTROL PLANE · LOCAL OWNER SURFACE</p>
-        <p>Изменения применяются автоматически</p>
+        <p>WHOIZE CONTROL PLANE · SERVER OWNER SURFACE</p>
+        <p>Draft → Publish → Global rollout</p>
       </footer>
     </main>
   );
@@ -420,4 +500,12 @@ function shapeGlyph(shape: ShapeName) {
   if (shape === "Треугольник") return "▲";
   if (shape === "Ромб") return "◆";
   return "★";
+}
+
+function formatTimestamp(value: string | null) {
+  if (!value) return "ещё не публиковалось";
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(new Date(value));
 }

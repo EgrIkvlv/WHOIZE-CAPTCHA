@@ -48,7 +48,8 @@ The project now has three connected surfaces:
 
 - `/` — a complete client-side CAPTCHA flow with a protected demo action;
 - `/lab` — the original perception laboratory for tuning the signal;
-- `/admin` — a local owner control plane for shared CAPTCHA configuration.
+- `/admin` — an authenticated server control plane for shared CAPTCHA
+  configuration.
 
 The CAPTCHA surface deliberately tests one core interaction: can a person find
 and click one moving shape whose evidence exists primarily between frames?
@@ -70,13 +71,12 @@ It includes:
 
 The control plane can change motion parameters, shape size and availability,
 challenge duration, attempt limits, retry timing, local proof lifetime, and
-post-success behavior. Settings are applied to the real CAPTCHA immediately,
-persisted in `localStorage`, and synchronized between tabs in the same browser.
-
-`/admin` is intentionally a local prototype, not an authenticated
-administration system. Anyone with access to that browser can change its
-configuration. A production version will require owner authentication,
-server-side storage, authorization, validation, and an audit log.
+post-success behavior. Draft settings can be tested against the embedded
+preview before publication. Published revisions are stored in a private Vercel
+Blob, served through a read-only API, and picked up by all CAPTCHA clients
+without a rebuild. Writes require an owner password and an authenticated,
+signed HttpOnly session. Every publication also creates an immutable audit
+record.
 
 The proof and answer verification are still client-side and are intentionally
 labelled as such. Moving generation, answers, and proof redemption to the
@@ -96,8 +96,19 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The local control plane is
+Open [http://localhost:3000](http://localhost:3000). The control plane is
 available at [http://localhost:3000/admin](http://localhost:3000/admin).
+
+Server Control Plane variables:
+
+```bash
+BLOB_READ_WRITE_TOKEN=
+CONTROL_PLANE_PASSWORD=
+CONTROL_PLANE_SESSION_SECRET=
+```
+
+Keep their values in `.env.local` for development and in encrypted hosting
+environment variables for production. Never commit them.
 
 Useful commands:
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_CAPTCHA_CONFIG,
+  type CaptchaConfig,
   type ShapeName,
   useCaptchaConfig,
 } from "./captcha-config";
@@ -61,12 +62,15 @@ export function MotionCaptcha({
   onPass,
   onClose,
   embedded = false,
+  configOverride,
 }: {
   onPass: (token: string) => void;
   onClose?: () => void;
   embedded?: boolean;
+  configOverride?: CaptchaConfig;
 }) {
-  const config = useCaptchaConfig();
+  const serverConfig = useCaptchaConfig();
+  const config = configOverride ?? serverConfig;
   const configRef = useRef(config);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shapeRef = useRef<ShapeName>("Звезда");
