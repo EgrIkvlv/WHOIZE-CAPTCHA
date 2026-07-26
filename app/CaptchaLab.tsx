@@ -113,7 +113,9 @@ export function CaptchaLab() {
   const lastPaintRef = useRef(0);
   const frameRequestRef = useRef(0);
   const forcePaintRef = useRef(true);
-  const flashRef = useRef<{ x: number; y: number; hit: boolean; until: number }>();
+  const flashRef = useRef<
+    { x: number; y: number; hit: boolean; until: number } | undefined
+  >(undefined);
 
   const [config, setConfig] = useState<LabConfig>(PRESETS.Баланс);
   const [difficulty, setDifficulty] = useState<Difficulty>("Баланс");
