@@ -22,7 +22,10 @@ const COPY = {
       "The same motion idea, implemented four different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
-    launch: "Launch version",
+    launch: "Open",
+    relaunch: "Relaunch CAPTCHA",
+    live: "Live challenge",
+    details: "Version details",
     close: "Close comparison",
     pros: "Advantages",
     cons: "Limitations",
@@ -173,7 +176,10 @@ const COPY = {
       "Одна motion-идея, реализованная четырьмя способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
-    launch: "Запустить версию",
+    launch: "Открыть",
+    relaunch: "Перезапустить CAPTCHA",
+    live: "Рабочая CAPTCHA",
+    details: "Подробности версии",
     close: "Закрыть сравнение",
     pros: "Плюсы",
     cons: "Ограничения",
@@ -323,7 +329,12 @@ export function CaptchaVersions() {
   const copy = COPY[locale];
   const config = useCaptchaConfig();
   const [activeVersion, setActiveVersion] = useState<VersionId | null>(null);
+  const [relaunchKey, setRelaunchKey] = useState(0);
   const rowLabels = Object.values(copy.rows);
+  const openVersion = (id: VersionId) => {
+    setRelaunchKey((current) => current + 1);
+    setActiveVersion(id);
+  };
 
   return (
     <main className="versions-page">
@@ -372,56 +383,20 @@ export function CaptchaVersions() {
                   {current ? copy.current : copy.archived}
                 </span>
               </div>
-              <div className="version-index">0{index + 1}</div>
-              <h2>{version.name}</h2>
-              <p className="version-subtitle">{version.subtitle}</p>
-              <p className="version-summary">{version.summary}</p>
-
-              <div className="version-architecture">
-                <small>{copy.architecture}</small>
-                <strong>{version.architecture}</strong>
+              <div className="version-card-body">
+                <span className="version-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <h2>{version.name}</h2>
+                <p>{version.subtitle}</p>
               </div>
-
-              <dl className="version-metrics">
-                {version.metrics.map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div className="version-lists">
-                <div>
-                  <h3>
-                    <span>+</span> {copy.pros}
-                  </h3>
-                  <ul>
-                    {version.pros.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="negative">
-                    <span>−</span> {copy.cons}
-                  </h3>
-                  <ul>
-                    {version.cons.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <p className="version-verdict">{copy.verdict[id]}</p>
               <button
                 type="button"
-                className="version-launch"
-                onClick={() => setActiveVersion(id)}
+                className="version-open"
+                onClick={() => openVersion(id)}
               >
                 <span>{copy.launch}</span>
-                <span>↗</span>
+                <span>→</span>
               </button>
             </article>
           );
@@ -477,38 +452,112 @@ export function CaptchaVersions() {
                 <span>{copy.versions[activeVersion].version}</span>
                 <strong>{copy.versions[activeVersion].name}</strong>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveVersion(null)}
-                aria-label={copy.close}
-              >
-                ×
-              </button>
+              <div className="version-modal-actions">
+                <button
+                  type="button"
+                  className="version-relaunch"
+                  onClick={() => setRelaunchKey((current) => current + 1)}
+                >
+                  <span aria-hidden="true">↻</span>
+                  <span>{copy.relaunch}</span>
+                </button>
+                <button
+                  type="button"
+                  className="version-modal-close"
+                  onClick={() => setActiveVersion(null)}
+                  aria-label={copy.close}
+                >
+                  ×
+                </button>
+              </div>
             </div>
-            {activeVersion === "canvas" ? (
-              <MotionCaptcha
-                config={config}
-                locale={locale}
-                onPass={() => undefined}
-                onClose={() => setActiveVersion(null)}
-              />
-            ) : activeVersion === "apng" ? (
-              <LegacyApngCaptcha
-                locale={locale}
-                onClose={() => setActiveVersion(null)}
-              />
-            ) : activeVersion === "webm" ? (
-              <ServerMotionCaptcha
-                locale={locale}
-                onPass={() => undefined}
-                onClose={() => setActiveVersion(null)}
-              />
-            ) : (
-              <SparseFramesCaptcha
-                locale={locale}
-                onClose={() => setActiveVersion(null)}
-              />
-            )}
+            <div className="version-modal-content">
+              <section className="version-detail">
+                <p className="eyebrow">{copy.details}</p>
+                <p className="version-detail-subtitle">
+                  {copy.versions[activeVersion].subtitle}
+                </p>
+                <p className="version-detail-summary">
+                  {copy.versions[activeVersion].summary}
+                </p>
+                <div className="version-detail-architecture">
+                  <small>{copy.architecture}</small>
+                  <strong>
+                    {copy.versions[activeVersion].architecture}
+                  </strong>
+                </div>
+                <dl className="version-detail-metrics">
+                  {copy.versions[activeVersion].metrics.map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="version-detail-lists">
+                  <div>
+                    <h3>
+                      <span>+</span> {copy.pros}
+                    </h3>
+                    <ul>
+                      {copy.versions[activeVersion].pros.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="negative">
+                      <span>−</span> {copy.cons}
+                    </h3>
+                    <ul>
+                      {copy.versions[activeVersion].cons.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <p className="version-detail-verdict">
+                  {copy.verdict[activeVersion]}
+                </p>
+              </section>
+
+              <section className="version-live">
+                <div className="version-live-heading">
+                  <span className="privacy-dot" />
+                  {copy.live}
+                </div>
+                <div className="version-live-captcha">
+                  {activeVersion === "canvas" ? (
+                    <MotionCaptcha
+                      key={relaunchKey}
+                      config={config}
+                      locale={locale}
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : activeVersion === "apng" ? (
+                    <LegacyApngCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : activeVersion === "webm" ? (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <SparseFramesCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  )}
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       )}

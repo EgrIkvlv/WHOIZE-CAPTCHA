@@ -68,7 +68,8 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /Server WebM/);
   assert.match(html, /Sparse Frames/);
   assert.match(html, /v1\.3a/);
-  assert.match(html, /Launch version/);
+  assert.match(html, /class="version-open"/);
+  assert.match(html, />Open</);
 });
 
 test("server-renders the protected owner login", async () => {
