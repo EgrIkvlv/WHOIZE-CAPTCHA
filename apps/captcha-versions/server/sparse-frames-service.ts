@@ -11,6 +11,7 @@ import {
   writeRecord,
 } from "../../server-captcha/server/state-store.ts";
 import { createOpaqueToken } from "../../server-captcha/server/session.ts";
+import { issueProof } from "../../server-captcha/server/challenge-service.ts";
 
 export type SparseChallengeRecord = {
   id: string;
@@ -20,6 +21,7 @@ export type SparseChallengeRecord = {
   maxAttempts: number;
   attempts: number;
   used: boolean;
+  proofToken: string | null;
 };
 
 function challengeKey(id: string) {
@@ -47,6 +49,7 @@ export async function createSparseFramesChallenge({
     maxAttempts: config.maxAttempts,
     attempts: 0,
     used: false,
+    proofToken: null,
   };
   await writeRecord({ key: challengeKey(id), value: record, expiresAt });
   return { record, payload: encodeSparseFrames(scene) };
@@ -58,6 +61,7 @@ export async function verifySparseFramesChallenge({
   x,
   y,
   frameIndex,
+  proofTtlSeconds,
   now = Date.now(),
 }: {
   id: string;
@@ -65,6 +69,7 @@ export async function verifySparseFramesChallenge({
   x: number;
   y: number;
   frameIndex: number;
+  proofTtlSeconds: number;
   now?: number;
 }) {
   for (let retry = 0; retry < 3; retry += 1) {
@@ -103,11 +108,22 @@ export async function verifySparseFramesChallenge({
       x,
       y,
     });
-    const next = {
+    const next: SparseChallengeRecord = {
       ...challenge,
       attempts: challenge.attempts + 1,
       used: hit,
+      proofToken: null,
     };
+    const proof = hit
+      ? await issueProof({
+          challengeId: challenge.id,
+          challengeRecordKey: challengeKey(challenge.id),
+          sessionHash,
+          proofTtlSeconds,
+          now,
+        })
+      : null;
+    if (proof) next.proofToken = proof.token;
     try {
       await writeRecord({
         key: challengeKey(id),
@@ -128,6 +144,8 @@ export async function verifySparseFramesChallenge({
           ? ("locked" as const)
           : ("miss" as const),
       attemptsRemaining: Math.max(0, next.maxAttempts - next.attempts),
+      proofToken: proof?.token,
+      proofExpiresAt: proof?.expiresAt,
       reveal: hit
         ? {
             centerX: center.x,

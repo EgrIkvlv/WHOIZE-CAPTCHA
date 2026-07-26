@@ -28,6 +28,7 @@ export type ChallengeRecord = {
 type ProofRecord = {
   token: string;
   challengeId: string;
+  challengeRecordKey?: string;
   sessionHash: string;
   action: typeof ACTION;
   expiresAt: number;
@@ -40,6 +41,38 @@ function challengeKey(id: string) {
 
 function proofKey(token: string) {
   return `proofs/${token}`;
+}
+
+export async function issueProof({
+  challengeId,
+  challengeRecordKey = challengeKey(challengeId),
+  sessionHash,
+  proofTtlSeconds,
+  now = Date.now(),
+}: {
+  challengeId: string;
+  challengeRecordKey?: string;
+  sessionHash: string;
+  proofTtlSeconds: number;
+  now?: number;
+}) {
+  const token = createOpaqueToken("proof");
+  const expiresAt = now + proofTtlSeconds * 1000;
+  const proof: ProofRecord = {
+    token,
+    challengeId,
+    challengeRecordKey,
+    sessionHash,
+    action: ACTION,
+    expiresAt,
+    used: false,
+  };
+  await writeRecord({
+    key: proofKey(token),
+    value: proof,
+    expiresAt,
+  });
+  return proof;
 }
 
 export async function createServerChallenge({
@@ -206,23 +239,15 @@ export async function verifyServerChallenge({
 
     let proof: ProofRecord | null = null;
     if (hit) {
-      const proofToken = createOpaqueToken("proof");
-      const proofExpiresAt = now + proofTtlSeconds * 1000;
-      proof = {
-        token: proofToken,
+      proof = await issueProof({
         challengeId: challenge.id,
+        challengeRecordKey: challengeKey(challenge.id),
         sessionHash,
-        action: ACTION,
-        expiresAt: proofExpiresAt,
-        used: false,
-      };
-      await writeRecord({
-        key: proofKey(proofToken),
-        value: proof,
-        expiresAt: proofExpiresAt,
+        proofTtlSeconds,
+        now,
       });
       nextChallenge.used = true;
-      nextChallenge.proofToken = proofToken;
+      nextChallenge.proofToken = proof.token;
     }
 
     try {
@@ -296,8 +321,11 @@ export async function redeemProof({
     if (proof.action !== action) return { success: false, reason: "action" };
     if (proof.used) return { success: false, reason: "used" };
 
-    const challenge = await readRecord<ChallengeRecord>(
-      challengeKey(proof.challengeId),
+    const challenge = await readRecord<{
+      used: boolean;
+      proofToken: string | null;
+    }>(
+      proof.challengeRecordKey ?? challengeKey(proof.challengeId),
       Number.NEGATIVE_INFINITY,
     );
     if (

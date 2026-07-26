@@ -109,13 +109,13 @@ without a rebuild. Writes require an owner password and an authenticated,
 signed HttpOnly session. Every publication also creates an immutable audit
 record.
 
-The public demo now creates the challenge on the server. Its response contains
-only non-secret timing metadata and an opaque challenge ID. It then buffers
-one-second VP8 WebM segments generated at 640×360 and 48 fps. All segments use
-one continuous server-owned trajectory, so there is no animation-loop jump;
-the browser does not receive the mask, center, velocity, or random seeds. Click
-verification uses the global video frame, and protected-action proof redemption
-happens on the server.
+The public demo now runs `v1.3a`. The server builds a four-second sparse
+final-frame sequence at 640×360 and 48 fps with a fresh background on every
+frame. The browser receives only sorted occupied cells plus non-secret timing
+metadata; it never receives the mask, trajectory, particle identities, or
+random seeds. Click verification uses the exact sparse frame, freezes the
+result for feedback, and returns a session-bound proof that the protected demo
+action can consume exactly once.
 Challenge and proof records use D1 when a Cloudflare binding is present,
 private Vercel Blob storage on Vercel, and memory only in local development.
 
@@ -244,7 +244,7 @@ records and one-time verification tokens.
 flowchart LR
     A[Client site] --> B[Challenge API]
     B --> C[Server-side scene generator]
-    C --> D[Continuous VP8 WebM segments]
+    C --> D[Sparse final-frame sequence]
     D --> A
     A --> E[Click coordinates]
     E --> F[Server verification]

@@ -133,9 +133,11 @@ test("encodes full-quality v1.3a sparse frames and verifies the private path", a
     x: first.x,
     y: first.y,
     frameIndex: 0,
+    proofTtlSeconds: 60,
     now: now + 1_000,
   });
   assert.equal(result.success, true);
+  assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
   assert.deepEqual(result.reveal, {
     centerX: first.x,
     centerY: first.y,
@@ -154,10 +156,26 @@ test("encodes full-quality v1.3a sparse frames and verifies the private path", a
     x: 0,
     y: 0,
     frameIndex: 0,
+    proofTtlSeconds: 60,
     now: now + 1_000,
   });
   assert.equal(miss.success, false);
   assert.equal(miss.reveal, undefined);
+
+  const redeemed = await redeemProof({
+    token: result.proofToken,
+    sessionHash,
+    action: "demo-signup",
+    now: now + 2_000,
+  });
+  assert.deepEqual(redeemed, { success: true });
+  const replay = await redeemProof({
+    token: result.proofToken,
+    sessionHash,
+    action: "demo-signup",
+    now: now + 2_100,
+  });
+  assert.deepEqual(replay, { success: false, reason: "used" });
 });
 
 test("renders a valid one-second VP8 WebM segment", async () => {

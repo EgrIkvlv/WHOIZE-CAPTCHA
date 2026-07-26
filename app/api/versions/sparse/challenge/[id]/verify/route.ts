@@ -1,4 +1,5 @@
 import { verifySparseFramesChallenge } from "@/apps/captcha-versions/server/sparse-frames-service";
+import { readServerCaptchaConfig } from "@/apps/control-plane/server/captcha-config-store";
 import { getSessionHash } from "@/apps/server-captcha/server/session";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,14 @@ export async function POST(
   }
   try {
     const { id } = await context.params;
+    const { config } = await readServerCaptchaConfig();
     const result = await verifySparseFramesChallenge({
       id,
       sessionHash,
       x: Number(body.x),
       y: Number(body.y),
       frameIndex: Number(body.frameIndex),
+      proofTtlSeconds: config.proofTtlSeconds,
     });
     return Response.json(result, {
       status:

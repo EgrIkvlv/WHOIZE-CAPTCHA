@@ -199,9 +199,11 @@ function decodeSparsePayload(payload: ArrayBuffer) {
 
 export function SparseFramesCaptcha({
   onClose,
+  onPass,
   locale = "en",
 }: {
   onClose?: () => void;
+  onPass?: (proofToken: string, proofExpiresAt: number) => void;
   locale?: "en" | "ru";
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -442,12 +444,17 @@ export function SparseFramesCaptcha({
         success?: boolean;
         reason?: string;
         attemptsRemaining?: number;
+        proofToken?: string;
+        proofExpiresAt?: number;
         reveal?: Reveal;
       };
       if (
         response.ok &&
         result.success &&
         result.reveal &&
+        typeof result.proofToken === "string" &&
+        typeof result.proofExpiresAt === "number" &&
+        Number.isFinite(result.proofExpiresAt) &&
         Number.isFinite(result.reveal.centerX) &&
         Number.isFinite(result.reveal.centerY) &&
         Number.isFinite(result.reveal.radius) &&
@@ -455,6 +462,7 @@ export function SparseFramesCaptcha({
       ) {
         setFeedback({ x, y, outcome: "hit", reveal: result.reveal });
         setStatus("passed");
+        onPass?.(result.proofToken, result.proofExpiresAt);
       } else if (result.reason === "miss") {
         setAttempt(challenge.maxAttempts - (result.attemptsRemaining ?? 0) + 1);
         setFeedback({ x, y, outcome: "miss" });

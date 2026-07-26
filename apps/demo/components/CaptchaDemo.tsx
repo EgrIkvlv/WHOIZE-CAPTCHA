@@ -7,7 +7,7 @@ import {
   LanguageSwitch,
   useLanguage,
 } from "@/app/i18n";
-import { ServerMotionCaptcha } from "./ServerMotionCaptcha";
+import { SparseFramesCaptcha } from "@/apps/captcha-versions/components/SparseFramesCaptcha";
 
 type Proof = {
   id: string;
@@ -53,11 +53,11 @@ const COPY = {
     metric4: "FRAMES PER SECOND",
     stage: "HOW STAGE 3 WORKS",
     cycle:
-      "Buffered WebM pixels in the browser. Answers and proof redemption on the server.",
+      "Server-generated sparse final frames in the browser. Answers and proof redemption on the server.",
     challenge:
-      "The server creates one continuous trajectory and renders short VP8 WebM segments. The browser buffers pixels and never receives the mask, center, velocity, or random seeds.",
+      "The server creates a seamless four-second sequence with fresh noise in every 640×360 frame. The browser receives only sorted occupied cells—never the mask, trajectory, particle roles, or random seeds.",
     oneClick:
-      "The browser sends the click coordinate and animation frame. The server checks it against the private shape mask and trajectory.",
+      "The browser sends the click coordinate and exact frame index. The server checks it against the private shape mask and trajectory, then reveals the result on the frozen frame.",
     proof:
       "Success creates a short-lived proof bound to this session and action. The protected endpoint consumes it once; replay is rejected.",
     openLab: "Open Motion Lab and tune the signal",
@@ -100,11 +100,11 @@ const COPY = {
     metric4: "КАДРОВ В СЕКУНДУ",
     stage: "КАК УСТРОЕН ЭТАП 3",
     cycle:
-      "В браузере — буферизованные WebM-пиксели. Ответ и погашение proof — на сервере.",
+      "В браузере — серверные sparse-кадры. Ответ и погашение proof — на сервере.",
     challenge:
-      "Сервер создаёт единую непрерывную траекторию и рендерит короткие VP8 WebM-сегменты. Браузер буферизует пиксели и не получает маску, центр, скорость или случайные seed.",
+      "Сервер создаёт бесшовную четырёхсекундную последовательность с новым шумом в каждом кадре 640×360. Браузер получает только отсортированные занятые ячейки — без маски, траектории, ролей частиц и случайных seed.",
     oneClick:
-      "Браузер отправляет координату и кадр клика. Сервер сверяет их с закрытой маской фигуры и траекторией.",
+      "Браузер отправляет координату и точный номер кадра. Сервер сверяет их с закрытой маской и траекторией, а затем показывает результат на замороженном кадре.",
     proof:
       "Успех создаёт короткоживущий proof, привязанный к сессии и действию. Сервер принимает его один раз и отклоняет replay.",
     openLab: "Открыть Motion Lab и настроить сигнал",
@@ -361,7 +361,7 @@ export function CaptchaDemo() {
             aria-modal="true"
             aria-label="WHOIZE CAPTCHA"
           >
-            <ServerMotionCaptcha
+            <SparseFramesCaptcha
               locale={locale}
               onPass={handlePass}
               onClose={() => setCaptchaOpen(false)}
