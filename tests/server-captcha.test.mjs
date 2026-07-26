@@ -24,6 +24,16 @@ import {
   createSparseFramesChallenge,
   verifySparseFramesChallenge,
 } from "../apps/captcha-versions/server/sparse-frames-service.ts";
+import {
+  createDynamicNoiseFrameRenderer,
+  renderWebmOnlySegment,
+} from "../apps/captcha-versions/server/webm-only-engine.ts";
+import {
+  createWebmOnlyChallenge,
+  readWebmOnlySegment,
+  verifyWebmOnlyChallenge,
+  webmOnlyPublicChallenge,
+} from "../apps/captcha-versions/server/webm-only-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -199,6 +209,81 @@ test("renders a valid one-second VP8 WebM segment", async () => {
   assert.deepEqual(Array.from(segment.subarray(0, 4)), [0x1a, 0x45, 0xdf, 0xa3]);
   assert.ok(segment.length > 50_000);
   assert.ok(segment.length < 1_000_000);
+});
+
+test("keeps v1.4 private scene data out of its WebM-only response", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-a";
+  const { record } = await createWebmOnlyChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = webmOnlyPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm14_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.codec, "vp8");
+  assert.equal(publicChallenge.width, 640);
+  assert.equal(publicChallenge.height, 360);
+  assert.equal(publicChallenge.fps, 48);
+  assert.equal("scene" in publicChallenge, false);
+  for (const forbidden of [
+    "visualSeed",
+    "velocity",
+    "radius",
+    "start",
+    "positions",
+    "frames",
+    "density",
+    "dotSize",
+    "coherence",
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+
+  const renderer = createDynamicNoiseFrameRenderer(record.scene);
+  assert.notDeepEqual(renderer(0), renderer(1));
+
+  const wasmBinary = await readFile(
+    new URL("../public/codecs/webm-wasm.wasm", import.meta.url),
+  );
+  const segment = await renderWebmOnlySegment({
+    scene: record.scene,
+    segmentIndex: 0,
+    wasmBinary: wasmBinary.buffer.slice(
+      wasmBinary.byteOffset,
+      wasmBinary.byteOffset + wasmBinary.byteLength,
+    ),
+  });
+  assert.deepEqual(Array.from(segment.subarray(0, 4)), [0x1a, 0x45, 0xdf, 0xa3]);
+  assert.notEqual(String.fromCharCode(...segment.subarray(0, 4)), "WSP1");
+
+  assert.equal(
+    (
+      await readWebmOnlySegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 0);
+  const result = await verifyWebmOnlyChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+  assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
 });
 
 test("binds video segments to the challenge session", async () => {

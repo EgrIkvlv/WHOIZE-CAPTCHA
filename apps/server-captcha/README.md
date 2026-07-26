@@ -27,3 +27,19 @@ It does not make the visual puzzle unbreakable: a solver can still record the
 pixel animation and apply optical flow, motion segmentation, or tracking. Rate
 limits, adaptive risk policy, production telemetry, and private operational
 heuristics remain separate layers.
+
+## v1.4 dynamic WebM-only experiment
+
+The version archive also exposes a separate `/api/versions/webm-v14/challenge`
+flow. It reuses the private session, verification, and one-time proof boundary
+while replacing the stable-background renderer with a fresh server-generated
+noise field on every frame. The public challenge response contains only an
+opaque ID, shape instruction, playback dimensions and timing, expiry, attempt
+limit, and the declared VP8/WebM transport.
+
+The segment response is always `video/webm`; WSP1, occupied-cell arrays,
+particle identities, mask geometry, radius, trajectory, velocity, and random
+seeds are never serialized to the client. This closes the point-stream shortcut
+measured against v1.3a/v1.3b. It does not hide the decoded pixels from a client
+that records the video, so the next benchmark must operate on the actual
+production-codec output.

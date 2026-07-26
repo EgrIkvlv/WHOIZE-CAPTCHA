@@ -56,7 +56,7 @@ research applications:
   one-time proof reference flow;
 - `apps/captcha-versions` — runnable preserved implementations and comparison
   data for client Canvas, server APNG, server WebM, sparse final-frame, and
-  browser-blur builds;
+  browser-blur and dynamic WebM-only builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -64,7 +64,8 @@ The deployed site has four connected surfaces:
 
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
-  server WebM, sparse final-frame, and browser-blur implementations;
+  server WebM, sparse final-frame, browser-blur, and dynamic WebM-only
+  implementations;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -77,6 +78,16 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.4` is the first full-quality dynamic-noise build that never sends
+WSP1 occupied cells to the browser. A private server scene generates a fresh
+7,200-dot raster for every 640×360 frame, encodes one-second VP8/WebM segments,
+and exposes only decoded pixels plus non-secret playback metadata. The
+trajectory, mask, radius, velocity, visual seed, and hit test remain in the
+session-bound server record. The version is intentionally experimental:
+removing WSP1 closes direct point-stream analysis, but decoded video remains
+available to optical-flow and tracking attacks and dynamic noise is expensive
+to encode.
 
 Version `v1.3b` preserves the complete `v1.3a` server-generated sparse-frame
 pipeline and applies an adjustable 0–4 px CSS blur only to the decoded Canvas.

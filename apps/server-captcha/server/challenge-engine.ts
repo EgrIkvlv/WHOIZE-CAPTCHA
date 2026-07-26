@@ -291,23 +291,53 @@ export async function renderChallengeSegment({
   segmentIndex: number;
   wasmBinary: ArrayBuffer;
 }) {
-  const encoderModule = await getWebmModule(wasmBinary);
-  const chunks: Uint8Array[] = [];
-  const encoder = new encoderModule.WebmEncoder(
-    1,
-    scene.fps,
-    scene.width,
-    scene.height,
-    WEBM_BITRATE_KBPS,
-    true,
-    true,
-    (chunk) => chunks.push(new Uint8Array(chunk)),
-  );
   const renderFrame = createFrameRenderer(scene);
   const firstFrame = segmentIndex * scene.segmentFrames;
   const lastFrame = Math.min(
     firstFrame + scene.segmentFrames,
     scene.durationFrames,
+  );
+  return encodeWebmFrames({
+    width: scene.width,
+    height: scene.height,
+    fps: scene.fps,
+    firstFrame,
+    lastFrame,
+    wasmBinary,
+    renderFrame,
+  });
+}
+
+export async function encodeWebmFrames({
+  width,
+  height,
+  fps,
+  firstFrame,
+  lastFrame,
+  wasmBinary,
+  renderFrame,
+  bitrateKbps = WEBM_BITRATE_KBPS,
+}: {
+  width: number;
+  height: number;
+  fps: number;
+  firstFrame: number;
+  lastFrame: number;
+  wasmBinary: ArrayBuffer;
+  renderFrame: (frameIndex: number) => Uint8Array;
+  bitrateKbps?: number;
+}) {
+  const encoderModule = await getWebmModule(wasmBinary);
+  const chunks: Uint8Array[] = [];
+  const encoder = new encoderModule.WebmEncoder(
+    1,
+    fps,
+    width,
+    height,
+    bitrateKbps,
+    true,
+    true,
+    (chunk) => chunks.push(new Uint8Array(chunk)),
   );
 
   try {

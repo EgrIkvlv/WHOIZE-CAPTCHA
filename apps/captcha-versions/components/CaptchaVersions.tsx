@@ -9,17 +9,23 @@ import { ServerMotionCaptcha } from "@/apps/demo/components/ServerMotionCaptcha"
 import { LegacyApngCaptcha } from "./LegacyApngCaptcha";
 import { SparseFramesCaptcha } from "./SparseFramesCaptcha";
 
-type VersionId = "canvas" | "apng" | "webm" | "sparse" | "blur";
+type VersionId =
+  | "canvas"
+  | "apng"
+  | "webm"
+  | "sparse"
+  | "blur"
+  | "webm14";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 05 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 06 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented five different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented six different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -58,6 +64,8 @@ const COPY = {
         "The closest server-authoritative build to the original visual idea. Its exact point stream is cheaper to generate, but easier for a purpose-built solver to parse.",
       blur:
         "The v1.3a security boundary with a softer presentation layer. Useful for measuring eye strain and readability; the removable CSS filter itself adds no security.",
+      webm14:
+        "The first v1.3-quality build that removes the exact point stream from client state. It closes the WSP1 shortcut, but pixel-level computer vision remains the next measured attack surface.",
     },
     versions: {
       canvas: {
@@ -190,6 +198,32 @@ const COPY = {
           "Keeps v1.3a point-stream exposure and solver trade-offs",
         ],
       },
+      webm14: {
+        name: "Dynamic WebM Only",
+        version: "v1.4",
+        subtitle: "Fresh server noise · pixels are the only client input",
+        summary:
+          "The server renders a private continuous scene with regenerated noise on every frame and sends only one-second VP8/WebM segments to the browser.",
+        architecture:
+          "Private server scene · dynamic raster frames · VP8/WebM segments · MSE playback · server verification",
+        metrics: [
+          ["Frame", "640×360"],
+          ["Signal", "7,200 dots · 2.4 px"],
+          ["Motion", "48 fps · non-looping"],
+          ["Noise", "100% fresh each frame"],
+          ["Exposure", "Decoded pixels only"],
+        ],
+        pros: [
+          "No WSP1 cells, mask, seed, center, or trajectory enter client state",
+          "Keeps full-quality dynamic noise instead of v1.2's stable background",
+          "Private server hit testing and one-time proof flow remain intact",
+        ],
+        cons: [
+          "Dynamic noise is expensive for both VP8 bitrate and server encoding",
+          "A solver can still record decoded frames and run optical flow",
+          "Cold-start latency and sustained segment rendering require measurement",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -197,16 +231,17 @@ const COPY = {
       webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
       blur: ["Softened", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
+      webm14: ["High", "No", "To measure", "Continuous", "Non-looping", "Experimental"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 05 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 06 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная пятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная шестью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -245,6 +280,8 @@ const COPY = {
         "Самая близкая к исходной визуальной идее серверная версия. Точный point-stream дешевле генерировать, но специализированному solver проще его разобрать.",
       blur:
         "Граница безопасности v1.3a с более мягким визуальным слоем. Полезно для измерения нагрузки на глаза и читаемости; снимаемый CSS-фильтр сам по себе защиты не добавляет.",
+      webm14:
+        "Первая версия с качеством v1.3, которая убирает точный point-stream из состояния клиента. WSP1-shortcut закрыт, но следующим объектом измерения остаётся компьютерное зрение по пикселям.",
     },
     versions: {
       canvas: {
@@ -377,6 +414,32 @@ const COPY = {
           "Сохраняются point-stream exposure и solver-компромиссы v1.3a",
         ],
       },
+      webm14: {
+        name: "Dynamic WebM Only",
+        version: "v1.4",
+        subtitle: "Свежий серверный шум · клиент получает только пиксели",
+        summary:
+          "Сервер рендерит приватную непрерывную сцену с новым шумом на каждом кадре и отправляет браузеру только секундные VP8/WebM-сегменты.",
+        architecture:
+          "Приватная серверная сцена · динамические растровые кадры · VP8/WebM · MSE · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360"],
+          ["Сигнал", "7 200 точек · 2.4 px"],
+          ["Движение", "48 fps · без цикла"],
+          ["Шум", "100% новый каждый кадр"],
+          ["Доступ", "Только декодированные пиксели"],
+        ],
+        pros: [
+          "WSP1, маска, seed, центр и траектория не попадают в состояние клиента",
+          "Сохраняет динамический шум полного качества вместо стабильного фона v1.2",
+          "Серверный hit test и одноразовый proof остаются приватными",
+        ],
+        cons: [
+          "Динамический шум дорог для VP8-трафика и серверного кодирования",
+          "Solver всё ещё может записать кадры и применить optical flow",
+          "Нужно измерить cold start и постоянную стоимость рендера сегментов",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -384,11 +447,19 @@ const COPY = {
       webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
       blur: ["Смягчённое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
+      webm14: ["Высокое", "Нет", "Предстоит измерить", "Постоянные", "Без цикла", "Эксперимент"],
     },
   },
 } as const;
 
-const VERSION_IDS: VersionId[] = ["canvas", "apng", "webm", "sparse", "blur"];
+const VERSION_IDS: VersionId[] = [
+  "canvas",
+  "apng",
+  "webm",
+  "sparse",
+  "blur",
+  "webm14",
+];
 
 export function CaptchaVersions() {
   const { locale } = useLanguage();
@@ -449,7 +520,7 @@ export function CaptchaVersions() {
                 <span className={current ? "current" : ""}>
                   {current
                     ? copy.current
-                    : id === "blur"
+                    : id === "blur" || id === "webm14"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -658,7 +729,7 @@ export function CaptchaVersions() {
                       locale={locale}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "blur" ? (
                     <div
                       className="version-browser-blur"
                       style={
@@ -673,6 +744,15 @@ export function CaptchaVersions() {
                         onClose={() => setActiveVersion(null)}
                       />
                     </div>
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v14/challenge"
+                      webmOnly
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
                   )}
                 </div>
               </section>

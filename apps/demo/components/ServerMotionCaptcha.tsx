@@ -23,12 +23,16 @@ type Challenge = {
   segmentCount: number;
   expiresAt: number;
   maxAttempts: number;
+  transport?: "webm-only";
+  codec?: "vp8";
 };
 
 export type ServerMotionCaptchaProps = {
   onPass: (token: string, expiresAt: number) => void;
   onClose?: () => void;
   locale?: "en" | "ru";
+  endpointBase?: string;
+  webmOnly?: boolean;
 };
 
 const GLYPH = {
@@ -83,6 +87,8 @@ export function ServerMotionCaptcha({
   onPass,
   onClose,
   locale = "en",
+  endpointBase = "/api/challenge",
+  webmOnly = false,
 }: ServerMotionCaptchaProps) {
   const aimCursorRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -110,7 +116,9 @@ export function ServerMotionCaptcha({
           attempt: "ПОПЫТКА",
           remaining: "ОСТАЛОСЬ",
           canvas: "Серверное поле динамического шума. Найдите фигуру",
-          server: "Серверная проверка · ответ не передаётся в браузер",
+          server: webmOnly
+            ? "Только WebM-пиксели · WSP1 не передаётся в браузер"
+            : "Серверная проверка · ответ не передаётся в браузер",
           newChallenge: "Новое испытание →",
           shape: {
             circle: "Круг",
@@ -135,7 +143,9 @@ export function ServerMotionCaptcha({
           attempt: "ATTEMPT",
           remaining: "REMAINING",
           canvas: "Server-rendered dynamic noise field. Find the shape",
-          server: "Server verification · the answer stays off-device",
+          server: webmOnly
+            ? "WebM pixels only · no WSP1 reaches the browser"
+            : "Server verification · the answer stays off-device",
           newChallenge: "New challenge →",
           shape: {
             circle: "Circle",
@@ -148,7 +158,7 @@ export function ServerMotionCaptcha({
   const loadChallenge = useCallback(async (signal?: AbortSignal) => {
     setAttempt(1);
     try {
-      const response = await fetch("/api/challenge", {
+      const response = await fetch(endpointBase, {
         method: "POST",
         cache: "no-store",
         headers: { accept: "application/json" },
@@ -178,6 +188,12 @@ export function ServerMotionCaptcha({
       ) {
         throw new Error("Challenge metadata is incomplete");
       }
+      if (
+        webmOnly &&
+        (next.transport !== "webm-only" || next.codec !== "vp8")
+      ) {
+        throw new Error("WebM-only transport metadata is invalid");
+      }
       setChallenge(next);
       setSecondsLeft(
         Math.max(0, Math.ceil((next.expiresAt - Date.now()) / 1000)),
@@ -186,7 +202,7 @@ export function ServerMotionCaptcha({
       if (signal?.aborted) return;
       setStatus("error");
     }
-  }, []);
+  }, [endpointBase, webmOnly]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -209,7 +225,7 @@ export function ServerMotionCaptcha({
     const fallbackUrls: string[] = [];
 
     const segmentUrl = (index: number) =>
-      `/api/challenge/${encodeURIComponent(challenge.id)}/segment/${index}`;
+      `${endpointBase}/${encodeURIComponent(challenge.id)}/segment/${index}`;
     const fetchSegment = async (index: number) => {
       const response = await fetch(segmentUrl(index), {
         cache: "no-store",
@@ -334,7 +350,7 @@ export function ServerMotionCaptcha({
       if (mediaUrl) URL.revokeObjectURL(mediaUrl);
       fallbackUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [challenge]);
+  }, [challenge, endpointBase]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -375,7 +391,7 @@ export function ServerMotionCaptcha({
 
     try {
       const response = await fetch(
-        `/api/challenge/${encodeURIComponent(challenge.id)}/verify`,
+        `${endpointBase}/${encodeURIComponent(challenge.id)}/verify`,
         {
           method: "POST",
           cache: "no-store",

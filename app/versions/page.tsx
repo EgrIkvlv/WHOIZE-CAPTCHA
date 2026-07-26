@@ -4,7 +4,7 @@ import { CaptchaVersions } from "@/apps/captcha-versions/components/CaptchaVersi
 export const metadata: Metadata = {
   title: "CAPTCHA Versions",
   description:
-    "A runnable comparison of WHOIZE client Canvas, server APNG, WebM, sparse-frame, and browser-blur CAPTCHA architectures.",
+    "A runnable comparison of WHOIZE client Canvas, server APNG, sparse-frame, browser-blur, and WebM-only CAPTCHA architectures.",
 };
 
 export default function VersionsPage() {
