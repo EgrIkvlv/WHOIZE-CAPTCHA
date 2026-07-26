@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DEFAULT_CAPTCHA_CONFIG,
+  type ShapeName,
+  useCaptchaConfig,
+} from "./captcha-config";
 
-type ShapeName = "Круг" | "Треугольник" | "Ромб" | "Звезда";
 type ChallengeStatus =
   | "playing"
   | "verifying"
@@ -10,16 +14,10 @@ type ChallengeStatus =
   | "failed"
   | "expired"
   | "locked";
-type Point = { x: number; y: number };
+type Point = { x: number; y: number; stable: boolean };
 
 const WIDTH = 640;
 const HEIGHT = 360;
-const DENSITY = 7200;
-const DOT_SIZE = 2.4;
-const FPS = 48;
-const SPEED = 52;
-const MAX_ATTEMPTS = 3;
-const SHAPES: ShapeName[] = ["Круг", "Треугольник", "Ромб", "Звезда"];
 
 function inShape(shape: ShapeName, x: number, y: number) {
   if (shape === "Круг") return x * x + y * y <= 1;
@@ -42,7 +40,7 @@ function shapeAreaRatio(shape: ShapeName) {
   return 0.42;
 }
 
-function randomPointInShape(shape: ShapeName): Point {
+function randomPointInShape(shape: ShapeName): Omit<Point, "stable"> {
   let x = 0;
   let y = 0;
   do {
@@ -62,15 +60,19 @@ function glyph(shape: ShapeName) {
 export function MotionCaptcha({
   onPass,
   onClose,
+  embedded = false,
 }: {
   onPass: (token: string) => void;
-  onClose: () => void;
+  onClose?: () => void;
+  embedded?: boolean;
 }) {
+  const config = useCaptchaConfig();
+  const configRef = useRef(config);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shapeRef = useRef<ShapeName>("Звезда");
   const particlesRef = useRef<Point[]>([]);
   const centerRef = useRef({ x: 180, y: 180 });
-  const velocityRef = useRef({ x: SPEED, y: 0 });
+  const velocityRef = useRef({ x: DEFAULT_CAPTCHA_CONFIG.speed, y: 0 });
   const radiusRef = useRef(68);
   const statusRef = useRef<ChallengeStatus>("playing");
   const lastFrameRef = useRef(0);
@@ -82,8 +84,20 @@ export function MotionCaptcha({
   const [status, setStatus] = useState<ChallengeStatus>("playing");
   const [shape, setShape] = useState<ShapeName>("Звезда");
   const [attempt, setAttempt] = useState(1);
-  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [secondsLeft, setSecondsLeft] = useState(
+    DEFAULT_CAPTCHA_CONFIG.durationSeconds,
+  );
   const [challengeNumber, setChallengeNumber] = useState(1);
+
+  useEffect(() => {
+    const previousSpeed =
+      Math.hypot(velocityRef.current.x, velocityRef.current.y) || 1;
+    velocityRef.current.x =
+      (velocityRef.current.x / previousSpeed) * config.speed;
+    velocityRef.current.y =
+      (velocityRef.current.y / previousSpeed) * config.speed;
+    configRef.current = config;
+  }, [config]);
 
   const updateStatus = useCallback((next: ChallengeStatus) => {
     statusRef.current = next;
@@ -92,7 +106,12 @@ export function MotionCaptcha({
 
   const createChallenge = useCallback(
     (increment = true) => {
-      const nextShape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+      const currentConfig = configRef.current;
+      const availableShapes = currentConfig.shapes.length
+        ? currentConfig.shapes
+        : DEFAULT_CAPTCHA_CONFIG.shapes;
+      const nextShape =
+        availableShapes[Math.floor(Math.random() * availableShapes.length)];
       const angle = Math.random() * Math.PI * 2;
       shapeRef.current = nextShape;
       setShape(nextShape);
@@ -101,15 +120,18 @@ export function MotionCaptcha({
         y: 105 + Math.random() * (HEIGHT - 210),
       };
       velocityRef.current = {
-        x: Math.cos(angle) * SPEED,
-        y: Math.sin(angle) * SPEED,
+        x: Math.cos(angle) * currentConfig.speed,
+        y: Math.sin(angle) * currentConfig.speed,
       };
-      radiusRef.current = 62 + Math.random() * 10;
-      particlesRef.current = Array.from({ length: 980 }, () =>
-        randomPointInShape(nextShape),
-      );
+      radiusRef.current =
+        currentConfig.radiusMin +
+        Math.random() * (currentConfig.radiusMax - currentConfig.radiusMin);
+      particlesRef.current = Array.from({ length: 1100 }, () => ({
+        ...randomPointInShape(nextShape),
+        stable: Math.random() * 100 < currentConfig.coherence,
+      }));
       markerRef.current = null;
-      setSecondsLeft(60);
+      setSecondsLeft(currentConfig.durationSeconds);
       updateStatus("playing");
       if (increment) setChallengeNumber((value) => value + 1);
     },
@@ -123,7 +145,7 @@ export function MotionCaptcha({
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onClose?.();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -149,7 +171,8 @@ export function MotionCaptcha({
       const ctx = canvas?.getContext("2d");
       if (!canvas || !ctx) return;
 
-      const frameInterval = 1000 / FPS;
+      const currentConfig = configRef.current;
+      const frameInterval = 1000 / currentConfig.fps;
       if (time - lastPaintRef.current < frameInterval) {
         animationRef.current = requestAnimationFrame(render);
         return;
@@ -187,8 +210,11 @@ export function MotionCaptcha({
       const targetRatio =
         (radius * radius * 4 * shapeAreaRatio(shapeRef.current)) /
         (WIDTH * HEIGHT);
-      const targetCount = Math.max(120, Math.floor(DENSITY * targetRatio));
-      const backgroundCount = DENSITY - targetCount;
+      const targetCount = Math.max(
+        120,
+        Math.floor(currentConfig.density * targetRatio),
+      );
+      const backgroundCount = currentConfig.density - targetCount;
 
       ctx.fillStyle = "#10110f";
       ctx.beginPath();
@@ -203,7 +229,7 @@ export function MotionCaptcha({
             (y - center.y) / radius,
           )
         ) {
-          ctx.rect(x, y, DOT_SIZE, DOT_SIZE);
+          ctx.rect(x, y, currentConfig.dotSize, currentConfig.dotSize);
           placed += 1;
         }
       }
@@ -213,11 +239,16 @@ export function MotionCaptcha({
       for (let index = 0; index < targetCount; index += 1) {
         const point = particlesRef.current[index];
         if (!point) continue;
+        if (statusRef.current === "playing" && !point.stable) {
+          const fresh = randomPointInShape(shapeRef.current);
+          point.x = fresh.x;
+          point.y = fresh.y;
+        }
         ctx.rect(
           center.x + point.x * radius,
           center.y + point.y * radius,
-          DOT_SIZE,
-          DOT_SIZE,
+          currentConfig.dotSize,
+          currentConfig.dotSize,
         );
       }
       ctx.fill();
@@ -285,15 +316,15 @@ export function MotionCaptcha({
 
       updateStatus("failed");
       const nextTimer = setTimeout(() => {
-        if (attempt >= MAX_ATTEMPTS) {
+        if (attempt >= configRef.current.maxAttempts) {
           updateStatus("locked");
         } else {
           setAttempt((value) => value + 1);
           createChallenge();
         }
-      }, 900);
+      }, configRef.current.retryDelayMs);
       timeoutRefs.current.push(nextTimer);
-    }, 380);
+    }, configRef.current.verificationDelayMs);
     timeoutRefs.current.push(verifyTimer);
   };
 
@@ -308,7 +339,7 @@ export function MotionCaptcha({
     passed: "Проверка пройдена",
     failed: "Не попали. Создаём новое испытание…",
     expired: "Время испытания истекло",
-    locked: "Три попытки исчерпаны",
+    locked: `Попытки исчерпаны: ${config.maxAttempts}`,
   }[status];
 
   return (
@@ -320,14 +351,18 @@ export function MotionCaptcha({
         <div className="captcha-trial">
           CH—{String(challengeNumber).padStart(3, "0")}
         </div>
-        <button
-          className="captcha-close"
-          type="button"
-          onClick={onClose}
-          aria-label="Закрыть CAPTCHA"
-        >
-          ×
-        </button>
+        {embedded ? (
+          <span className="captcha-embedded-badge">LIVE</span>
+        ) : (
+          <button
+            className="captcha-close"
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть CAPTCHA"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       <div className="captcha-instruction">
@@ -342,7 +377,8 @@ export function MotionCaptcha({
           <div>
             <small>ПОПЫТКА</small>
             <strong>
-              {String(attempt).padStart(2, "0")}/{String(MAX_ATTEMPTS).padStart(2, "0")}
+              {String(attempt).padStart(2, "0")}/
+              {String(config.maxAttempts).padStart(2, "0")}
             </strong>
           </div>
           <div className={secondsLeft <= 10 ? "ending" : ""}>

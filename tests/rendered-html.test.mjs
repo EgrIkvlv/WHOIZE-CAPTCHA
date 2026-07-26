@@ -35,6 +35,7 @@ test("server-renders the WHOIZE CAPTCHA demo shell", async () => {
   assert.match(html, /Докажите, что/);
   assert.match(html, /Запросить ранний доступ/);
   assert.match(html, /Продолжить с WHOIZE/);
+  assert.match(html, />Admin</);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
@@ -48,4 +49,17 @@ test("server-renders the separate motion lab route", async () => {
   assert.match(html, /MOTION LAB/);
   assert.match(html, /Фигура существует/);
   assert.match(html, /Найдите движущуюся фигуру/);
+});
+
+test("server-renders the local owner control plane", async () => {
+  const response = await render("/admin");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /<title>Control Plane · WHOIZE<\/title>/i);
+  assert.match(html, /WHOIZE/);
+  assert.match(html, /CONTROL PLANE/);
+  assert.match(html, /Управление CAPTCHA/);
+  assert.match(html, /LOCAL CONFIG ONLINE/);
+  assert.match(html, /Этот браузер/);
 });

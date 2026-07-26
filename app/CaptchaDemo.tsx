@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useCaptchaConfig } from "./captcha-config";
 import { MotionCaptcha } from "./MotionCaptcha";
 
 type Proof = {
@@ -10,6 +11,7 @@ type Proof = {
 };
 
 export function CaptchaDemo() {
+  const config = useCaptchaConfig();
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [proof, setProof] = useState<Proof | null>(null);
   const [actionComplete, setActionComplete] = useState(false);
@@ -32,8 +34,14 @@ export function CaptchaDemo() {
   };
 
   const handlePass = (token: string) => {
-    setProof({ id: token, expiresAt: Date.now() + 60_000 });
-    closeTimerRef.current = setTimeout(() => setCaptchaOpen(false), 1200);
+    setProof({
+      id: token,
+      expiresAt: Date.now() + config.proofTtlSeconds * 1000,
+    });
+    closeTimerRef.current = setTimeout(
+      () => setCaptchaOpen(false),
+      config.autoCloseDelayMs,
+    );
   };
 
   return (
@@ -45,6 +53,7 @@ export function CaptchaDemo() {
         <nav aria-label="Основная навигация">
           <a href="#how">Как работает</a>
           <Link href="/lab">Motion Lab</Link>
+          <Link href="/admin">Admin</Link>
           <a
             href="https://github.com/EgrIkvlv/WHOIZE-CAPTCHA"
             target="_blank"
@@ -139,7 +148,7 @@ export function CaptchaDemo() {
                   </strong>
                   <small>
                     {proof
-                      ? `TOKEN ${proof.id.slice(-8).toUpperCase()} · 60 SEC`
+                      ? `TOKEN ${proof.id.slice(-8).toUpperCase()} · ${config.proofTtlSeconds} SEC`
                       : "WHOIZE MOTION CHALLENGE"}
                   </small>
                 </div>
@@ -169,15 +178,15 @@ export function CaptchaDemo() {
           <span>КЛИК НА ИСПЫТАНИЕ</span>
         </div>
         <div>
-          <strong>60</strong>
+          <strong>{config.durationSeconds}</strong>
           <span>СЕКУНД ДО ИСТЕЧЕНИЯ</span>
         </div>
         <div>
-          <strong>03</strong>
+          <strong>{String(config.maxAttempts).padStart(2, "0")}</strong>
           <span>ПОПЫТКИ ДО ПАУЗЫ</span>
         </div>
         <div>
-          <strong>48</strong>
+          <strong>{config.fps}</strong>
           <span>КАДРОВ В СЕКУНДУ</span>
         </div>
       </section>
