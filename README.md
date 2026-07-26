@@ -1,5 +1,7 @@
 # WHOIZE CAPTCHA
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-b6f03a.svg)](LICENSE)
+
 An experimental CAPTCHA in which the object is encoded in **time**, not in any
 single image.
 
@@ -169,3 +171,9 @@ of bot resistance has been established yet.
 
 Issues, attack ideas, solver experiments, and human-testing results are
 welcome.
+
+## License
+
+Released under the [MIT License](LICENSE). You may use, modify, distribute, and
+sell copies of the software as long as the copyright and license notice is
+preserved.
