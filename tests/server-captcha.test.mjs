@@ -16,6 +16,14 @@ import {
   createLegacyApngChallenge,
   verifyLegacyApngChallenge,
 } from "../apps/captcha-versions/server/legacy-apng-service.ts";
+import {
+  decodeSparseFrames,
+  SPARSE_LOOP_SECONDS,
+} from "../apps/captcha-versions/server/sparse-frames-engine.ts";
+import {
+  createSparseFramesChallenge,
+  verifySparseFramesChallenge,
+} from "../apps/captcha-versions/server/sparse-frames-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -86,6 +94,46 @@ test("preserves the legacy APNG build as a runnable server challenge", async () 
     y: record.positions[0].y,
     frameIndex: 0,
     now: now + 500,
+  });
+  assert.equal(result.success, true);
+});
+
+test("encodes full-quality v1.3a sparse frames and verifies the private path", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-a";
+  const { record, payload } = await createSparseFramesChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const decoded = decodeSparseFrames(payload);
+
+  assert.match(record.id, /^sparse_[a-f0-9]{48}$/);
+  assert.equal(decoded.width, 640);
+  assert.equal(decoded.height, 360);
+  assert.equal(decoded.fps, 48);
+  assert.equal(decoded.frameCount, 48 * SPARSE_LOOP_SECONDS);
+  assert.equal(decoded.density, 7_200);
+  assert.equal(decoded.dotSize, 2.4);
+  assert.equal(decoded.loop, true);
+  assert.equal(decoded.frames.length, 192);
+  assert.ok(decoded.frames.every((frame) => frame.length === 7_200));
+  assert.ok(payload.byteLength > 800_000);
+  assert.ok(payload.byteLength < 2_000_000);
+  assert.notDeepEqual(decoded.frames[0], decoded.frames[1]);
+
+  const first = record.scene.positions[0];
+  const last = record.scene.positions.at(-1);
+  assert.ok(Math.hypot(first.x - last.x, first.y - last.y) < 4);
+
+  const result = await verifySparseFramesChallenge({
+    id: record.id,
+    sessionHash,
+    x: first.x,
+    y: first.y,
+    frameIndex: 0,
+    now: now + 1_000,
   });
   assert.equal(result.success, true);
 });

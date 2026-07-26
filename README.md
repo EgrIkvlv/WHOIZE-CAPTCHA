@@ -55,7 +55,8 @@ research applications:
 - `apps/server-captcha` — the server-rendered challenge, verification, and
   one-time proof reference flow;
 - `apps/captcha-versions` — runnable preserved implementations and comparison
-  data for client Canvas, server APNG, and server WebM builds;
+  data for client Canvas, server APNG, server WebM, and sparse final-frame
+  builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -63,7 +64,7 @@ The deployed site has four connected surfaces:
 
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
-  and server WebM implementations;
+  server WebM, and sparse final-frame implementations;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -76,6 +77,13 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.3a` sends a four-second binary sequence of final occupied cells.
+The server regenerates the background for every 640×360 frame, mixes it with
+the private target, removes particle identities, sorts the final cells, and
+gap/varint-encodes them. The browser only draws the decoded cells at 48 fps.
+The sequence loops seamlessly after it has been downloaded once, while click
+verification remains bound to the private server-side frame trajectory.
 
 It includes:
 
@@ -180,9 +188,11 @@ density.
 Background particles are sampled uniformly outside the current mask on every
 paint in Motion Lab. The server-video renderer instead reuses a deterministic
 background field across frames so VP8 can encode the full-density stream
-efficiently. Target particles are sampled uniformly inside the mask. A
-configurable percentage remains stable relative to the moving center; the rest
-is resampled. Those stable particles are the temporal signal.
+efficiently. The sparse-frame renderer restores a fresh background on every
+frame without sending the mask or particle roles to the browser. Target
+particles are sampled uniformly inside the mask. A configurable percentage
+remains stable relative to the moving center; the rest is resampled. Those
+stable particles are the temporal signal.
 
 The canvas never draws a conventional filled silhouette during a normal
 challenge. “Show answer” adds an explicit outline only as a laboratory aid.

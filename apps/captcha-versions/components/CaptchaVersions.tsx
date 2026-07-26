@@ -7,18 +7,19 @@ import { useCaptchaConfig } from "@/app/captcha-config";
 import { LanguageSwitch, useLanguage } from "@/app/i18n";
 import { ServerMotionCaptcha } from "@/apps/demo/components/ServerMotionCaptcha";
 import { LegacyApngCaptcha } from "./LegacyApngCaptcha";
+import { SparseFramesCaptcha } from "./SparseFramesCaptcha";
 
-type VersionId = "canvas" | "apng" | "webm";
+type VersionId = "canvas" | "apng" | "webm" | "sparse";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 03 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 04 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented three different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented four different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     launch: "Launch version",
@@ -45,7 +46,9 @@ const COPY = {
       apng:
         "Useful low-traffic server-rendered baseline. Its compressed resolution and repeating path visibly weaken the experiment.",
       webm:
-        "Best current compromise for server authority and full visual quality, with the highest infrastructure cost.",
+        "A strong server-pixel baseline, but its static background and VP8 encoding move away from the original dynamic-noise experiment.",
+      sparse:
+        "The closest server-authoritative build to the original visual idea. Its exact point stream is cheaper to generate, but easier for a purpose-built solver to parse.",
     },
     versions: {
       canvas: {
@@ -126,21 +129,48 @@ const COPY = {
           "Cold start and browser codec support require buffering and fallback",
         ],
       },
+      sparse: {
+        name: "Sparse Frames",
+        version: "v1.3a",
+        subtitle: "Server occupancy frames · four-second loop",
+        summary:
+          "The server mixes target and background into a flat set of occupied cells for every frame. The browser receives no particle identities and only draws the final result.",
+        architecture:
+          "Server scene · binary gap/varint frames · Canvas playback · server verification",
+        metrics: [
+          ["Frame", "640×360"],
+          ["Signal", "7,200 cells · 2.4 px"],
+          ["Motion", "48 fps · seamless 4 s loop"],
+          ["Noise", "100% fresh each frame"],
+          ["Media", "≈ 1.41 MB once"],
+        ],
+        pros: [
+          "Restores fully regenerated background noise at full fidelity",
+          "No VP8 encoding, codec artifacts, or MSE buffering",
+          "Mask, seed, particle roles, trajectory, and hit test stay server-side",
+        ],
+        cons: [
+          "Exact occupied cells remove thresholding work for a solver",
+          "Repeated viewing gives a bot the complete four-second sequence",
+          "The human-versus-solver advantage still needs a benchmark",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
       apng: ["Reduced", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
-      webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "Best current"],
+      webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
+      sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 03 РАБОЧИЕ СБОРКИ",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 04 РАБОЧИЕ СБОРКИ",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная тремя способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная четырьмя способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     launch: "Запустить версию",
@@ -167,7 +197,9 @@ const COPY = {
       apng:
         "Полезный серверный baseline с небольшим трафиком. Сниженное качество и повторяющийся путь заметно портят эксперимент.",
       webm:
-        "Лучший текущий компромисс между серверной проверкой и исходным качеством — ценой самой дорогой инфраструктуры.",
+        "Сильный baseline с серверными пикселями, но статичный фон и VP8-кодирование уводят его от исходного эксперимента с динамическим шумом.",
+      sparse:
+        "Самая близкая к исходной визуальной идее серверная версия. Точный point-stream дешевле генерировать, но специализированному solver проще его разобрать.",
     },
     versions: {
       canvas: {
@@ -248,16 +280,43 @@ const COPY = {
           "Холодный старт и поддержка кодека требуют буфера и fallback",
         ],
       },
+      sparse: {
+        name: "Sparse Frames",
+        version: "v1.3a",
+        subtitle: "Серверные occupancy-кадры · цикл четыре секунды",
+        summary:
+          "Сервер смешивает фигуру и фон в плоский набор занятых клеток для каждого кадра. Браузер не получает идентификаторы частиц и только рисует финальный результат.",
+        architecture:
+          "Серверная сцена · бинарные gap/varint-кадры · Canvas · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360"],
+          ["Сигнал", "7 200 клеток · 2.4 px"],
+          ["Движение", "48 fps · бесшовный цикл 4 с"],
+          ["Шум", "100% новый каждый кадр"],
+          ["Медиа", "≈ 1.41 МБ один раз"],
+        ],
+        pros: [
+          "Возвращает полностью обновляемый фон в исходном качестве",
+          "Нет VP8-кодирования, артефактов кодека и MSE-буфера",
+          "Маска, seed, роли частиц, траектория и hit test остаются на сервере",
+        ],
+        cons: [
+          "Точные клетки убирают для solver этап выделения точек из растра",
+          "Повторы дают боту всю четырёхсекундную последовательность",
+          "Преимущество человека перед solver ещё нужно измерить",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
       apng: ["Сниженное", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
-      webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Лучший сейчас"],
+      webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
+      sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
     },
   },
 } as const;
 
-const VERSION_IDS: VersionId[] = ["canvas", "apng", "webm"];
+const VERSION_IDS: VersionId[] = ["canvas", "apng", "webm", "sparse"];
 
 export function CaptchaVersions() {
   const { locale } = useLanguage();
@@ -304,7 +363,7 @@ export function CaptchaVersions() {
       <section className="version-grid" aria-label={copy.measured}>
         {VERSION_IDS.map((id, index) => {
           const version = copy.versions[id];
-          const current = id === "webm";
+          const current = id === "sparse";
           return (
             <article className={`version-card version-${id}`} key={id}>
               <div className="version-card-head">
@@ -438,10 +497,15 @@ export function CaptchaVersions() {
                 locale={locale}
                 onClose={() => setActiveVersion(null)}
               />
-            ) : (
+            ) : activeVersion === "webm" ? (
               <ServerMotionCaptcha
                 locale={locale}
                 onPass={() => undefined}
+                onClose={() => setActiveVersion(null)}
+              />
+            ) : (
+              <SparseFramesCaptcha
+                locale={locale}
                 onClose={() => setActiveVersion(null)}
               />
             )}

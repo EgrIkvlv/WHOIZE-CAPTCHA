@@ -115,7 +115,7 @@ button {
   max-width: 1500px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-left: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
 }
@@ -129,7 +129,7 @@ button {
   background: rgba(242, 241, 234, 0.88);
 }
 
-.version-card.version-webm {
+.version-card.version-sparse {
   background:
     linear-gradient(180deg, rgba(182, 240, 58, 0.09), transparent 190px),
     rgba(242, 241, 234, 0.94);
@@ -480,6 +480,12 @@ button {
 
 .version-modal-shell > .whoize-captcha {
   border: 0;
+}
+
+@media (max-width: 1300px) and (min-width: 1051px) {
+  .version-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1050px) {
@@ -1882,6 +1888,7 @@ footer p {
 .captcha-canvas-wrap.status-expired img,
 .captcha-canvas-wrap.status-locked canvas,
 .captcha-canvas-wrap.status-locked img,
+.captcha-canvas-wrap.status-error canvas,
 .captcha-canvas-wrap.status-error img,
 .captcha-canvas-wrap.status-verifying video,
 .captcha-canvas-wrap.status-passed video,

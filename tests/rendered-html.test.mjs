@@ -66,6 +66,8 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /Client Canvas/);
   assert.match(html, /Server APNG/);
   assert.match(html, /Server WebM/);
+  assert.match(html, /Sparse Frames/);
+  assert.match(html, /v1\.3a/);
   assert.match(html, /Launch version/);
 });
 
