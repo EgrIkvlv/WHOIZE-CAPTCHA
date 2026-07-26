@@ -16,6 +16,10 @@ export type BenchmarkFixture = {
   scene: SparseScene;
   stream: DecodedSparseFrames;
   targetFrame: number;
+  representation: "wsp1-exact" | "raster-clean" | "raster-blurred";
+  rasterFrames?: Array<Uint8Array | undefined>;
+  rasterThreshold?: number;
+  blurPx?: number;
 };
 
 export type SolverResult = {
@@ -65,6 +69,89 @@ function frameMask(frame: Uint32Array, size: number) {
   const mask = new Uint8Array(size);
   for (const cell of frame) mask[cell] = 1;
   return mask;
+}
+
+function gaussianKernel(sigma: number) {
+  if (sigma <= 0) return Float32Array.of(1);
+  const radius = Math.max(1, Math.ceil(sigma * 3));
+  const kernel = new Float32Array(radius * 2 + 1);
+  let total = 0;
+  for (let offset = -radius; offset <= radius; offset += 1) {
+    const value = Math.exp(-(offset * offset) / (2 * sigma * sigma));
+    kernel[offset + radius] = value;
+    total += value;
+  }
+  for (let index = 0; index < kernel.length; index += 1) {
+    kernel[index] /= total;
+  }
+  return kernel;
+}
+
+function gaussianBlur(
+  source: Uint8Array,
+  width: number,
+  height: number,
+  sigma: number,
+) {
+  if (sigma <= 0) return source;
+  const kernel = gaussianKernel(sigma);
+  const radius = Math.floor(kernel.length / 2);
+  const horizontal = new Float32Array(source.length);
+  const output = new Uint8Array(source.length);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let value = 0;
+      for (let offset = -radius; offset <= radius; offset += 1) {
+        const sampleX = Math.max(0, Math.min(width - 1, x + offset));
+        value += source[y * width + sampleX] * kernel[offset + radius];
+      }
+      horizontal[y * width + x] = value;
+    }
+  }
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let value = 0;
+      for (let offset = -radius; offset <= radius; offset += 1) {
+        const sampleY = Math.max(0, Math.min(height - 1, y + offset));
+        value += horizontal[sampleY * width + x] * kernel[offset + radius];
+      }
+      output[y * width + x] = Math.round(value);
+    }
+  }
+  return output;
+}
+
+function rasterFrame(
+  cells: Uint32Array,
+  width: number,
+  height: number,
+  dotSize: number,
+  blurPx: number,
+) {
+  const darkness = new Uint8Array(width * height);
+  const size = Math.max(1, Math.ceil(dotSize));
+  for (const cell of cells) {
+    const x = cell % width;
+    const y = Math.floor(cell / width);
+    for (let offsetY = 0; offsetY < size && y + offsetY < height; offsetY += 1) {
+      for (let offsetX = 0; offsetX < size && x + offsetX < width; offsetX += 1) {
+        darkness[(y + offsetY) * width + x + offsetX] = 255;
+      }
+    }
+  }
+  return gaussianBlur(darkness, width, height, blurPx);
+}
+
+function fixtureFrame(fixture: BenchmarkFixture, frameIndex: number) {
+  const raster = fixture.rasterFrames?.[frameIndex];
+  if (!raster) return fixture.stream.frames[frameIndex];
+  const threshold = fixture.rasterThreshold ?? 48;
+  const cells: number[] = [];
+  for (let index = 0; index < raster.length; index += 1) {
+    if (raster[index] >= threshold) cells.push(index);
+  }
+  return Uint32Array.from(cells);
 }
 
 function integralImage(
@@ -278,6 +365,36 @@ export function createFixture(seed: number): BenchmarkFixture {
     scene,
     stream: decodeSparseFrames(payload),
     targetFrame: Math.floor(scene.frameCount * 0.37),
+    representation: "wsp1-exact",
+  };
+}
+
+export function createRasterFixture(
+  source: BenchmarkFixture,
+  blurPx = 0,
+): BenchmarkFixture {
+  const { width, height, dotSize, frames } = source.stream;
+  const rasterFrames: Array<Uint8Array | undefined> = new Array(frames.length);
+  for (
+    let frameIndex = source.targetFrame - 7;
+    frameIndex <= source.targetFrame;
+    frameIndex += 1
+  ) {
+    rasterFrames[frameIndex] = rasterFrame(
+      frames[frameIndex],
+      width,
+      height,
+      dotSize,
+      blurPx,
+    );
+  }
+  return {
+    ...source,
+    id: `${source.id}-${blurPx ? `blur-${blurPx}` : "raster"}`,
+    representation: blurPx ? "raster-blurred" : "raster-clean",
+    rasterFrames,
+    rasterThreshold: blurPx ? 32 : 128,
+    blurPx,
   };
 }
 
@@ -302,7 +419,7 @@ export const baselineSolvers: Solver[] = [
     solve(fixture) {
       const { width, height } = fixture.stream;
       const mask = frameMask(
-        fixture.stream.frames[fixture.targetFrame],
+        fixtureFrame(fixture, fixture.targetFrame),
         width * height,
       );
       const scan = scanWindow({
@@ -324,10 +441,13 @@ export const baselineSolvers: Solver[] = [
   {
     id: "two-frame-difference",
     solve(fixture) {
-      const { width, height, frames } = fixture.stream;
-      const current = frameMask(frames[fixture.targetFrame], width * height);
+      const { width, height } = fixture.stream;
+      const current = frameMask(
+        fixtureFrame(fixture, fixture.targetFrame),
+        width * height,
+      );
       const previous = frameMask(
-        frames[fixture.targetFrame - 1],
+        fixtureFrame(fixture, fixture.targetFrame - 1),
         width * height,
       );
       const change = new Uint8Array(width * height);
@@ -353,11 +473,11 @@ export const baselineSolvers: Solver[] = [
   {
     id: "temporal-persistence",
     solve(fixture) {
-      const { width, height, frames } = fixture.stream;
+      const { width, height } = fixture.stream;
       const counts = new Uint16Array(width * height);
       const first = fixture.targetFrame - 7;
       for (let frameIndex = first; frameIndex <= fixture.targetFrame; frameIndex += 1) {
-        for (const cell of frames[frameIndex]) counts[cell] += 1;
+        for (const cell of fixtureFrame(fixture, frameIndex)) counts[cell] += 1;
       }
       const repeated = new Uint16Array(width * height);
       for (let index = 0; index < counts.length; index += 1) {
@@ -382,10 +502,10 @@ export const baselineSolvers: Solver[] = [
   {
     id: "coherent-flow",
     solve(fixture) {
-      const { frames, width, height } = fixture.stream;
+      const { width, height } = fixture.stream;
       const flow = coherentPair(
-        frames[fixture.targetFrame - 1],
-        frames[fixture.targetFrame],
+        fixtureFrame(fixture, fixture.targetFrame - 1),
+        fixtureFrame(fixture, fixture.targetFrame),
         width,
         height,
       );
@@ -400,14 +520,14 @@ export const baselineSolvers: Solver[] = [
   {
     id: "multi-frame-tracking",
     solve(fixture) {
-      const { frames, width, height } = fixture.stream;
+      const { width, height } = fixture.stream;
       const observations: Array<{ frame: number; point: Point }> = [];
       let operations = 0;
       const first = fixture.targetFrame - 6;
       for (let frameIndex = first; frameIndex <= fixture.targetFrame; frameIndex += 1) {
         const flow = coherentPair(
-          frames[frameIndex - 1],
-          frames[frameIndex],
+          fixtureFrame(fixture, frameIndex - 1),
+          fixtureFrame(fixture, frameIndex),
           width,
           height,
         );
@@ -497,4 +617,3 @@ export function summarize(results: SolverResult[]): AttackSummary[] {
     };
   });
 }
-

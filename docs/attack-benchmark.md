@@ -43,6 +43,46 @@ Two-frame coherent flow solved all 24 initial challenges. The blur in `v1.3b`
 does not change this boundary because client code can read Canvas pixels before
 the CSS filter is applied.
 
+## Raster-only comparison
+
+A second 24-fixture run repeated the same attacks after converting the exact
+cells into 640×360 grayscale frames. The clean case models a Canvas screenshot
+and lossless APNG after decoding. The blurred cases model a hypothetical
+screenshot-only attacker; they do **not** model the current `v1.3b` trust
+boundary, where the browser still receives exact WSP1 cells before applying
+CSS blur.
+
+| Representation | Best 2-frame attack | Success | Median error | Median local time |
+| --- | --- | ---: | ---: | ---: |
+| Exact WSP1 cells | Coherent flow | 100.0% | 5.5 px | 12.34 ms |
+| Clean raster / decoded APNG | Coherent flow | 100.0% | 9.5 px | 110.41 ms |
+| Raster, 1.2 px blur | Two-frame difference | 100.0% | 13.8 px | 3.90 ms |
+| Raster, 2.4 px blur | Two-frame difference | 100.0% | 20.7 px | 4.84 ms |
+| Raster, 4 px blur | Two-frame difference | 70.8% | 31.9 px | 5.33 ms |
+
+The purpose-built coherent-flow solver reached 95.8% at the default 1.2 px
+blur and 79.2% at 2.4 px. Its median time rose to 228.47 ms and 268.25 ms,
+respectively. At 4 px blur it fell to 45.8%, while the simpler two-frame
+difference attack still reached 70.8%.
+
+This means light blur raises preprocessing cost but does not create useful
+security separation. Even under the artificial screenshot-only restriction,
+1.2 px and 2.4 px blur remained completely solvable by at least one very small
+two-frame baseline. Stronger 4 px blur helped, but it also changes the human
+experience and still left a 70.8% automated pass rate in this small run.
+
+These numbers are a lower bound on attacker quality, not a final robustness
+score. The rasterizer approximates browser Gaussian blur, uses one fixed
+threshold, and does not tune parameters per blur level. A stronger adversary
+could sweep thresholds, use grayscale correlation directly, deconvolve the
+blur, or run subpixel optical flow.
+
+WebM is intentionally absent from this table. Unlike APNG, WebM is lossy and
+depends on the production encoder, bitrate, keyframe interval, chroma format,
+and decoder output. It must be benchmarked by encoding and decoding the actual
+production stream; substituting a made-up compression proxy would produce a
+misleading number.
+
 ## Gemini smoke test
 
 One opt-in smoke test sent eight chronological synthetic PNG frames to
@@ -69,9 +109,8 @@ documentation.
 
 ## Next benchmark increments
 
-1. Add a raster-only adversary that receives screenshots instead of WSP1 cells.
-2. Compare raw `v1.3a` Canvas, CSS-blurred `v1.3b` screenshots, APNG, and WebM
-   under the same solver interface.
+1. Add a production-codec WebM decode adapter under the same solver interface.
+2. Sweep raster thresholds and use grayscale correlation without binarization.
 3. Sweep coherence, density, radius, speed, frame spacing, and frames observed.
 4. Add subpixel optical flow and robust clustering rather than integer shifts.
 5. Test concurrent verification, session swapping, action mismatch, expiry,
@@ -84,4 +123,3 @@ documentation.
 The research objective is cost separation, not an “unbreakable” label. The
 current result shows that WSP1 is an efficient transport format but a weak
 security representation against a purpose-built temporal solver.
-

@@ -30,7 +30,18 @@ the current provider price sheet.
 ```bash
 npm run benchmark:attack
 npm run benchmark:attack -- --samples=100
+npm run benchmark:attack -- --samples=24 --raster
 ```
+
+`--raster` repeats every local solver against five representations of the same
+scene: exact WSP1 occupied cells, a clean raster, and raster screenshots with
+1.2 px, 2.4 px, and 4 px Gaussian blur. Raster thresholding is included in
+solver time. The clean raster is also the correct post-decode model for APNG,
+because APNG is lossless.
+
+The runner deliberately does not label an approximation as WebM. A defensible
+WebM number requires encoding with the production codec settings, decoding the
+result, and measuring the decoded frames. That adapter remains separate.
 
 Gemini is opt-in and reads secrets only from the process environment:
 
@@ -53,4 +64,5 @@ This benchmark does not claim that a CAPTCHA is “unbreakable.” It compares t
 cost and reliability of attacks under explicit assumptions. The CSS blur in
 `v1.3b` is a presentation experiment, not a security boundary: browser code can
 read the unfiltered Canvas data, so sparse-stream attacks should be assumed to
-have the same input as `v1.3a`.
+have the same input as `v1.3a`. The blurred raster cases answer a narrower
+counterfactual question: what if an attacker were restricted to screenshots?

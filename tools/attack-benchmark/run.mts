@@ -5,6 +5,7 @@ import { shapeAreaRatio } from "@whoize/captcha-core";
 import {
   baselineSolvers,
   createFixture,
+  createRasterFixture,
   evaluatePrediction,
   runSolver,
   summarize,
@@ -19,15 +20,39 @@ const args = new Set(process.argv.slice(2));
 const sampleArg = process.argv.find((value) => value.startsWith("--samples="));
 const samples = sampleArg ? Math.max(1, Number(sampleArg.split("=")[1])) : 24;
 const includeGemini = args.has("--gemini");
+const includeRaster = args.has("--raster");
 const seedBase = 0x51a7c000;
 const results: SolverResult[] = [];
 const fixtures = Array.from({ length: samples }, (_, index) =>
   createFixture(seedBase + index * 7919),
 );
+const representations = includeRaster
+  ? [
+      { id: "wsp1-exact", fixtures },
+      {
+        id: "raster-clean",
+        fixtures: fixtures.map((fixture) => createRasterFixture(fixture)),
+      },
+      ...[1.2, 2.4, 4].map((blurPx) => ({
+        id: `raster-blur-${blurPx}px`,
+        fixtures: fixtures.map((fixture) =>
+          createRasterFixture(fixture, blurPx),
+        ),
+      })),
+    ]
+  : [{ id: "wsp1-exact", fixtures }];
 
-for (const fixture of fixtures) {
-  for (const solver of baselineSolvers) {
-    results.push(runSolver(solver, fixture));
+for (const representation of representations) {
+  for (const fixture of representation.fixtures) {
+    for (const solver of baselineSolvers) {
+      const result = runSolver(solver, fixture);
+      results.push({
+        ...result,
+        attackId: includeRaster
+          ? `${representation.id}/${result.attackId}`
+          : result.attackId,
+      });
+    }
   }
 }
 
@@ -103,6 +128,7 @@ const report = {
   methodology: {
     samples,
     syntheticFixtures: true,
+    representations: representations.map((item) => item.id),
     seeds: fixtures.map((fixture) => fixture.seed),
     successDefinition: "Predicted point passes the real private shape hit test.",
     timing: "Local wall-clock analysis time; excludes fixture generation.",
@@ -140,6 +166,12 @@ console.log(
     100
   ).toFixed(2)}% theoretical success.`,
 );
+if (includeRaster) {
+  console.log(
+    "Raster note: clean frames are APNG-equivalent after lossless decoding; " +
+      "blurred frames model screenshot-only access. WebM is not simulated.",
+  );
+}
 if (gemini?.error) console.error(`Gemini adapter: ${gemini.error}`);
 if (gemini?.result) {
   console.log(

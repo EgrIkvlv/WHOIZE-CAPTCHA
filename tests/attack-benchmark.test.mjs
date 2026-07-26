@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   baselineSolvers,
   createFixture,
+  createRasterFixture,
   runSolver,
   summarize,
 } from "../tools/attack-benchmark/benchmark-core.ts";
@@ -26,6 +27,18 @@ test("runs reproducible attack baselines against sparse fixtures", () => {
   assert.ok(results.every((result) => result.expected.x > 0));
   assert.ok(results.every((result) => result.expected.y > 0));
   assert.equal(summarize(results).length, 6);
+});
+
+test("runs the same attacks on clean and blurred raster-only fixtures", () => {
+  const source = createFixture(0x51a7c000);
+  for (const fixture of [
+    createRasterFixture(source),
+    createRasterFixture(source, 1.2),
+  ]) {
+    const results = baselineSolvers.map((solver) => runSolver(solver, fixture));
+    assert.equal(results.length, 6);
+    assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
+  }
 });
 
 test("coherent temporal solvers beat the one-frame baseline on fixed fixtures", () => {
