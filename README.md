@@ -57,7 +57,7 @@ research applications:
 - `apps/captcha-versions` — runnable preserved implementations and comparison
   data for client Canvas, server APNG, server WebM, sparse final-frame,
   browser-blur, dynamic WebM-only, matched-motion decoy, and human-tuned decoy
-  builds;
+  builds, plus the regenerative-motion experiment;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -66,7 +66,8 @@ The deployed site has four connected surfaces:
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
-  matched-motion decoy implementations, including the human-tuned v1.5b branch;
+  matched-motion decoy implementations, including the human-tuned v1.5b and
+  regenerative v1.6 branches;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -79,6 +80,16 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.6` returns to one target and the visual simplicity of v1.3a while
+keeping the WebM-only security boundary. Target points move inside the private
+mask and are replaced after 4–9 frames. Background points either regenerate
+immediately or follow similarly short, locally correlated flows, so neither
+side exposes stable particle identities. In a 24-seed production-codec
+comparison, coherent flow passed 0%, tracking 8.3%, shape-template 4.2%, and
+the best current baseline passed 16.7%. The stronger bot result costs about
+1.25 MiB/s and 1.33 seconds of local encoding per one-second segment. Human
+readability still needs direct testing before promotion.
 
 Version `v1.5b` is a separate usability-first branch of v1.5. It reduces the
 scene to three decoys, 6,200 dots, 58% coherent background motion, and larger

@@ -36,6 +36,7 @@ npm run benchmark:attack -- --samples=24 --raster
 npm run benchmark:attack -- --samples=24 --webm
 npm run benchmark:attack -- --samples=24 --webm-v15 --production-only
 npm run benchmark:attack -- --samples=24 --webm-v15b --production-only
+npm run benchmark:attack -- --samples=24 --webm-v16 --production-only
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -64,6 +65,12 @@ early-path separation. The report includes both transport profiles, every
 solver, and a dedicated client-exposure audit. Without `--production-only`,
 the runner also evaluates exact, clean-raster, and blurred v1.5b
 representations.
+
+`--webm-v16` compares decoded v1.5b and v1.6 production WebM using identical
+seeds. The v1.6 renderer has one target, short-lived moving particles inside
+the mask, an immediately regenerated background layer, and short local
+background flows. The report also runs a dedicated exposure audit for private
+particle lifetimes and flow parameters.
 
 Gemini is opt-in and reads secrets only from the process environment:
 
@@ -94,3 +101,6 @@ converts the problem from locating the only coherent region into recognizing
 the requested shape among several motion-matched candidates. v1.5b deliberately
 trades some of that ambiguity for a calmer field; its value cannot be judged
 without pairing these bot rates with human completion and error rates.
+v1.6 removes stable particle identities rather than adding visible decoy
+shapes. Its current baseline result is stronger, but promotion still requires
+human and learned-video measurements.

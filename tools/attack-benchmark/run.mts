@@ -9,6 +9,7 @@ import {
   createV14Fixture,
   createV15Fixture,
   createV15bFixture,
+  createV16Fixture,
   evaluatePrediction,
   runSolver,
   summarize,
@@ -20,6 +21,7 @@ import {
   runWebmOnlyExposureAudit,
   runMatchedMotionExposureAudit,
   runHumanTunedExposureAudit,
+  runRegenerativeMotionExposureAudit,
 } from "./security-probes.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -30,8 +32,30 @@ const includeRaster = args.has("--raster");
 const includeWebm = args.has("--webm");
 const includeV15 = args.has("--webm-v15");
 const includeV15b = args.has("--webm-v15b");
+const includeV16 = args.has("--webm-v16");
 const productionOnly = args.has("--production-only");
-const includeProductionWebm = includeWebm || includeV15 || includeV15b;
+const includeProductionWebm =
+  includeWebm || includeV15 || includeV15b || includeV16;
+const selectedWebmVersion = includeV16
+  ? "v16"
+  : includeV15b
+    ? "v15b"
+    : includeV15
+      ? "v15"
+      : "v14";
+const comparisonWebmVersion = includeV16
+  ? "v15b"
+  : includeV15b
+    ? "v15"
+    : includeV15
+      ? "v14"
+      : null;
+const versionLabels = {
+  v14: "v1.4",
+  v15: "v1.5",
+  v15b: "v1.5b",
+  v16: "v1.6",
+} as const;
 const seedBase = 0x51a7c000;
 const results: SolverResult[] = [];
 const seeds = Array.from(
@@ -39,7 +63,9 @@ const seeds = Array.from(
   (_, index) => seedBase + index * 7919,
 );
 const fixtures = seeds.map((seed) =>
-  includeV15b
+  includeV16
+    ? createV16Fixture(seed)
+    : includeV15b
     ? createV15bFixture(seed)
     : includeV15
     ? createV15Fixture(seed)
@@ -54,54 +80,42 @@ if (includeProductionWebm) {
     "./production-webm.ts"
   );
   for (const seed of seeds) {
-    if (includeV15 || includeV15b) {
+    if (comparisonWebmVersion) {
       comparisonWebmFixtures.push(
-        await createProductionWebmFixture(
-          seed,
-          includeV15b ? "v15" : "v14",
-        ),
+        await createProductionWebmFixture(seed, comparisonWebmVersion),
       );
     }
     productionWebmFixtures.push(
-      await createProductionWebmFixture(
-        seed,
-        includeV15b ? "v15b" : includeV15 ? "v15" : "v14",
-      ),
+      await createProductionWebmFixture(seed, selectedWebmVersion),
     );
   }
 }
+const exactRepresentationId = `${selectedWebmVersion}-exact-cells`;
+const productionRepresentationId =
+  `${selectedWebmVersion}-production-webm-decoded`;
+const comparisonRepresentationId = comparisonWebmVersion
+  ? `${comparisonWebmVersion}-production-webm-decoded`
+  : null;
 const includeRepresentations = includeRaster || includeProductionWebm;
 const representations = includeRepresentations
   ? productionOnly && includeProductionWebm
     ? [
-        ...(includeV15 || includeV15b
+        ...(comparisonRepresentationId
           ? [
               {
-                id: includeV15b
-                  ? "v15-production-webm-decoded"
-                  : "v14-production-webm-decoded",
+                id: comparisonRepresentationId,
                 fixtures: comparisonWebmFixtures,
               },
             ]
           : []),
         {
-          id: includeV15b
-            ? "v15b-production-webm-decoded"
-            : includeV15
-              ? "v15-production-webm-decoded"
-            : "production-webm-decoded",
+          id: productionRepresentationId,
           fixtures: productionWebmFixtures,
         },
       ]
     : [
       {
-        id: includeV15b
-          ? "v15b-exact-cells"
-          : includeV15
-            ? "v15-exact-cells"
-          : includeWebm
-            ? "v14-exact-cells"
-            : "wsp1-exact",
+        id: includeProductionWebm ? exactRepresentationId : "wsp1-exact",
         fixtures,
       },
       {
@@ -116,22 +130,16 @@ const representations = includeRepresentations
       })),
       ...(includeProductionWebm
         ? [
-            ...(includeV15 || includeV15b
+            ...(comparisonRepresentationId
               ? [
                   {
-                    id: includeV15b
-                      ? "v15-production-webm-decoded"
-                      : "v14-production-webm-decoded",
+                    id: comparisonRepresentationId,
                     fixtures: comparisonWebmFixtures,
                   },
                 ]
               : []),
             {
-              id: includeV15b
-                ? "v15b-production-webm-decoded"
-                : includeV15
-                  ? "v15-production-webm-decoded"
-                : "production-webm-decoded",
+              id: productionRepresentationId,
               fixtures: productionWebmFixtures,
             },
           ]
@@ -210,6 +218,7 @@ const protocolProbes = {
   webmOnlyExposure: await runWebmOnlyExposureAudit(),
   matchedMotionExposure: await runMatchedMotionExposureAudit(),
   humanTunedExposure: await runHumanTunedExposureAudit(),
+  regenerativeMotionExposure: await runRegenerativeMotionExposureAudit(),
   replay: await runReplayProbe(),
 };
 
@@ -226,14 +235,18 @@ const report = {
   schemaVersion: 3,
   generatedAt: new Date().toISOString(),
   target: {
-    version: includeV15b
+    version: includeV16
+      ? "v1.6 compared with v1.5b"
+      : includeV15b
       ? "v1.5b compared with v1.5"
       : includeV15
         ? "v1.5 compared with v1.4"
       : includeWebm
         ? "v1.4"
         : "v1.3a/v1.3b",
-    format: includeV15b
+    format: includeV16
+      ? "regenerative v1.6 compared with human-tuned v1.5b production VP8/WebM"
+      : includeV15b
       ? "human-tuned v1.5b compared with v1.5 production VP8/WebM"
       : includeV15
         ? "same-target v1.4 and v1.5 production VP8/WebM plus v1.5 exact/raster representations"
@@ -261,16 +274,16 @@ const report = {
         codec: "production webm-wasm VP8, decoded by FFmpeg to gray8",
         variants: Object.fromEntries(
           [
-            ...(includeV15 || includeV15b
+            ...(comparisonWebmVersion
               ? [
                   [
-                    includeV15b ? "v1.5" : "v1.4",
+                    versionLabels[comparisonWebmVersion],
                     comparisonWebmFixtures,
                   ] as const,
                 ]
               : []),
             [
-              includeV15b ? "v1.5b" : includeV15 ? "v1.5" : "v1.4",
+              versionLabels[selectedWebmVersion],
               productionWebmFixtures,
             ] as const,
           ].map(([version, versionFixtures]) => [
@@ -307,7 +320,7 @@ const outputDirectory = resolve("outputs/attack-benchmark");
 await mkdir(outputDirectory, { recursive: true });
 const outputPath = resolve(
   outputDirectory,
-  `report-${Date.now()}${includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
+  `report-${Date.now()}${includeV16 ? "-webm-v16" : includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
 );
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
@@ -353,8 +366,10 @@ if (gemini?.result) {
   );
 }
 console.log(
-  `${includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
-    (includeV15b
+  `${includeV16 ? "v1.6 regenerative motion" : includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
+    (includeV16
+      ? protocolProbes.regenerativeMotionExposure
+      : includeV15b
       ? protocolProbes.humanTunedExposure
       : includeV15
         ? protocolProbes.matchedMotionExposure
@@ -365,7 +380,9 @@ console.log(
       ? "PASS"
       : "FAIL"
   }; exact occupancy stream exposed: ${
-    (includeV15b
+    (includeV16
+      ? protocolProbes.regenerativeMotionExposure
+      : includeV15b
       ? protocolProbes.humanTunedExposure
       : includeV15
         ? protocolProbes.matchedMotionExposure

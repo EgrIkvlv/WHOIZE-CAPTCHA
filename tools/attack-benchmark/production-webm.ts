@@ -11,11 +11,13 @@ import {
   V15B_HUMAN_TUNED_PROFILE,
 } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
 import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
+import { renderRegenerativeMotionSegment } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
 import {
   createDecodedWebmFixture,
   createV14Fixture,
   createV15Fixture,
   createV15bFixture,
+  createV16Fixture,
   type BenchmarkFixture,
 } from "./benchmark-core.ts";
 
@@ -101,10 +103,12 @@ function decodeWebmToGray(
 
 export async function createProductionWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" = "v14",
+  version: "v14" | "v15" | "v15b" | "v16" = "v14",
 ): Promise<BenchmarkFixture> {
   const source =
-    version === "v15b"
+    version === "v16"
+      ? createV16Fixture(seed)
+      : version === "v15b"
       ? createV15bFixture(seed)
       : version === "v15"
         ? createV15Fixture(seed)
@@ -120,7 +124,13 @@ export async function createProductionWebmFixture(
   );
   const encodeStartedAt = performance.now();
   const webm =
-    version === "v15" || version === "v15b"
+    version === "v16"
+      ? await renderRegenerativeMotionSegment({
+          scene,
+          segmentIndex,
+          wasmBinary: await readCodec(),
+        })
+      : version === "v15" || version === "v15b"
       ? await renderMatchedMotionSegment({
           scene,
           segmentIndex,

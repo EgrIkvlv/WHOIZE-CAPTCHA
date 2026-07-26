@@ -76,6 +76,9 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /v1\.5/);
   assert.match(html, /Human-Tuned Decoys/);
   assert.match(html, /v1\.5b/);
+  assert.match(html, /Regenerative Motion/);
+  assert.match(html, /v1\.6/);
+  assert.match(html, /16\.7% PASS/);
   assert.match(html, /Best attack pass rate/);
   assert.match(html, /24 WebM · shape template/);
   assert.match(html, /58\.3% PASS/);

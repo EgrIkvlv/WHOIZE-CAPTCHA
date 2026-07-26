@@ -15,6 +15,10 @@ import {
   humanTunedPublicChallenge,
   matchedMotionPublicChallenge,
 } from "../../apps/captcha-versions/server/matched-motion-service.ts";
+import {
+  createRegenerativeMotionChallenge,
+  regenerativeMotionPublicChallenge,
+} from "../../apps/captcha-versions/server/regenerative-motion-service.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -174,6 +178,51 @@ export async function runHumanTunedExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.5b exposes only playback metadata and its public variant label; its target, three decoys, tuned density, and motion profile remain server-side.",
+  };
+}
+
+export async function runRegenerativeMotionExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createRegenerativeMotionChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "regenerative-motion-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = regenerativeMotionPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "particles",
+    "lifetimes",
+    "profile",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "regenerative-motion-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "regenerative-motion" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.6 exposes playback metadata and its variant label only; particle lifetimes, local flow, target mask, and trajectory remain server-side.",
   };
 }
 

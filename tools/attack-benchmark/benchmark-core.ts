@@ -17,6 +17,7 @@ import {
   V15B_HUMAN_TUNED_PROFILE,
 } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
 import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
+import { createRegenerativeMotionOccupancyRenderer } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
 
 export type Point = { x: number; y: number };
 
@@ -31,6 +32,7 @@ export type BenchmarkFixture = {
     | "v14-exact-cells"
     | "v15-exact-cells"
     | "v15b-exact-cells"
+    | "v16-exact-cells"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -493,9 +495,13 @@ export function createV15bFixture(seed: number): BenchmarkFixture {
   return createWebmFixture(seed, "v15b");
 }
 
+export function createV16Fixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v16");
+}
+
 function createWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b",
+  version: "v14" | "v15" | "v15b" | "v16",
 ): BenchmarkFixture {
   const config =
     version === "v15b"
@@ -526,7 +532,9 @@ function createWebmFixture(
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    version === "v15b"
+    version === "v16"
+      ? createRegenerativeMotionOccupancyRenderer(challengeScene)
+      : version === "v15b"
       ? createMatchedMotionOccupancyRenderer(
           challengeScene,
           V15B_HUMAN_TUNED_PROFILE,
@@ -557,7 +565,9 @@ function createWebmFixture(
     },
     targetFrame,
     representation:
-      version === "v15b"
+      version === "v16"
+        ? "v16-exact-cells"
+        : version === "v15b"
         ? "v15b-exact-cells"
         : version === "v15"
           ? "v15-exact-cells"

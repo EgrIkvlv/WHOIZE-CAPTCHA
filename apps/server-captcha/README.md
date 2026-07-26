@@ -75,3 +75,22 @@ This branch is intentionally not presented as a security improvement. The
 24-scene production WebM benchmark measured a 54.2% best adapted attack pass
 rate and higher temporal-solver success than v1.5. It exists so the later human
 study can measure whether the readability improvement justifies that cost.
+
+## v1.6 regenerative-motion experiment
+
+`/api/versions/webm-v16/challenge` returns to a single requested target while
+retaining the WebM-only transport, session-bound private scene, server hit
+test, and one-time proof boundary.
+
+Target particles move inside the mask and receive deterministic 4–9 frame
+lifetimes. Background particles use the same short lifetime range inside local
+80 px vector-field tiles, while 42% regenerate on every frame. Particle
+coordinates, lifetimes, tile directions, target mask, and trajectory never
+enter the public challenge response; it adds only the static
+`regenerative-motion` variant label.
+
+Across 24 production WebM scenes, the best of the seven current local attacks
+passed 16.7%, coherent flow passed 0%, tracking passed 8.3%, and the public
+shape template passed 4.2%. These figures measure the present solver suite,
+not universal resistance. Human readability and stronger learned-video attacks
+remain open tests.

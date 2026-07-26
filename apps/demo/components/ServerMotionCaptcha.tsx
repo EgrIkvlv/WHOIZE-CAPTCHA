@@ -25,7 +25,10 @@ type Challenge = {
   maxAttempts: number;
   transport?: "webm-only";
   codec?: "vp8";
-  variant?: "matched-motion-decoys" | "human-tuned-decoys";
+  variant?:
+    | "matched-motion-decoys"
+    | "human-tuned-decoys"
+    | "regenerative-motion";
 };
 
 export type ServerMotionCaptchaProps = {
@@ -36,6 +39,7 @@ export type ServerMotionCaptchaProps = {
   webmOnly?: boolean;
   matchedMotion?: boolean;
   humanTuned?: boolean;
+  regenerativeMotion?: boolean;
 };
 
 const GLYPH = {
@@ -94,6 +98,7 @@ export function ServerMotionCaptcha({
   webmOnly = false,
   matchedMotion = false,
   humanTuned = false,
+  regenerativeMotion = false,
 }: ServerMotionCaptchaProps) {
   const aimCursorRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -121,7 +126,9 @@ export function ServerMotionCaptcha({
           attempt: "ПОПЫТКА",
           remaining: "ОСТАЛОСЬ",
           canvas: "Серверное поле динамического шума. Найдите фигуру",
-          server: humanTuned
+          server: regenerativeMotion
+            ? "WebM-пиксели · регенерация точек · кратковременный хаотичный flow"
+            : humanTuned
             ? "WebM-пиксели · 3 decoy · облегчённый matched motion-фон"
             : matchedMotion
               ? "WebM-пиксели · 5 decoy-фигур · matched motion-фон"
@@ -152,7 +159,9 @@ export function ServerMotionCaptcha({
           attempt: "ATTEMPT",
           remaining: "REMAINING",
           canvas: "Server-rendered dynamic noise field. Find the shape",
-          server: humanTuned
+          server: regenerativeMotion
+            ? "WebM pixels · regenerated particles · short-lived chaotic flow"
+            : humanTuned
             ? "WebM pixels · 3 decoys · lighter matched background motion"
             : matchedMotion
               ? "WebM pixels · 5 decoy shapes · matched background motion"
@@ -213,6 +222,9 @@ export function ServerMotionCaptcha({
       if (humanTuned && next.variant !== "human-tuned-decoys") {
         throw new Error("Human-tuned variant metadata is invalid");
       }
+      if (regenerativeMotion && next.variant !== "regenerative-motion") {
+        throw new Error("Regenerative-motion variant metadata is invalid");
+      }
       setChallenge(next);
       setSecondsLeft(
         Math.max(0, Math.ceil((next.expiresAt - Date.now()) / 1000)),
@@ -221,7 +233,13 @@ export function ServerMotionCaptcha({
       if (signal?.aborted) return;
       setStatus("error");
     }
-  }, [endpointBase, humanTuned, matchedMotion, webmOnly]);
+  }, [
+    endpointBase,
+    humanTuned,
+    matchedMotion,
+    regenerativeMotion,
+    webmOnly,
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();

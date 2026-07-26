@@ -17,17 +17,18 @@ type VersionId =
   | "blur"
   | "webm14"
   | "webm15"
-  | "webm15b";
+  | "webm15b"
+  | "webm16";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 08 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 09 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented eight different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented nine different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -97,6 +98,11 @@ const COPY = {
         detail: "24 WebM · shape template",
         tone: "warning",
       },
+      webm16: {
+        score: "16.7% PASS",
+        detail: "24 WebM · single-frame density",
+        tone: "success",
+      },
     },
     verdict: {
       canvas:
@@ -115,6 +121,8 @@ const COPY = {
         "The first version that changes the visual signal itself: five motion-matched decoy shapes and a moving background remove the single obvious coherent region. Human readability and stronger shape-aware attacks now need measurement.",
       webm15b:
         "A usability-first branch of v1.5. It intentionally reduces visual load while preserving several matched candidates. The benchmark confirms the security cost; only a human study can now tell whether the usability gain is worth it.",
+      webm16:
+        "The strongest current result against the seven local baselines: flow reached 0%, tracking 8.3%, and the best attack reached 16.7%. Human readability is still unknown, so this remains an experiment rather than the default.",
     },
     versions: {
       canvas: {
@@ -325,6 +333,32 @@ const COPY = {
           "Human comfort still requires direct testing rather than inference",
         ],
       },
+      webm16: {
+        name: "Regenerative Motion",
+        version: "v1.6",
+        subtitle: "One target · no persistent particle identities",
+        summary:
+          "A v1.3a-inspired field rendered through the WebM-only boundary. Target particles move inside the mask and are replaced every 4–9 frames; background particles use similarly short local flows or regenerate immediately.",
+        architecture:
+          "Private regenerative scene · local transient flow · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Signal", "7,200 dots · one target"],
+          ["Regeneration", "4–9 frames · 42% instant"],
+          ["Media", "≈ 1.25 MB/s · 1.33 s encode"],
+          ["Attacks", "0–16.7% across 24 WebM"],
+        ],
+        pros: [
+          "Removes stable particle IDs from both target and background",
+          "Keeps one visually searchable target instead of several decoy shapes",
+          "Local background flow makes shared target motion less unique",
+        ],
+        cons: [
+          "The moving mask may still leak a detectable regional correlation",
+          "Short lifetimes may reduce human motion integration too",
+          "Security and readability both require direct measurement",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -335,16 +369,17 @@ const COPY = {
       webm14: ["High", "No", "≈ 1.20 MB/s", "≈ 1.23 s/segment", "Non-looping", "CV: 100%"],
       webm15: ["High / busy", "No", "≈ 1.17 MB/s", "≈ 1.04 s/segment", "Non-looping", "CV: 58.3% best"],
       webm15b: ["High / calmer", "No", "≈ 1.12 MB/s", "≈ 1.03 s/segment", "Non-looping", "CV: 54.2% best"],
+      webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 08 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 09 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная восемью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная девятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -414,6 +449,11 @@ const COPY = {
         detail: "24 WebM · шаблон формы",
         tone: "warning",
       },
+      webm16: {
+        score: "16.7% ПРОХОД",
+        detail: "24 WebM · плотность одного кадра",
+        tone: "success",
+      },
     },
     verdict: {
       canvas:
@@ -432,6 +472,8 @@ const COPY = {
         "Первая версия, которая меняет сам визуальный сигнал: пять motion-matched decoy-фигур и движущийся фон убирают единственную очевидную когерентную область. Теперь нужно измерить читаемость для людей и более сильные shape-aware атаки.",
       webm15b:
         "Ориентированная на удобство ветка v1.5. Она специально снижает визуальную нагрузку, сохраняя несколько matched-кандидатов. Benchmark подтвердил цену для защиты; теперь только тест на людях покажет, оправдан ли выигрыш в удобстве.",
+      webm16:
+        "Лучший текущий результат против семи локальных baseline: flow дал 0%, tracking — 8.3%, лучшая атака — 16.7%. Читаемость для человека пока неизвестна, поэтому это эксперимент, а не новая версия по умолчанию.",
     },
     versions: {
       canvas: {
@@ -642,6 +684,32 @@ const COPY = {
           "Комфорт человека всё равно нужно проверять напрямую",
         ],
       },
+      webm16: {
+        name: "Regenerative Motion",
+        version: "v1.6",
+        subtitle: "Одна цель · без постоянных particle ID",
+        summary:
+          "Визуальная идея v1.3a внутри WebM-only границы. Точки цели двигаются внутри маски и заменяются каждые 4–9 кадров; фон использует такие же короткие локальные потоки либо полностью пересоздаётся.",
+        architecture:
+          "Приватная regenerative-сцена · локальный transient flow · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Сигнал", "7 200 точек · одна цель"],
+          ["Регенерация", "4–9 кадров · 42% мгновенно"],
+          ["Медиа", "≈ 1.25 МБ/с · рендер 1.33 с"],
+          ["Атаки", "0–16.7% на 24 WebM"],
+        ],
+        pros: [
+          "Убирает стабильные particle ID и у цели, и у фона",
+          "Оставляет одну визуально искомую цель вместо нескольких decoy",
+          "Локальный flow фона делает общее движение цели менее уникальным",
+        ],
+        cons: [
+          "Движущаяся маска всё ещё может выдавать региональную корреляцию",
+          "Короткая жизнь частиц может мешать и человеческому восприятию",
+          "Защиту и читаемость нужно измерить напрямую",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -652,6 +720,7 @@ const COPY = {
       webm14: ["Высокое", "Нет", "≈ 1.20 МБ/с", "≈ 1.23 с/сегмент", "Без цикла", "CV: 100%"],
       webm15: ["Высокое / насыщенное", "Нет", "≈ 1.17 МБ/с", "≈ 1.04 с/сегмент", "Без цикла", "CV: 58.3% лучший"],
       webm15b: ["Высокое / спокойнее", "Нет", "≈ 1.12 МБ/с", "≈ 1.03 с/сегмент", "Без цикла", "CV: 54.2% лучший"],
+      webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
     },
   },
 } as const;
@@ -665,6 +734,7 @@ const VERSION_IDS: VersionId[] = [
   "webm14",
   "webm15",
   "webm15b",
+  "webm16",
 ];
 
 export function CaptchaVersions() {
@@ -730,7 +800,8 @@ export function CaptchaVersions() {
                     : id === "blur" ||
                         id === "webm14" ||
                         id === "webm15" ||
-                        id === "webm15b"
+                        id === "webm15b" ||
+                        id === "webm16"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -981,13 +1052,23 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm15b" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v15b/challenge"
                       webmOnly
                       humanTuned
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v16/challenge"
+                      webmOnly
+                      regenerativeMotion
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

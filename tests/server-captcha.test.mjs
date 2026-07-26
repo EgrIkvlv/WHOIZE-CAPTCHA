@@ -50,6 +50,16 @@ import {
   verifyHumanTunedChallenge,
   verifyMatchedMotionChallenge,
 } from "../apps/captcha-versions/server/matched-motion-service.ts";
+import {
+  createRegenerativeMotionFrameRenderer,
+  createRegenerativeMotionOccupancyRenderer,
+} from "../apps/captcha-versions/server/regenerative-motion-engine.ts";
+import {
+  createRegenerativeMotionChallenge,
+  readRegenerativeMotionSegment,
+  regenerativeMotionPublicChallenge,
+  verifyRegenerativeMotionChallenge,
+} from "../apps/captcha-versions/server/regenerative-motion-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -410,6 +420,70 @@ test("creates a calmer v1.5b scene without exposing its tuned motion", async () 
   );
   const center = positionAtFrame(record.scene, 0);
   const result = await verifyHumanTunedChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+});
+
+test("regenerates v1.6 particles without exposing its private flow", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v16";
+  const { record } = await createRegenerativeMotionChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = regenerativeMotionPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm16_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "regenerative-motion");
+  assert.equal(record.scene.density, 7_200);
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "positions",
+    "particles",
+    "lifetimes",
+    "profile",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const renderer = createRegenerativeMotionFrameRenderer(record.scene);
+  const occupancyRenderer =
+    createRegenerativeMotionOccupancyRenderer(record.scene);
+  const first = renderer(0);
+  const second = renderer(1);
+  const tenth = renderer(10);
+  assert.equal(first.length, 640 * 360 * 4);
+  assert.notDeepEqual(first, second);
+  assert.notDeepEqual(second, tenth);
+  assert.equal(occupancyRenderer(0).length, record.scene.density);
+  assert.equal(occupancyRenderer(10).length, record.scene.density);
+  assert.equal(
+    (
+      await readRegenerativeMotionSegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 0);
+  const result = await verifyRegenerativeMotionChallenge({
     id: record.id,
     sessionHash,
     x: center.x,

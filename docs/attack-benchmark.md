@@ -191,7 +191,7 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5/v1.5b exposure finding: only decoded WebM pixels and public
+- v1.4/v1.5/v1.5b/v1.6 exposure finding: only decoded WebM pixels and public
   playback metadata reach the client; private scene and exact occupancy arrays
   are absent.
 - Challenge replay: rejected after a successful verification.
@@ -254,3 +254,43 @@ criterion is therefore paired evidence: human completion time and error rate
 must improve enough to justify the measured increase in bot success. Until
 that study exists, v1.5 remains the stronger automated-attack baseline and
 v1.5b remains a usability experiment.
+
+## v1.6 regenerative-motion production WebM comparison
+
+Version v1.6 returns to a single target but removes stable particle identities.
+Target points move inside the private mask and are regenerated after 4–9
+frames. Forty-two percent of background slots regenerate every frame; the
+remaining points use 4–9 frame lifetimes and locally correlated directions
+inside 80 px tiles. The browser still receives production VP8/WebM pixels and
+non-secret playback metadata only.
+
+The controlled comparison used 24 identical seeds. v1.5b and v1.6 were encoded
+with the production `webm-wasm` encoder, decoded through FFmpeg to gray8, and
+scored against the private hit test.
+
+| Decoded production WebM attack | v1.5b success | v1.6 success | v1.6 median error | v1.6 median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 8.3% | 4.2% | 220.4 px | 0.01 ms |
+| Single-frame density | 41.7% | 16.7% | 176.1 px | 1.92 ms |
+| Two-frame difference | 0.0% | 0.0% | 218.3 px | 3.35 ms |
+| Temporal persistence | 41.7% | 12.5% | 162.5 px | 12.39 ms |
+| Coherent flow | 37.5% | 0.0% | 203.4 px | 145.35 ms |
+| Multi-frame tracking | 33.3% | 8.3% | 177.3 px | 1,018.69 ms |
+| Public-shape template | 45.8% | 4.2% | 158.9 px | 64.28 ms |
+
+Median one-second transport costs were:
+
+- v1.5b: 1,119 KiB, 1,030 ms encode, 68 ms decode;
+- v1.6: 1,249 KiB, 1,327 ms encode, 71 ms decode.
+
+The intended effect is present in the current solver suite. Removing stable
+particle identities and adding short local background flows reduced every
+successful analytical attack. It also worsened compression by about 12% and
+increased local encoding time by about 29%.
+
+This does not yet establish a human-versus-bot advantage. A person must still
+be able to integrate the moving mask across the deliberately short particle
+lifetimes. The next decision requires completion time, miss rate, and perceived
+strain from people, followed by learned multi-frame segmentation and video
+model attacks. Until then, v1.6 is the strongest measured automated-attack
+experiment, not the production default.
