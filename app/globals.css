@@ -1181,14 +1181,14 @@ footer p {
 .captcha-aim-cursor {
   position: absolute;
   z-index: 5;
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   transform: translate(-50%, -50%);
   border: 2px solid var(--acid);
   border-radius: 50%;
   box-shadow:
     0 0 0 2px var(--ink),
-    0 2px 7px rgba(0, 0, 0, 0.38);
+    0 1px 5px rgba(0, 0, 0, 0.38);
   pointer-events: none;
 }
 
@@ -1203,14 +1203,14 @@ footer p {
 }
 
 .captcha-aim-cursor::before {
-  width: 46px;
+  width: 31px;
   height: 2px;
   transform: translate(-50%, -50%);
 }
 
 .captcha-aim-cursor::after {
   width: 2px;
-  height: 46px;
+  height: 31px;
   transform: translate(-50%, -50%);
 }
 
@@ -1219,8 +1219,8 @@ footer p {
   z-index: 1;
   left: 50%;
   top: 50%;
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   transform: translate(-50%, -50%);
   border: 1px solid var(--acid);
   border-radius: 50%;
