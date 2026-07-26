@@ -167,11 +167,12 @@ export function CaptchaLab() {
   const { locale } = useLanguage();
   const copy = COPY[locale];
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const configRef = useRef<LabConfig>(PRESETS.Баланс);
+  const aimCursorRef = useRef<HTMLDivElement>(null);
+  const configRef = useRef<LabConfig>(PRESETS.Читаемый);
   const shapeRef = useRef<ShapeName>("Звезда");
   const particlesRef = useRef<Point[]>([]);
   const centerRef = useRef({ x: 180, y: 210 });
-  const velocityRef = useRef({ x: 42, y: -20 });
+  const velocityRef = useRef({ x: 47, y: -22 });
   const radiusRef = useRef(72);
   const pausedRef = useRef(false);
   const revealRef = useRef(false);
@@ -184,8 +185,8 @@ export function CaptchaLab() {
     { x: number; y: number; hit: boolean; until: number } | undefined
   >(undefined);
 
-  const [config, setConfig] = useState<LabConfig>(PRESETS.Баланс);
-  const [difficulty, setDifficulty] = useState<Difficulty>("Баланс");
+  const [config, setConfig] = useState<LabConfig>(PRESETS.Читаемый);
+  const [difficulty, setDifficulty] = useState<Difficulty>("Читаемый");
   const [shape, setShape] = useState<ShapeName>("Звезда");
   const [paused, setPaused] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -422,6 +423,21 @@ export function CaptchaLab() {
     );
   };
 
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    const aimCursor = aimCursorRef.current;
+    if (!aimCursor) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    aimCursor.style.left = `${event.clientX - rect.left}px`;
+    aimCursor.style.top = `${event.clientY - rect.top}px`;
+    aimCursor.hidden = false;
+  };
+
+  const hideAimCursor = () => {
+    if (aimCursorRef.current) aimCursorRef.current.hidden = true;
+  };
+
   const stats = useMemo(() => {
     const successful = attempts.filter((attempt) => attempt.hit);
     const sortedTimes = successful.map((attempt) => attempt.time).sort((a, b) => a - b);
@@ -503,8 +519,19 @@ export function CaptchaLab() {
               width={WIDTH}
               height={HEIGHT}
               onClick={handleCanvasClick}
+              onPointerEnter={handlePointerMove}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={hideAimCursor}
               aria-label={copy.canvas}
             />
+            <div
+              ref={aimCursorRef}
+              className="captcha-aim-cursor"
+              aria-hidden="true"
+              hidden
+            >
+              <span />
+            </div>
             <div className="canvas-index">RDK—{String(trial).padStart(3, "0")}</div>
             <div className="canvas-message" aria-live="polite">
               {messageText}

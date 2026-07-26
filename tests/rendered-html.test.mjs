@@ -51,6 +51,8 @@ test("server-renders the separate motion lab route", async () => {
   assert.match(html, /MOTION LAB/);
   assert.match(html, /The figure exists/);
   assert.match(html, /Find the moving shape/);
+  assert.match(html, /class="selected">Readable/);
+  assert.match(html, /class="captcha-aim-cursor"/);
 });
 
 test("server-renders the protected owner login", async () => {

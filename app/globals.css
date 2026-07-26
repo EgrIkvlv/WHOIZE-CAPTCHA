@@ -242,7 +242,7 @@ h2 {
   overflow: hidden;
   border: 1px solid var(--ink);
   background: #e8e7e1;
-  cursor: crosshair;
+  cursor: none;
 }
 
 canvas {
@@ -1279,6 +1279,10 @@ footer p {
 }
 
 @media (pointer: coarse) {
+  .canvas-shell {
+    cursor: pointer;
+  }
+
   .captcha-canvas-wrap.status-playing canvas,
   .captcha-canvas-wrap.status-playing img {
     cursor: pointer;
