@@ -559,6 +559,10 @@ button {
   border: 0;
 }
 
+.version-live-captcha > .version-client-blur > .whoize-captcha {
+  border: 0;
+}
+
 .version-blur-control {
   margin: 7px 0 11px;
   padding: 12px 14px;
@@ -596,7 +600,8 @@ button {
   font: 8px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.captcha-browser-blur {
+.version-client-blur .captcha-canvas-wrap canvas {
+  filter: blur(var(--version-blur, 0));
   will-change: filter;
   transition: filter 120ms ease;
 }

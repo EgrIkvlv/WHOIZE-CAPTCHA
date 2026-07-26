@@ -38,7 +38,7 @@ const COPY = {
     criterion: "Criterion",
     blurControl: "Browser blur",
     blurHint:
-      "Applied after the APNG reaches the browser. This changes perception only—the original server image and hit test stay unchanged.",
+      "Applied only to the locally rendered Canvas. Dot generation, motion, and client-side hit testing stay identical to v1.0.",
     rows: {
       fidelity: "Visual fidelity",
       exposure: "Answer in browser state",
@@ -57,7 +57,7 @@ const COPY = {
       sparse:
         "The closest server-authoritative build to the original visual idea. Its exact point stream is cheaper to generate, but easier for a purpose-built solver to parse.",
       blur:
-        "A comfort experiment built directly on v1.1. Useful for measuring eye strain and readability, but CSS blur adds no security and can be removed by the client.",
+        "A comfort experiment built directly on v1.0. Useful for measuring eye strain and readability, but CSS blur adds no security and can be removed by the client.",
     },
     versions: {
       canvas: {
@@ -165,29 +165,29 @@ const COPY = {
         ],
       },
       blur: {
-        name: "APNG + Browser Blur",
+        name: "Canvas + Browser Blur",
         version: "v1.4",
-        subtitle: "v1.1 with adjustable client-side softness",
+        subtitle: "v1.0 with adjustable client-side softness",
         summary:
-          "The exact v1.1 server APNG is displayed through a light CSS blur that can be tuned live in the browser.",
+          "The exact v1.0 browser-generated Canvas is displayed through a light CSS blur that can be tuned live.",
         architecture:
-          "v1.1 server APNG · CSS filter in browser · server frame verification",
+          "v1.0 React + Canvas · CSS filter in browser · client hit testing",
         metrics: [
-          ["Base", "v1.1 Server APNG"],
-          ["Frame", "384×216 · 16 fps"],
+          ["Base", "v1.0 Client Canvas"],
+          ["Frame", "640×360 · 48 fps"],
           ["Blur", "0–4 px · live"],
           ["Default", "1.2 px"],
-          ["Media", "≈ 0.42 MB once"],
+          ["Media", "≈ 0 B per challenge"],
         ],
         pros: [
           "Softens the harsh high-frequency dot field without new server work",
           "Blur can be tuned live without restarting the challenge",
-          "Traffic, generation time, and server verification stay unchanged",
+          "Keeps v1.0 responsiveness, fresh noise, and continuous 48 fps motion",
         ],
         cons: [
           "Too much blur can hide the motion signal together with the noise",
           "CSS blur is cosmetic and trivial for a bot to disable",
-          "Keeps v1.1 resolution, frame-rate, and loop-boundary limitations",
+          "Keeps every v1.0 answer and the hit test readable in JavaScript",
         ],
       },
     },
@@ -196,7 +196,7 @@ const COPY = {
       apng: ["Reduced", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
       webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
-      blur: ["Softened", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
+      blur: ["Softened", "Yes", "Minimal", "None", "Continuous", "Low"],
     },
   },
   ru: {
@@ -225,7 +225,7 @@ const COPY = {
     criterion: "Критерий",
     blurControl: "Блюр в браузере",
     blurHint:
-      "Применяется после загрузки APNG в браузер. Меняется только восприятие — исходное серверное изображение и hit test остаются прежними.",
+      "Применяется только к локально отрисованному Canvas. Генерация точек, движение и клиентский hit test остаются как в v1.0.",
     rows: {
       fidelity: "Качество изображения",
       exposure: "Ответ в состоянии браузера",
@@ -244,7 +244,7 @@ const COPY = {
       sparse:
         "Самая близкая к исходной визуальной идее серверная версия. Точный point-stream дешевле генерировать, но специализированному solver проще его разобрать.",
       blur:
-        "Эксперимент с комфортом поверх v1.1. Полезен для измерения нагрузки на глаза и читаемости, но CSS-blur не добавляет безопасности и снимается на клиенте.",
+        "Эксперимент с комфортом поверх v1.0. Полезен для измерения нагрузки на глаза и читаемости, но CSS-blur не добавляет безопасности и снимается на клиенте.",
     },
     versions: {
       canvas: {
@@ -352,29 +352,29 @@ const COPY = {
         ],
       },
       blur: {
-        name: "APNG + Browser Blur",
+        name: "Canvas + Browser Blur",
         version: "v1.4",
-        subtitle: "v1.1 с регулируемой мягкостью на клиенте",
+        subtitle: "v1.0 с регулируемой мягкостью на клиенте",
         summary:
-          "Тот же серверный APNG из v1.1 отображается через лёгкий CSS-blur, который можно менять прямо в браузере.",
+          "Тот же браузерный Canvas из v1.0 отображается через лёгкий CSS-blur, который можно менять на лету.",
         architecture:
-          "Серверный APNG v1.1 · CSS-фильтр в браузере · серверная проверка кадра",
+          "v1.0 React + Canvas · CSS-фильтр в браузере · клиентский hit test",
         metrics: [
-          ["Основа", "v1.1 Server APNG"],
-          ["Кадр", "384×216 · 16 fps"],
+          ["Основа", "v1.0 Client Canvas"],
+          ["Кадр", "640×360 · 48 fps"],
           ["Блюр", "0–4 px · live"],
           ["По умолчанию", "1.2 px"],
-          ["Медиа", "≈ 0.42 МБ один раз"],
+          ["Медиа", "≈ 0 Б на challenge"],
         ],
         pros: [
           "Смягчает резкое высокочастотное поле точек без новых расчётов сервера",
           "Степень блюра меняется на лету без перезапуска challenge",
-          "Трафик, время генерации и серверная проверка не меняются",
+          "Сохраняет отзывчивость, новый шум и непрерывные 48 fps из v1.0",
         ],
         cons: [
           "Сильный blur скрывает не только шум, но и motion-сигнал",
           "CSS-blur косметический и легко отключается ботом",
-          "Сохраняются ограничения v1.1 по разрешению, fps и границе цикла",
+          "Ответ и hit test по-прежнему читаются в JavaScript, как в v1.0",
         ],
       },
     },
@@ -383,7 +383,7 @@ const COPY = {
       apng: ["Сниженное", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
       webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
-      blur: ["Смягчённое", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
+      blur: ["Смягчённое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
     },
   },
 } as const;
@@ -659,13 +659,22 @@ export function CaptchaVersions() {
                       onClose={() => setActiveVersion(null)}
                     />
                   ) : (
-                    <LegacyApngCaptcha
-                      key={relaunchKey}
-                      blurPx={blurPx}
-                      brandLabel="BLUR"
-                      locale={locale}
-                      onClose={() => setActiveVersion(null)}
-                    />
+                    <div
+                      className="version-client-blur"
+                      style={
+                        {
+                          "--version-blur": `${blurPx}px`,
+                        } as CSSProperties
+                      }
+                    >
+                      <MotionCaptcha
+                        key={relaunchKey}
+                        config={config}
+                        locale={locale}
+                        onPass={() => undefined}
+                        onClose={() => setActiveVersion(null)}
+                      />
+                    </div>
                   )}
                 </div>
               </section>
