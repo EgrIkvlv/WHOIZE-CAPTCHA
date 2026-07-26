@@ -1,6 +1,7 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "whoize-motion-captcha",
   "version": "0.1.0",
+  "description": "A motion-defined CAPTCHA research prototype and interactive perception lab.",
   "private": true,
   "engines": {
     "node": ">=22.13.0"

@@ -1,98 +1,171 @@
-# vinext-starter
+# WHOIZE CAPTCHA
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+An experimental CAPTCHA in which the object is encoded in **time**, not in any
+single image.
 
-## Prerequisites
+The prototype renders a field of visually identical random dots. A hidden
+shape becomes perceptible only because a subset of those dots maintains
+coherent motion across consecutive frames. Freeze the animation and the signal
+should collapse back into noise.
+
+> [!WARNING]
+> This is a perception experiment and attack-benchmark foundation, not a
+> production-ready bot protection system. Do not use it as the only security
+> layer.
+
+## The idea
+
+Traditional visual CAPTCHAs place recognizable information directly in an
+image. WHOIZE explores a different primitive:
+
+- foreground and background dots share the same color, size, and approximate
+  spatial density;
+- the background is regenerated continuously;
+- dots inside an invisible mask preserve part of their relative position;
+- the visual system integrates that correlation over time and perceives a
+  moving contour;
+- a single frozen frame is intended to contain no reliable representation of
+  the answer.
+
+This is closer to a random-dot kinematogram or motion-defined contour than to
+an OCR puzzle.
+
+```mermaid
+flowchart LR
+    A[Uniform random-dot field] --> B[Hidden shape mask]
+    B --> C[Temporally coherent particles]
+    A --> D[Uncorrelated background particles]
+    C --> E[Human perceives a moving contour]
+    D --> E
+    E --> F[Click inside the perceived shape]
+```
+
+## Current prototype
+
+The first prototype deliberately tests only the core perceptual hypothesis:
+can a person find and click one moving shape whose evidence exists primarily
+between frames?
+
+It includes:
+
+- four procedural masks: circle, triangle, diamond, and star;
+- randomized starting position and trajectory;
+- exact hit testing against the active mask;
+- a true freeze-frame control;
+- optional answer reveal for debugging;
+- presets plus controls for density, dot size, signal coherence, speed, and
+  frame rate;
+- session accuracy, response-time median, and click-error history;
+- responsive desktop and mobile layouts.
+
+## Run locally
+
+Requirements:
 
 - Node.js `>=22.13.0`
-
-## Quick Start
+- npm
 
 ```bash
+git clone https://github.com/EgrIkvlv/WHOIZE-CAPTCHA.git
+cd WHOIZE-CAPTCHA
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Included Shape
+Useful commands:
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+npm run dev     # start the interactive lab
+npm run lint    # run static checks
+npm test        # build and verify server-rendered output
+npm run build   # create a production build
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## How the field is generated
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+Each trial chooses a mask, radius, position, and velocity. The renderer then
+estimates how many particles the mask should contain at the selected global
+density.
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+Background particles are sampled uniformly outside the current mask on every
+paint. Target particles are sampled uniformly inside the mask. A configurable
+percentage of target particles remains stable relative to the moving center;
+the rest is resampled. Those stable particles are the temporal signal.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+The canvas never draws a conventional filled silhouette during a normal
+challenge. “Show answer” adds an explicit outline only as a laboratory aid.
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+## What this does—and does not—defend against
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+The prototype raises the cost of:
 
-## Useful Commands
+- single-screenshot solvers;
+- ordinary OCR;
+- static image classification;
+- bots that do not collect consecutive frames.
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+It is **not** assumed to resist a purpose-built solver. Likely attacks include:
 
-## Learn More
+- frame differencing;
+- temporal averaging;
+- optical flow;
+- motion segmentation;
+- coherent-particle clustering;
+- object tracking;
+- direct analysis or modification of client-side code.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+The long-term research question is therefore not “is the animation impossible
+for a machine?” It is:
+
+> Can we find parameters that humans solve quickly and reliably while forcing
+> automated solvers to perform materially more expensive temporal analysis?
+
+## Planned experiments
+
+1. Record human success rate, response time, and click error across parameter
+   combinations.
+2. Build baseline solvers using frame differencing and optical flow.
+3. Compare frozen-frame, frame-stack, and full-video attacks.
+4. Add multiple shapes and target selection.
+5. Add “track and click the final position” challenges.
+6. Move challenge generation and verification to a server.
+7. Add short-lived, single-use proof tokens and rate limiting.
+8. Design a non-motion accessibility alternative.
+
+## Production architecture direction
+
+A real deployment must not expose masks, trajectories, or answers in browser
+state. The intended direction is server-side generation with short-lived
+challenge records and one-time verification tokens.
+
+```mermaid
+flowchart LR
+    A[Client site] --> B[Challenge API]
+    B --> C[Server-side scene generator]
+    C --> D[Pixel stream]
+    D --> A
+    A --> E[Click coordinates]
+    E --> F[Server verification]
+    F --> G[Single-use proof token]
+```
+
+CAPTCHA should remain one signal inside a broader anti-abuse system that also
+uses rate limits, session risk, replay prevention, and business-level controls.
+
+## Accessibility
+
+Motion-based challenges can exclude people with low vision, vestibular
+disorders, attention differences, or reduced-motion preferences. A production
+system needs a genuinely different route—such as email verification, a
+passkey, or another account-bound check—not merely an audio version of the same
+puzzle.
+
+## Project status
+
+Early research prototype. The visual mechanism and UI are functional; no claim
+of bot resistance has been established yet.
+
+Issues, attack ideas, solver experiments, and human-testing results are
+welcome.
