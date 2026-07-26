@@ -55,8 +55,8 @@ research applications:
 - `apps/server-captcha` — the server-rendered challenge, verification, and
   one-time proof reference flow;
 - `apps/captcha-versions` — runnable preserved implementations and comparison
-  data for client Canvas, server APNG, server WebM, and sparse final-frame
-  builds;
+  data for client Canvas, server APNG, server WebM, sparse final-frame, and
+  browser-blur builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -64,7 +64,7 @@ The deployed site has four connected surfaces:
 
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
-  server WebM, and sparse final-frame implementations;
+  server WebM, sparse final-frame, and browser-blur implementations;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -77,6 +77,13 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.4` preserves the complete `v1.1` server APNG pipeline and applies
+an adjustable 0–4 px CSS blur only after the animation reaches the browser.
+The live version modal exposes the filter strength without restarting the
+challenge, making it possible to compare perceived eye strain and readability
+without changing traffic, server generation, or hit verification. The blur is
+explicitly a visual experiment, not a security boundary.
 
 Version `v1.3a` sends a four-second binary sequence of final occupied cells.
 The server regenerates the background for every 640×360 frame, mixes it with

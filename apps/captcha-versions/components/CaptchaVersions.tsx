@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { MotionCaptcha } from "@whoize/captcha-react";
 import { useCaptchaConfig } from "@/app/captcha-config";
 import { LanguageSwitch, useLanguage } from "@/app/i18n";
@@ -9,19 +9,20 @@ import { ServerMotionCaptcha } from "@/apps/demo/components/ServerMotionCaptcha"
 import { LegacyApngCaptcha } from "./LegacyApngCaptcha";
 import { SparseFramesCaptcha } from "./SparseFramesCaptcha";
 
-type VersionId = "canvas" | "apng" | "webm" | "sparse";
+type VersionId = "canvas" | "apng" | "webm" | "sparse" | "blur";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 04 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 05 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented four different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented five different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
+    experiment: "EXPERIMENT",
     launch: "Open",
     relaunch: "Relaunch CAPTCHA",
     live: "Live challenge",
@@ -35,6 +36,9 @@ const COPY = {
       "Numbers describe the current Readable profile and our deployed prototype—not universal performance guarantees. Network and cold-start latency vary by host.",
     matrix: "Comparison matrix",
     criterion: "Criterion",
+    blurControl: "Browser blur",
+    blurHint:
+      "Applied after the APNG reaches the browser. This changes perception only—the original server image and hit test stay unchanged.",
     rows: {
       fidelity: "Visual fidelity",
       exposure: "Answer in browser state",
@@ -52,6 +56,8 @@ const COPY = {
         "A strong server-pixel baseline, but its static background and VP8 encoding move away from the original dynamic-noise experiment.",
       sparse:
         "The closest server-authoritative build to the original visual idea. Its exact point stream is cheaper to generate, but easier for a purpose-built solver to parse.",
+      blur:
+        "A comfort experiment built directly on v1.1. Useful for measuring eye strain and readability, but CSS blur adds no security and can be removed by the client.",
     },
     versions: {
       canvas: {
@@ -158,24 +164,52 @@ const COPY = {
           "The human-versus-solver advantage still needs a benchmark",
         ],
       },
+      blur: {
+        name: "APNG + Browser Blur",
+        version: "v1.4",
+        subtitle: "v1.1 with adjustable client-side softness",
+        summary:
+          "The exact v1.1 server APNG is displayed through a light CSS blur that can be tuned live in the browser.",
+        architecture:
+          "v1.1 server APNG · CSS filter in browser · server frame verification",
+        metrics: [
+          ["Base", "v1.1 Server APNG"],
+          ["Frame", "384×216 · 16 fps"],
+          ["Blur", "0–4 px · live"],
+          ["Default", "1.2 px"],
+          ["Media", "≈ 0.42 MB once"],
+        ],
+        pros: [
+          "Softens the harsh high-frequency dot field without new server work",
+          "Blur can be tuned live without restarting the challenge",
+          "Traffic, generation time, and server verification stay unchanged",
+        ],
+        cons: [
+          "Too much blur can hide the motion signal together with the noise",
+          "CSS blur is cosmetic and trivial for a bot to disable",
+          "Keeps v1.1 resolution, frame-rate, and loop-boundary limitations",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
       apng: ["Reduced", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
       webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
+      blur: ["Softened", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 04 РАБОЧИЕ СБОРКИ",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 05 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная четырьмя способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная пятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
+    experiment: "ЭКСПЕРИМЕНТ",
     launch: "Открыть",
     relaunch: "Перезапустить CAPTCHA",
     live: "Рабочая CAPTCHA",
@@ -189,6 +223,9 @@ const COPY = {
       "Цифры относятся к текущему профилю «Читаемый» и нашим деплоям, а не являются универсальной гарантией. Сеть и холодный старт зависят от хостинга.",
     matrix: "Матрица сравнения",
     criterion: "Критерий",
+    blurControl: "Блюр в браузере",
+    blurHint:
+      "Применяется после загрузки APNG в браузер. Меняется только восприятие — исходное серверное изображение и hit test остаются прежними.",
     rows: {
       fidelity: "Качество изображения",
       exposure: "Ответ в состоянии браузера",
@@ -206,6 +243,8 @@ const COPY = {
         "Сильный baseline с серверными пикселями, но статичный фон и VP8-кодирование уводят его от исходного эксперимента с динамическим шумом.",
       sparse:
         "Самая близкая к исходной визуальной идее серверная версия. Точный point-stream дешевле генерировать, но специализированному solver проще его разобрать.",
+      blur:
+        "Эксперимент с комфортом поверх v1.1. Полезен для измерения нагрузки на глаза и читаемости, но CSS-blur не добавляет безопасности и снимается на клиенте.",
     },
     versions: {
       canvas: {
@@ -312,17 +351,44 @@ const COPY = {
           "Преимущество человека перед solver ещё нужно измерить",
         ],
       },
+      blur: {
+        name: "APNG + Browser Blur",
+        version: "v1.4",
+        subtitle: "v1.1 с регулируемой мягкостью на клиенте",
+        summary:
+          "Тот же серверный APNG из v1.1 отображается через лёгкий CSS-blur, который можно менять прямо в браузере.",
+        architecture:
+          "Серверный APNG v1.1 · CSS-фильтр в браузере · серверная проверка кадра",
+        metrics: [
+          ["Основа", "v1.1 Server APNG"],
+          ["Кадр", "384×216 · 16 fps"],
+          ["Блюр", "0–4 px · live"],
+          ["По умолчанию", "1.2 px"],
+          ["Медиа", "≈ 0.42 МБ один раз"],
+        ],
+        pros: [
+          "Смягчает резкое высокочастотное поле точек без новых расчётов сервера",
+          "Степень блюра меняется на лету без перезапуска challenge",
+          "Трафик, время генерации и серверная проверка не меняются",
+        ],
+        cons: [
+          "Сильный blur скрывает не только шум, но и motion-сигнал",
+          "CSS-blur косметический и легко отключается ботом",
+          "Сохраняются ограничения v1.1 по разрешению, fps и границе цикла",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
       apng: ["Сниженное", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
       webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
+      blur: ["Смягчённое", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
     },
   },
 } as const;
 
-const VERSION_IDS: VersionId[] = ["canvas", "apng", "webm", "sparse"];
+const VERSION_IDS: VersionId[] = ["canvas", "apng", "webm", "sparse", "blur"];
 
 export function CaptchaVersions() {
   const { locale } = useLanguage();
@@ -330,6 +396,7 @@ export function CaptchaVersions() {
   const config = useCaptchaConfig();
   const [activeVersion, setActiveVersion] = useState<VersionId | null>(null);
   const [relaunchKey, setRelaunchKey] = useState(0);
+  const [blurPx, setBlurPx] = useState(1.2);
   const rowLabels = Object.values(copy.rows);
   const openVersion = (id: VersionId) => {
     setRelaunchKey((current) => current + 1);
@@ -380,7 +447,11 @@ export function CaptchaVersions() {
               <div className="version-card-head">
                 <span>{version.version}</span>
                 <span className={current ? "current" : ""}>
-                  {current ? copy.current : copy.archived}
+                  {current
+                    ? copy.current
+                    : id === "blur"
+                      ? copy.experiment
+                      : copy.archived}
                 </span>
               </div>
               <div className="version-card-body">
@@ -414,7 +485,10 @@ export function CaptchaVersions() {
               <tr>
                 <th>{copy.criterion}</th>
                 {VERSION_IDS.map((id) => (
-                  <th key={id}>
+                  <th
+                    key={id}
+                    className={id === "sparse" ? "matrix-current" : undefined}
+                  >
                     <span>{copy.versions[id].version}</span>
                     {copy.versions[id].name}
                   </th>
@@ -426,7 +500,12 @@ export function CaptchaVersions() {
                 <tr key={label}>
                   <th>{label}</th>
                   {VERSION_IDS.map((id) => (
-                    <td key={id}>{copy.matrixValues[id][rowIndex]}</td>
+                    <td
+                      key={id}
+                      className={id === "sparse" ? "matrix-current" : undefined}
+                    >
+                      {copy.matrixValues[id][rowIndex]}
+                    </td>
                   ))}
                 </tr>
               ))}
@@ -526,6 +605,31 @@ export function CaptchaVersions() {
                   <span className="privacy-dot" />
                   {copy.live}
                 </div>
+                {activeVersion === "blur" && (
+                  <label className="version-blur-control">
+                    <span>
+                      <strong>{copy.blurControl}</strong>
+                      <output>{blurPx.toFixed(1)} px</output>
+                    </span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="4"
+                      step="0.1"
+                      value={blurPx}
+                      style={
+                        {
+                          "--progress": `${(blurPx / 4) * 100}%`,
+                        } as CSSProperties
+                      }
+                      onChange={(event) =>
+                        setBlurPx(Number(event.currentTarget.value))
+                      }
+                      aria-label={copy.blurControl}
+                    />
+                    <small>{copy.blurHint}</small>
+                  </label>
+                )}
                 <div className="version-live-captcha">
                   {activeVersion === "canvas" ? (
                     <MotionCaptcha
@@ -548,9 +652,17 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "sparse" ? (
                     <SparseFramesCaptcha
                       key={relaunchKey}
+                      locale={locale}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <LegacyApngCaptcha
+                      key={relaunchKey}
+                      blurPx={blurPx}
+                      brandLabel="BLUR"
                       locale={locale}
                       onClose={() => setActiveVersion(null)}
                     />

@@ -144,6 +144,13 @@ button {
     rgba(242, 241, 234, 0.94);
 }
 
+.version-card.version-blur {
+  background:
+    radial-gradient(circle at 78% 19%, rgba(18, 19, 16, 0.1), transparent 31%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.58), transparent 62%),
+    rgba(242, 241, 234, 0.94);
+}
+
 .version-card:hover {
   transform: translate(-2px, -2px);
   box-shadow: 8px 8px 0 rgba(18, 19, 16, 0.17);
@@ -301,7 +308,7 @@ button {
   text-transform: uppercase;
 }
 
-.version-matrix td:last-child {
+.version-matrix td.matrix-current {
   background: rgba(182, 240, 58, 0.08);
   font-weight: 700;
 }
@@ -550,6 +557,48 @@ button {
 
 .version-live-captcha > .whoize-captcha {
   border: 0;
+}
+
+.version-blur-control {
+  margin: 7px 0 11px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--ink);
+  background: #e8e7e1;
+}
+
+.version-blur-control > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.version-blur-control strong,
+.version-blur-control output {
+  font: 8px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.version-blur-control output {
+  color: #557811;
+  font-weight: 800;
+}
+
+.version-blur-control input {
+  width: 100%;
+}
+
+.version-blur-control small {
+  color: var(--muted);
+  font: 8px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.captcha-browser-blur {
+  will-change: filter;
+  transition: filter 120ms ease;
 }
 
 @media (max-width: 1050px) {
