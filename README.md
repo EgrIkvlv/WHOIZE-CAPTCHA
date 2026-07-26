@@ -78,12 +78,13 @@ rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
 
-Version `v1.4` preserves the complete `v1.0` client Canvas pipeline and applies
-an adjustable 0–4 px CSS blur only to the rendered Canvas. The live version
-modal exposes the filter strength without restarting the challenge, making it
-possible to compare perceived eye strain and readability while keeping v1.0
-dot generation, continuous motion, and client-side hit testing unchanged. The
-blur is explicitly a visual experiment, not a security boundary.
+Version `v1.4` preserves the complete `v1.3a` server-generated sparse-frame
+pipeline and applies an adjustable 0–4 px CSS blur only to the decoded Canvas.
+The live version modal exposes the filter strength without restarting the
+challenge, making it possible to compare perceived eye strain and readability
+while keeping the private scene, fresh per-frame noise, seamless loop, traffic,
+and server-side hit testing unchanged. The blur is explicitly a presentation
+experiment, not an additional security boundary.
 
 Version `v1.3a` sends a four-second binary sequence of final occupied cells.
 The server regenerates the background for every 640×360 frame, mixes it with

@@ -38,7 +38,7 @@ const COPY = {
     criterion: "Criterion",
     blurControl: "Browser blur",
     blurHint:
-      "Applied only to the locally rendered Canvas. Dot generation, motion, and client-side hit testing stay identical to v1.0.",
+      "Applied only to the decoded sparse Canvas. The private scene, frame stream, and server verification stay identical to v1.3a.",
     rows: {
       fidelity: "Visual fidelity",
       exposure: "Answer in browser state",
@@ -57,7 +57,7 @@ const COPY = {
       sparse:
         "The closest server-authoritative build to the original visual idea. Its exact point stream is cheaper to generate, but easier for a purpose-built solver to parse.",
       blur:
-        "A comfort experiment built directly on v1.0. Useful for measuring eye strain and readability, but CSS blur adds no security and can be removed by the client.",
+        "The v1.3a security boundary with a softer presentation layer. Useful for measuring eye strain and readability; the removable CSS filter itself adds no security.",
     },
     versions: {
       canvas: {
@@ -165,29 +165,29 @@ const COPY = {
         ],
       },
       blur: {
-        name: "Canvas + Browser Blur",
+        name: "Sparse + Browser Blur",
         version: "v1.4",
-        subtitle: "v1.0 with adjustable client-side softness",
+        subtitle: "v1.3a with adjustable browser softness",
         summary:
-          "The exact v1.0 browser-generated Canvas is displayed through a light CSS blur that can be tuned live.",
+          "The exact v1.3a server-generated sparse frame sequence is displayed through a light CSS blur that can be tuned live.",
         architecture:
-          "v1.0 React + Canvas · CSS filter in browser · client hit testing",
+          "v1.3a server sparse frames · Canvas CSS filter · server verification",
         metrics: [
-          ["Base", "v1.0 Client Canvas"],
+          ["Base", "v1.3a Sparse Frames"],
           ["Frame", "640×360 · 48 fps"],
           ["Blur", "0–4 px · live"],
           ["Default", "1.2 px"],
-          ["Media", "≈ 0 B per challenge"],
+          ["Media", "≈ 1.41 MB once"],
         ],
         pros: [
-          "Softens the harsh high-frequency dot field without new server work",
+          "Softens the harsh high-frequency sparse field without new server work",
           "Blur can be tuned live without restarting the challenge",
-          "Keeps v1.0 responsiveness, fresh noise, and continuous 48 fps motion",
+          "Keeps v1.3a fresh noise, seamless loop, and server-side hit testing",
         ],
         cons: [
           "Too much blur can hide the motion signal together with the noise",
           "CSS blur is cosmetic and trivial for a bot to disable",
-          "Keeps every v1.0 answer and the hit test readable in JavaScript",
+          "Keeps v1.3a point-stream exposure and solver trade-offs",
         ],
       },
     },
@@ -196,7 +196,7 @@ const COPY = {
       apng: ["Reduced", "No", "≈ 0.42 MB once", "One burst", "3 s loop", "Medium"],
       webm: ["High", "No", "≈ 0.4 MB/s", "Continuous", "Continuous", "High"],
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
-      blur: ["Softened", "Yes", "Minimal", "None", "Continuous", "Low"],
+      blur: ["Softened", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
     },
   },
   ru: {
@@ -225,7 +225,7 @@ const COPY = {
     criterion: "Критерий",
     blurControl: "Блюр в браузере",
     blurHint:
-      "Применяется только к локально отрисованному Canvas. Генерация точек, движение и клиентский hit test остаются как в v1.0.",
+      "Применяется только к декодированному sparse Canvas. Приватная сцена, поток кадров и серверная проверка остаются как в v1.3a.",
     rows: {
       fidelity: "Качество изображения",
       exposure: "Ответ в состоянии браузера",
@@ -244,7 +244,7 @@ const COPY = {
       sparse:
         "Самая близкая к исходной визуальной идее серверная версия. Точный point-stream дешевле генерировать, но специализированному solver проще его разобрать.",
       blur:
-        "Эксперимент с комфортом поверх v1.0. Полезен для измерения нагрузки на глаза и читаемости, но CSS-blur не добавляет безопасности и снимается на клиенте.",
+        "Граница безопасности v1.3a с более мягким визуальным слоем. Полезно для измерения нагрузки на глаза и читаемости; снимаемый CSS-фильтр сам по себе защиты не добавляет.",
     },
     versions: {
       canvas: {
@@ -352,29 +352,29 @@ const COPY = {
         ],
       },
       blur: {
-        name: "Canvas + Browser Blur",
+        name: "Sparse + Browser Blur",
         version: "v1.4",
-        subtitle: "v1.0 с регулируемой мягкостью на клиенте",
+        subtitle: "v1.3a с регулируемой мягкостью в браузере",
         summary:
-          "Тот же браузерный Canvas из v1.0 отображается через лёгкий CSS-blur, который можно менять на лету.",
+          "Та же серверная последовательность sparse-кадров из v1.3a отображается через лёгкий CSS-blur, который можно менять на лету.",
         architecture:
-          "v1.0 React + Canvas · CSS-фильтр в браузере · клиентский hit test",
+          "Sparse-кадры v1.3a на сервере · CSS-фильтр Canvas · серверная проверка",
         metrics: [
-          ["Основа", "v1.0 Client Canvas"],
+          ["Основа", "v1.3a Sparse Frames"],
           ["Кадр", "640×360 · 48 fps"],
           ["Блюр", "0–4 px · live"],
           ["По умолчанию", "1.2 px"],
-          ["Медиа", "≈ 0 Б на challenge"],
+          ["Медиа", "≈ 1.41 МБ один раз"],
         ],
         pros: [
-          "Смягчает резкое высокочастотное поле точек без новых расчётов сервера",
+          "Смягчает резкое sparse-поле без новых расчётов сервера",
           "Степень блюра меняется на лету без перезапуска challenge",
-          "Сохраняет отзывчивость, новый шум и непрерывные 48 fps из v1.0",
+          "Сохраняет новый шум, бесшовный цикл и серверный hit test из v1.3a",
         ],
         cons: [
           "Сильный blur скрывает не только шум, но и motion-сигнал",
           "CSS-blur косметический и легко отключается ботом",
-          "Ответ и hit test по-прежнему читаются в JavaScript, как в v1.0",
+          "Сохраняются point-stream exposure и solver-компромиссы v1.3a",
         ],
       },
     },
@@ -383,7 +383,7 @@ const COPY = {
       apng: ["Сниженное", "Нет", "≈ 0.42 МБ один раз", "Один пик", "Цикл 3 с", "Средний"],
       webm: ["Высокое", "Нет", "≈ 0.4 МБ/с", "Постоянные", "Непрерывное", "Высокий"],
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
-      blur: ["Смягчённое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
+      blur: ["Смягчённое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
     },
   },
 } as const;
@@ -660,18 +660,16 @@ export function CaptchaVersions() {
                     />
                   ) : (
                     <div
-                      className="version-client-blur"
+                      className="version-browser-blur"
                       style={
                         {
                           "--version-blur": `${blurPx}px`,
                         } as CSSProperties
                       }
                     >
-                      <MotionCaptcha
+                      <SparseFramesCaptcha
                         key={relaunchKey}
-                        config={config}
                         locale={locale}
-                        onPass={() => undefined}
                         onClose={() => setActiveVersion(null)}
                       />
                     </div>
