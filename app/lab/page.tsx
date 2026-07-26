@@ -4,7 +4,7 @@ import { CaptchaLab } from "@/apps/demo/components/CaptchaLab";
 export const metadata: Metadata = {
   title: "Motion Lab",
   description:
-    "Лаборатория параметров motion-defined CAPTCHA: плотность, связность, скорость и частота.",
+    "A laboratory for motion-defined CAPTCHA density, coherence, speed, and frame rate.",
 };
 
 export default function LabPage() {

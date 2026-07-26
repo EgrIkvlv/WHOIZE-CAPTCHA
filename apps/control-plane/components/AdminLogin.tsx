@@ -3,8 +3,37 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  LanguageSwitch,
+  useLanguage,
+} from "@/app/i18n";
+
+const COPY = {
+  en: {
+    title: "Owner sign in",
+    description:
+      "This surface changes the configuration for every CAPTCHA. The session is stored only in a protected HttpOnly cookie.",
+    password: "CONTROL PLANE PASSWORD",
+    checking: "CHECKING…",
+    signIn: "SIGN IN →",
+    back: "← Back to CAPTCHA",
+    error: "Unable to sign in",
+  },
+  ru: {
+    title: "Вход владельца",
+    description:
+      "Здесь меняется конфигурация всех CAPTCHA. Сессия хранится только в защищённой HttpOnly cookie.",
+    password: "ПАРОЛЬ CONTROL PLANE",
+    checking: "ПРОВЕРЯЕМ…",
+    signIn: "ВОЙТИ →",
+    back: "← Вернуться к CAPTCHA",
+    error: "Не удалось войти",
+  },
+} as const;
 
 export function AdminLogin() {
+  const { locale } = useLanguage();
+  const copy = COPY[locale];
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,12 +49,12 @@ export function AdminLogin() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Не удалось войти");
+      await response.json();
+      if (!response.ok) throw new Error(copy.error);
       router.refresh();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "Не удалось войти",
+        submitError instanceof Error ? submitError.message : copy.error,
       );
     } finally {
       setLoading(false);
@@ -34,19 +63,19 @@ export function AdminLogin() {
 
   return (
     <main className="admin-login-page">
-      <Link className="brand" href="/" aria-label="WHOIZE CAPTCHA">
-        WHOIZE<span>/</span>CONTROL PLANE
-      </Link>
+      <div className="admin-login-top">
+        <Link className="brand" href="/" aria-label="WHOIZE CAPTCHA">
+          WHOIZE<span>/</span>CONTROL PLANE
+        </Link>
+        <LanguageSwitch />
+      </div>
       <section className="admin-login-card">
         <p className="admin-eyebrow">SERVER OWNER SURFACE · RESTRICTED</p>
-        <h1>Вход владельца</h1>
-        <p>
-          Здесь меняется конфигурация всех CAPTCHA. Сессия хранится только в
-          защищённой HttpOnly cookie.
-        </p>
+        <h1>{copy.title}</h1>
+        <p>{copy.description}</p>
         <form onSubmit={submit}>
           <label>
-            <span>ПАРОЛЬ CONTROL PLANE</span>
+            <span>{copy.password}</span>
             <input
               type="password"
               autoComplete="current-password"
@@ -58,11 +87,11 @@ export function AdminLogin() {
           </label>
           {error && <div className="admin-login-error">{error}</div>}
           <button type="submit" disabled={loading}>
-            {loading ? "ПРОВЕРЯЕМ…" : "ВОЙТИ →"}
+            {loading ? copy.checking : copy.signIn}
           </button>
         </form>
         <Link className="admin-login-back" href="/">
-          ← Вернуться к CAPTCHA
+          {copy.back}
         </Link>
       </section>
       <p className="admin-login-foot">

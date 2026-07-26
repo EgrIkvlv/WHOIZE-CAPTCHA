@@ -4,7 +4,7 @@ import { CaptchaDemo } from "@/apps/demo/components/CaptchaDemo";
 export const metadata: Metadata = {
   title: "Motion CAPTCHA",
   description:
-    "Интерактивная CAPTCHA, в которой фигура проявляется только через движение.",
+    "An interactive CAPTCHA in which a hidden figure emerges only through motion.",
 };
 
 export default function Home() {

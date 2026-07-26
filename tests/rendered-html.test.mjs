@@ -28,13 +28,15 @@ test("server-renders the WHOIZE CAPTCHA demo shell", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<html lang="ru">/i);
+  assert.match(html, /<html lang="en">/i);
   assert.match(html, /<title>Motion CAPTCHA · WHOIZE<\/title>/i);
   assert.match(html, /WHOIZE/);
   assert.match(html, /CAPTCHA/);
-  assert.match(html, /Докажите, что/);
-  assert.match(html, /Запросить ранний доступ/);
-  assert.match(html, /Продолжить с WHOIZE/);
+  assert.match(html, /Prove that/);
+  assert.match(html, /Request early access/);
+  assert.match(html, /Continue with WHOIZE/);
+  assert.match(html, />EN</);
+  assert.match(html, />RU</);
   assert.match(html, />Admin</);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
@@ -47,8 +49,8 @@ test("server-renders the separate motion lab route", async () => {
   assert.match(html, /<title>Motion Lab · WHOIZE<\/title>/i);
   assert.match(html, /WHOIZE/);
   assert.match(html, /MOTION LAB/);
-  assert.match(html, /Фигура существует/);
-  assert.match(html, /Найдите движущуюся фигуру/);
+  assert.match(html, /The figure exists/);
+  assert.match(html, /Find the moving shape/);
 });
 
 test("server-renders the protected owner login", async () => {
@@ -59,8 +61,8 @@ test("server-renders the protected owner login", async () => {
   assert.match(html, /<title>Control Plane · WHOIZE<\/title>/i);
   assert.match(html, /WHOIZE/);
   assert.match(html, /CONTROL PLANE/);
-  assert.match(html, /Вход владельца/);
-  assert.match(html, /ПАРОЛЬ CONTROL PLANE/);
+  assert.match(html, /Owner sign in/);
+  assert.match(html, /CONTROL PLANE PASSWORD/);
   assert.doesNotMatch(html, /SERVER CONFIG ONLINE/);
 });
 
@@ -86,5 +88,5 @@ test("rejects unauthenticated Control Plane API access", async () => {
   assert.equal(response.status, 401);
 
   const payload = await response.json();
-  assert.match(payload.error, /вход владельца/i);
+  assert.match(payload.error, /owner sign-in required/i);
 });

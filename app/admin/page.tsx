@@ -7,7 +7,7 @@ import { readServerCaptchaConfig } from "@/apps/control-plane/server/captcha-con
 export const metadata: Metadata = {
   title: "Control Plane",
   description:
-    "Локальная административная панель для настройки поведения WHOIZE CAPTCHA.",
+    "Owner control plane for configuring WHOIZE CAPTCHA behavior.",
 };
 
 export const dynamic = "force-dynamic";

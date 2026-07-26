@@ -9,6 +9,7 @@ import "@whoize/captcha-react/styles.css";
 
 <MotionCaptcha
   config={DEFAULT_CAPTCHA_CONFIG}
+  locale="en"
   onPass={(proof) => console.log(proof)}
 />;
 ```

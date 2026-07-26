@@ -8,7 +8,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function unauthorized() {
-  return Response.json({ error: "Требуется вход владельца" }, { status: 401 });
+  return Response.json({ error: "Owner sign-in required" }, { status: 401 });
 }
 
 export async function GET() {
@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
       !Number.isInteger(Number(payload.expectedRevision))
     ) {
       return Response.json(
-        { error: "Некорректная конфигурация" },
+        { error: "Invalid configuration" },
         { status: 400 },
       );
     }
@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
       );
     }
     return Response.json(
-      { error: "Не удалось опубликовать конфигурацию" },
+      { error: "Unable to publish configuration" },
       { status: 500 },
     );
   }

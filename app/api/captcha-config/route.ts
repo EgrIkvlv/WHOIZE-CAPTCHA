@@ -18,7 +18,7 @@ export async function GET() {
     );
   } catch {
     return Response.json(
-      { error: "Серверный конфиг временно недоступен" },
+      { error: "Server configuration is temporarily unavailable" },
       { status: 503 },
     );
   }

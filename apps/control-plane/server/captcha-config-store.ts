@@ -34,7 +34,7 @@ const runtime = globalThis as RuntimeState;
 
 export class ConfigRevisionConflictError extends Error {
   constructor(public readonly current: ConfigSnapshot) {
-    super("Конфигурация уже была изменена в другой сессии");
+    super("Configuration was already changed in another session");
   }
 }
 

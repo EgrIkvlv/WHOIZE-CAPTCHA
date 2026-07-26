@@ -15,6 +15,12 @@ import {
   shapeGlyph,
   type ShapeName,
 } from "@whoize/captcha-core";
+import {
+  LanguageSwitch,
+  presetLabel,
+  shapeLabel,
+  useLanguage,
+} from "@/app/i18n";
 
 type Difficulty = "Читаемый" | "Баланс" | "Предел";
 
@@ -34,6 +40,11 @@ type Attempt = {
   time: number;
   error: number;
 };
+type LabMessage =
+  | { kind: "search" }
+  | { kind: "frozen" }
+  | { kind: "resumed" }
+  | { kind: "result"; hit: boolean; elapsed: number; error: number };
 
 const WIDTH = 760;
 const HEIGHT = 430;
@@ -63,15 +74,98 @@ const PRESETS: Record<Difficulty, LabConfig> = {
   },
 };
 
+const COPY = {
+  en: {
+    back: "← Back to CAPTCHA",
+    headline: "The figure exists\nonly in time.",
+    note:
+      "One object is hidden inside the field. In a single frame its dots are statistically indistinguishable from the background—the shape is created only by coherent motion.",
+    trial: "TRIAL",
+    instruction: "Find the moving shape and click it",
+    currentShape: "Current shape",
+    signal: "SIGNAL",
+    canvas: "Dynamic noise field. Click the moving shape.",
+    newTrial: "New trial",
+    continue: "Continue",
+    freeze: "Freeze frame",
+    hideAnswer: "Hide answer",
+    showAnswer: "Show answer",
+    explanationTitle: "What this tests.",
+    explanation:
+      "The background is regenerated every frame while some dots inside the mask preserve their relative positions. Pausing removes the temporal link—the central test of the idea.",
+    difficulty: "DIFFICULTY",
+    density: "Density",
+    dotSize: "Dot size",
+    coherence: "Signal coherence",
+    speed: "Speed",
+    frequency: "Frame rate",
+    session: "SESSION",
+    clicks: "CLICKS",
+    accuracy: "ACCURACY",
+    median: "MEDIAN",
+    empty: "Your first click will appear here.",
+    footer:
+      "Experimental interface—do not use it as the only layer of protection.",
+    search: "Look for the region with coherent motion",
+    frozen: "Frame frozen: did the figure disappear?",
+    resumed: "Motion resumed",
+    hit: "Hit",
+    miss: "Miss",
+    error: "error",
+    fromCenter: "px from center",
+  },
+  ru: {
+    back: "← Вернуться к CAPTCHA",
+    headline: "Фигура существует\nтолько во времени.",
+    note:
+      "Внутри поля спрятан один объект. На отдельном кадре его точки статистически не отличаются от фона — форму создаёт только согласованное движение.",
+    trial: "ИСПЫТАНИЕ",
+    instruction: "Найдите движущуюся фигуру и нажмите на неё",
+    currentShape: "Текущая фигура",
+    signal: "СИГНАЛ",
+    canvas: "Поле динамического шума. Нажмите на движущуюся фигуру.",
+    newTrial: "Новое испытание",
+    continue: "Продолжить",
+    freeze: "Стоп-кадр",
+    hideAnswer: "Скрыть ответ",
+    showAnswer: "Показать ответ",
+    explanationTitle: "Что здесь проверяется.",
+    explanation:
+      "Фон пересоздаётся каждый кадр, а часть точек внутри маски сохраняет взаимное положение. Пауза убирает временную связь — это главный тест идеи.",
+    difficulty: "СЛОЖНОСТЬ",
+    density: "Плотность",
+    dotSize: "Размер точки",
+    coherence: "Связность сигнала",
+    speed: "Скорость",
+    frequency: "Частота",
+    session: "СЕССИЯ",
+    clicks: "КЛИКОВ",
+    accuracy: "ТОЧНОСТЬ",
+    median: "МЕДИАНА",
+    empty: "Первый клик появится здесь.",
+    footer:
+      "Экспериментальный интерфейс — не использовать как единственный слой защиты.",
+    search: "Ищите область с согласованным движением",
+    frozen: "Кадр заморожен: исчезла ли фигура?",
+    resumed: "Движение продолжено",
+    hit: "Попадание",
+    miss: "Мимо",
+    error: "ошибка",
+    fromCenter: "px от центра",
+  },
+} as const;
+
 function randomPointInShape(shape: ShapeName): Point {
   return { ...randomShapePoint(shape), stable: true };
 }
 
-function formatTime(ms: number) {
-  return `${(ms / 1000).toFixed(1)} с`;
+function formatTime(ms: number, locale: "en" | "ru") {
+  return `${(ms / 1000).toFixed(1)} ${locale === "ru" ? "с" : "s"}`;
 }
 
 export function CaptchaLab() {
+  const { locale } = useLanguage();
+  const copy = COPY[locale];
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const configRef = useRef<LabConfig>(PRESETS.Баланс);
   const shapeRef = useRef<ShapeName>("Звезда");
@@ -97,7 +191,7 @@ export function CaptchaLab() {
   const [revealed, setRevealed] = useState(false);
   const [trial, setTrial] = useState(1);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
-  const [message, setMessage] = useState("Ищите область с согласованным движением");
+  const [message, setMessage] = useState<LabMessage>({ kind: "search" });
 
   const rebuildParticles = useCallback((nextShape: ShapeName, coherence: number) => {
     const points = Array.from({ length: 880 }, () => randomPointInShape(nextShape));
@@ -129,7 +223,7 @@ export function CaptchaLab() {
     pausedRef.current = false;
     setPaused(false);
     flashRef.current = undefined;
-    setMessage("Ищите область с согласованным движением");
+    setMessage({ kind: "search" });
     setTrial((value) => value + 1);
   }, [rebuildParticles]);
 
@@ -285,11 +379,7 @@ export function CaptchaLab() {
   const togglePause = () => {
     pausedRef.current = !pausedRef.current;
     setPaused(pausedRef.current);
-    setMessage(
-      pausedRef.current
-        ? "Кадр заморожен: исчезла ли фигура?"
-        : "Движение продолжено",
-    );
+    setMessage({ kind: pausedRef.current ? "frozen" : "resumed" });
   };
 
   const toggleReveal = () => {
@@ -312,11 +402,12 @@ export function CaptchaLab() {
     const elapsed = Date.now() - startedRef.current;
     flashRef.current = { x, y, hit, until: Date.now() + 900 };
     forcePaintRef.current = true;
-    setMessage(
-      hit
-        ? `Попадание · ${formatTime(elapsed)} · ошибка ${Math.round(error)} px`
-        : `Мимо · ${Math.round(error)} px от центра`,
-    );
+    setMessage({
+      kind: "result",
+      hit,
+      elapsed,
+      error: Math.round(error),
+    });
     setAttempts((current) =>
       [
         {
@@ -345,41 +436,63 @@ export function CaptchaLab() {
     };
   }, [attempts]);
 
+  const messageText =
+    message.kind === "search"
+      ? copy.search
+      : message.kind === "frozen"
+        ? copy.frozen
+        : message.kind === "resumed"
+          ? copy.resumed
+          : message.hit
+            ? `${copy.hit} · ${formatTime(message.elapsed, locale)} · ${copy.error} ${message.error} px`
+            : `${copy.miss} · ${message.error} ${copy.fromCenter}`;
+
   return (
     <main>
       <header className="topbar">
         <Link className="brand" href="/" aria-label="WHOIZE CAPTCHA">
           WHOIZE<span>/</span>MOTION LAB
         </Link>
-        <Link className="lab-back" href="/">
-          ← Вернуться к CAPTCHA
-        </Link>
+        <div className="topbar-actions">
+          <Link className="lab-back" href="/">
+            {copy.back}
+          </Link>
+          <LanguageSwitch />
+        </div>
       </header>
 
       <section className="hero" id="top">
         <div>
           <p className="eyebrow">TEMPORAL PERCEPTION CHALLENGE</p>
-          <h1>Фигура существует<br />только во времени.</h1>
+          <h1>
+            {copy.headline.split("\n").map((line, index) => (
+              <span key={line}>
+                {index > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </h1>
         </div>
-        <p className="hero-note">
-          Внутри поля спрятан один объект. На отдельном кадре его точки
-          статистически не отличаются от фона — форму создаёт только
-          согласованное движение.
-        </p>
+        <p className="hero-note">{copy.note}</p>
       </section>
 
       <section className="workspace">
         <div className="experiment">
           <div className="experiment-head">
             <div>
-              <span className="micro-label">ИСПЫТАНИЕ {String(trial).padStart(2, "0")}</span>
-              <h2>Найдите движущуюся фигуру и нажмите на неё</h2>
+              <span className="micro-label">
+                {copy.trial} {String(trial).padStart(2, "0")}
+              </span>
+              <h2>{copy.instruction}</h2>
             </div>
-            <div className="target-chip" aria-label={`Текущая фигура: ${shape}`}>
+            <div
+              className="target-chip"
+              aria-label={`${copy.currentShape}: ${shapeLabel(shape, locale)}`}
+            >
               <span>{shapeGlyph(shape)}</span>
               <div>
-                <small>СИГНАЛ</small>
-                <strong>{shape}</strong>
+                <small>{copy.signal}</small>
+                <strong>{shapeLabel(shape, locale)}</strong>
               </div>
             </div>
           </div>
@@ -390,35 +503,35 @@ export function CaptchaLab() {
               width={WIDTH}
               height={HEIGHT}
               onClick={handleCanvasClick}
-              aria-label="Поле динамического шума. Нажмите на движущуюся фигуру."
+              aria-label={copy.canvas}
             />
             <div className="canvas-index">RDK—{String(trial).padStart(3, "0")}</div>
-            <div className="canvas-message" aria-live="polite">{message}</div>
+            <div className="canvas-message" aria-live="polite">
+              {messageText}
+            </div>
           </div>
 
           <div className="toolbar">
             <button className="primary-button" onClick={newTrial}>
-              Новое испытание <span>↗</span>
+              {copy.newTrial} <span>↗</span>
             </button>
             <button className="tool-button" onClick={togglePause}>
               <span>{paused ? "▶" : "Ⅱ"}</span>
-              {paused ? "Продолжить" : "Стоп-кадр"}
+              {paused ? copy.continue : copy.freeze}
             </button>
             <button
               className={`tool-button ${revealed ? "active" : ""}`}
               onClick={toggleReveal}
             >
               <span>◎</span>
-              {revealed ? "Скрыть ответ" : "Показать ответ"}
+              {revealed ? copy.hideAnswer : copy.showAnswer}
             </button>
           </div>
 
           <div className="explanation-strip">
             <span className="strip-number">01</span>
             <p>
-              <strong>Что здесь проверяется.</strong> Фон пересоздаётся каждый
-              кадр, а часть точек внутри маски сохраняет взаимное положение.
-              Пауза убирает временную связь — это главный тест идеи.
+              <strong>{copy.explanationTitle}</strong> {copy.explanation}
             </p>
           </div>
         </div>
@@ -426,7 +539,7 @@ export function CaptchaLab() {
         <aside className="control-panel">
           <div className="panel-section">
             <div className="section-title">
-              <span>СЛОЖНОСТЬ</span>
+              <span>{copy.difficulty}</span>
               <span>01—03</span>
             </div>
             <div className="segmented">
@@ -436,7 +549,7 @@ export function CaptchaLab() {
                   className={difficulty === preset ? "selected" : ""}
                   onClick={() => choosePreset(preset)}
                 >
-                  {preset}
+                  {presetLabel(preset, locale)}
                 </button>
               ))}
             </div>
@@ -444,16 +557,18 @@ export function CaptchaLab() {
 
           <div className="panel-section controls">
             <RangeControl
-              label="Плотность"
+              label={copy.density}
               value={config.density}
               min={2200}
               max={7200}
               step={100}
-              output={config.density.toLocaleString("ru-RU")}
+              output={config.density.toLocaleString(
+                locale === "ru" ? "ru-RU" : "en-US",
+              )}
               onChange={(value) => updateConfig("density", value)}
             />
             <RangeControl
-              label="Размер точки"
+              label={copy.dotSize}
               value={config.dotSize}
               min={0.8}
               max={2.4}
@@ -462,7 +577,7 @@ export function CaptchaLab() {
               onChange={(value) => updateConfig("dotSize", value)}
             />
             <RangeControl
-              label="Связность сигнала"
+              label={copy.coherence}
               value={config.coherence}
               min={35}
               max={100}
@@ -471,7 +586,7 @@ export function CaptchaLab() {
               onChange={(value) => updateConfig("coherence", value)}
             />
             <RangeControl
-              label="Скорость"
+              label={copy.speed}
               value={config.speed}
               min={18}
               max={90}
@@ -480,7 +595,7 @@ export function CaptchaLab() {
               onChange={(value) => updateConfig("speed", value)}
             />
             <RangeControl
-              label="Частота"
+              label={copy.frequency}
               value={config.refreshRate}
               min={12}
               max={48}
@@ -492,30 +607,34 @@ export function CaptchaLab() {
 
           <div className="panel-section">
             <div className="section-title">
-              <span>СЕССИЯ</span>
-              <span>{attempts.length} КЛИКОВ</span>
+              <span>{copy.session}</span>
+              <span>
+                {attempts.length} {copy.clicks}
+              </span>
             </div>
             <div className="stat-grid">
               <div>
                 <strong>{stats.accuracy}%</strong>
-                <span>ТОЧНОСТЬ</span>
+                <span>{copy.accuracy}</span>
               </div>
               <div>
-                <strong>{stats.median ? formatTime(stats.median) : "—"}</strong>
-                <span>МЕДИАНА</span>
+                <strong>
+                  {stats.median ? formatTime(stats.median, locale) : "—"}
+                </strong>
+                <span>{copy.median}</span>
               </div>
             </div>
             <div className="attempt-log">
               {attempts.length === 0 ? (
-                <p>Первый клик появится здесь.</p>
+                <p>{copy.empty}</p>
               ) : (
                 attempts.slice(0, 4).map((attempt) => (
                   <div key={attempt.id}>
                     <span className={attempt.hit ? "hit" : "miss"}>
                       {attempt.hit ? "●" : "×"}
                     </span>
-                    <span>{attempt.shape}</span>
-                    <span>{formatTime(attempt.time)}</span>
+                    <span>{shapeLabel(attempt.shape, locale)}</span>
+                    <span>{formatTime(attempt.time, locale)}</span>
                     <span>{attempt.error} px</span>
                   </div>
                 ))
@@ -527,7 +646,7 @@ export function CaptchaLab() {
 
       <footer>
         <p>WHOIZE CAPTCHA RESEARCH · MOTION-DEFINED CONTOUR</p>
-        <p>Экспериментальный интерфейс — не использовать как единственный слой защиты.</p>
+        <p>{copy.footer}</p>
       </footer>
     </main>
   );

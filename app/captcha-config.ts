@@ -37,7 +37,7 @@ export async function refreshCaptchaConfig() {
     headers: { accept: "application/json" },
   })
     .then(async (response) => {
-      if (!response.ok) throw new Error("Не удалось загрузить серверный конфиг");
+      if (!response.ok) throw new Error("Unable to load server configuration");
       const payload = (await response.json()) as { config: CaptchaConfig };
       setCurrentConfig(payload.config);
       return payload.config;
@@ -66,7 +66,7 @@ export async function saveServerCaptchaConfig(config: CaptchaConfig) {
     error?: string;
   };
   if (!response.ok || !payload.config) {
-    const error = new Error(payload.error ?? "Не удалось сохранить конфиг");
+    const error = new Error(payload.error ?? "Unable to save configuration");
     Object.assign(error, {
       status: response.status,
       currentConfig: payload.config,

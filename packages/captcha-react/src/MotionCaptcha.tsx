@@ -28,6 +28,7 @@ export type MotionCaptchaProps = {
   onClose?: () => void;
   embedded?: boolean;
   config?: CaptchaConfig;
+  locale?: "en" | "ru";
 };
 
 export function MotionCaptcha({
@@ -35,6 +36,7 @@ export function MotionCaptcha({
   onClose,
   embedded = false,
   config = DEFAULT_CAPTCHA_CONFIG,
+  locale = "en",
 }: MotionCaptchaProps) {
   const configRef = useRef(config);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -322,14 +324,52 @@ export function MotionCaptcha({
     createChallenge();
   };
 
-  const statusText = {
-    playing: "Нажмите один раз на движущуюся фигуру",
-    verifying: "Проверяем координату…",
-    passed: "Проверка пройдена",
-    failed: "Не попали. Создаём новое испытание…",
-    expired: "Время испытания истекло",
-    locked: `Попытки исчерпаны: ${config.maxAttempts}`,
-  }[status];
+  const copy =
+    locale === "ru"
+      ? {
+          status: {
+            playing: "Нажмите один раз на движущуюся фигуру",
+            verifying: "Проверяем координату…",
+            passed: "Проверка пройдена",
+            failed: "Не попали. Создаём новое испытание…",
+            expired: "Время испытания истекло",
+            locked: `Попытки исчерпаны: ${config.maxAttempts}`,
+          },
+          close: "Закрыть CAPTCHA",
+          find: "НАЙДИТЕ ФИГУРУ",
+          attempt: "ПОПЫТКА",
+          remaining: "ОСТАЛОСЬ",
+          canvas: "Поле динамического шума. Найдите фигуру",
+          local: "Локальная проверка · данные не отправляются",
+          newChallenge: "Новое испытание →",
+        }
+      : {
+          status: {
+            playing: "Click once on the moving shape",
+            verifying: "Checking coordinates…",
+            passed: "Verification passed",
+            failed: "Missed. Creating a new challenge…",
+            expired: "Challenge expired",
+            locked: `Attempts exhausted: ${config.maxAttempts}`,
+          },
+          close: "Close CAPTCHA",
+          find: "FIND THE SHAPE",
+          attempt: "ATTEMPT",
+          remaining: "REMAINING",
+          canvas: "Dynamic noise field. Find the shape",
+          local: "Local verification · no data is sent",
+          newChallenge: "New challenge →",
+        };
+  const displayShape =
+    locale === "ru"
+      ? shape
+      : {
+          Круг: "Circle",
+          Треугольник: "Triangle",
+          Ромб: "Diamond",
+          Звезда: "Star",
+        }[shape];
+  const statusText = copy.status[status];
 
   return (
     <section className="whoize-captcha">
@@ -347,7 +387,7 @@ export function MotionCaptcha({
             className="captcha-close"
             type="button"
             onClick={onClose}
-            aria-label="Закрыть CAPTCHA"
+            aria-label={copy.close}
           >
             ×
           </button>
@@ -358,20 +398,20 @@ export function MotionCaptcha({
         <div className="captcha-target">
           <span>{shapeGlyph(shape)}</span>
           <div>
-            <small>НАЙДИТЕ ФИГУРУ</small>
-            <strong>{shape}</strong>
+            <small>{copy.find}</small>
+            <strong>{displayShape}</strong>
           </div>
         </div>
         <div className="captcha-counter">
           <div>
-            <small>ПОПЫТКА</small>
+            <small>{copy.attempt}</small>
             <strong>
               {String(attempt).padStart(2, "0")}/
               {String(config.maxAttempts).padStart(2, "0")}
             </strong>
           </div>
           <div className={secondsLeft <= 10 ? "ending" : ""}>
-            <small>ОСТАЛОСЬ</small>
+            <small>{copy.remaining}</small>
             <strong>00:{String(secondsLeft).padStart(2, "0")}</strong>
           </div>
         </div>
@@ -386,7 +426,7 @@ export function MotionCaptcha({
           onPointerEnter={handlePointerMove}
           onPointerMove={handlePointerMove}
           onPointerLeave={hideAimCursor}
-          aria-label={`Поле динамического шума. Найдите фигуру: ${shape}.`}
+          aria-label={`${copy.canvas}: ${displayShape}.`}
         />
         <div
           ref={aimCursorRef}
@@ -415,11 +455,11 @@ export function MotionCaptcha({
       <div className="captcha-bottom">
         <div>
           <span className="privacy-dot" />
-          Локальная проверка · данные не отправляются
+          {copy.local}
         </div>
         {(status === "expired" || status === "locked") && (
           <button type="button" onClick={resetAfterStop}>
-            Новое испытание →
+            {copy.newChallenge}
           </button>
         )}
       </div>

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     !(await verifyAdminPassword(payload.password.slice(0, 256)))
   ) {
     return Response.json(
-      { error: "Неверный пароль владельца" },
+      { error: "Invalid owner password" },
       { status: 401 },
     );
   }

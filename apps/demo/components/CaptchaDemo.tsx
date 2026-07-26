@@ -4,13 +4,104 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MotionCaptcha } from "@whoize/captcha-react";
 import { useCaptchaConfig } from "@/app/captcha-config";
+import {
+  LanguageSwitch,
+  useLanguage,
+} from "@/app/i18n";
 
 type Proof = {
   id: string;
   expiresAt: number;
 };
 
+const COPY = {
+  en: {
+    how: "How it works",
+    nav: "Primary navigation",
+    kicker: "PROTOTYPE 02 · INTERACTIVE CHALLENGE",
+    headline1: "Prove that",
+    headline2: "you are human.",
+    headline3: "In one motion.",
+    intro:
+      "An object is hidden inside a random field. A single frame contains no answer: the shape appears only when the eye connects dot motion over time.",
+    principle1: "01 / one click",
+    principle2: "02 / one result",
+    principle3: "03 / fresh noise every time",
+    protected: "PROTECTED ACTION",
+    allowed: "ACTION ALLOWED",
+    inside: "You are in.",
+    accepted: "The demo form accepted the one-time proof.",
+    repeat: "Run demo again",
+    early: "Request early access",
+    formHint: "The form unlocks only after a successful motion check.",
+    name: "NAME",
+    nameAria: "Name",
+    proofReady: "Human proof ready",
+    required: "Verification required",
+    complete: "Complete action",
+    continue: "Continue with WHOIZE",
+    local: "Local MVP: proof is still verified in the browser.",
+    metrics: "Prototype parameters",
+    metric1: "CLICK PER CHALLENGE",
+    metric2: "SECONDS UNTIL EXPIRY",
+    metric3: "ATTEMPTS BEFORE LOCK",
+    metric4: "FRAMES PER SECOND",
+    stage: "HOW STAGE 1 WORKS",
+    cycle: "A complete verification flow—without pretending it is secure.",
+    challenge:
+      "Every opening creates a new shape, position, direction, and noise field. You have 60 seconds to answer.",
+    oneClick:
+      "The first click ends the challenge. The hit is checked against the actual shape mask, not a rough radius.",
+    proof:
+      "Success creates a one-time local proof. Server verification and replay protection are the next stage.",
+    openLab: "Open Motion Lab and tune the signal",
+  },
+  ru: {
+    how: "Как работает",
+    nav: "Основная навигация",
+    kicker: "ПРОТОТИП 02 · ИНТЕРАКТИВНАЯ ПРОВЕРКА",
+    headline1: "Докажите, что",
+    headline2: "вы человек.",
+    headline3: "Одним движением.",
+    intro:
+      "Объект спрятан в случайном поле. Один кадр не содержит ответа: фигура появляется только тогда, когда глаз связывает движение точек во времени.",
+    principle1: "01 / один клик",
+    principle2: "02 / один результат",
+    principle3: "03 / новый шум каждый раз",
+    protected: "ЗАЩИЩЁННОЕ ДЕЙСТВИЕ",
+    allowed: "ДЕЙСТВИЕ РАЗРЕШЕНО",
+    inside: "Вы внутри.",
+    accepted: "Одноразовое доказательство принято демонстрационной формой.",
+    repeat: "Повторить демо",
+    early: "Запросить ранний доступ",
+    formHint: "Форма откроется только после успешной motion-проверки.",
+    name: "ИМЯ",
+    nameAria: "Имя",
+    proofReady: "Human proof готов",
+    required: "Требуется проверка",
+    complete: "Завершить действие",
+    continue: "Продолжить с WHOIZE",
+    local: "Локальный MVP: proof пока проверяется в браузере.",
+    metrics: "Параметры прототипа",
+    metric1: "КЛИК НА ИСПЫТАНИЕ",
+    metric2: "СЕКУНД ДО ИСТЕЧЕНИЯ",
+    metric3: "ПОПЫТКИ ДО ПАУЗЫ",
+    metric4: "КАДРОВ В СЕКУНДУ",
+    stage: "КАК УСТРОЕН ЭТАП 1",
+    cycle: "Полный цикл проверки — без притворной безопасности.",
+    challenge:
+      "Каждое открытие создаёт новую фигуру, позицию, направление и поле шума. На ответ есть 60 секунд.",
+    oneClick:
+      "Первый клик завершает испытание. Попадание проверяется по реальной маске фигуры, а не по грубому радиусу.",
+    proof:
+      "Успех создаёт одноразовое локальное доказательство. Серверная версия и защита от replay — следующий этап.",
+    openLab: "Открыть Motion Lab и настроить сигнал",
+  },
+} as const;
+
 export function CaptchaDemo() {
+  const { locale } = useLanguage();
+  const copy = COPY[locale];
   const config = useCaptchaConfig();
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [proof, setProof] = useState<Proof | null>(null);
@@ -50,8 +141,8 @@ export function CaptchaDemo() {
         <Link className="brand" href="/" aria-label="WHOIZE CAPTCHA">
           WHOIZE<span>/</span>CAPTCHA
         </Link>
-        <nav aria-label="Основная навигация">
-          <a href="#how">Как работает</a>
+        <nav aria-label={copy.nav}>
+          <a href="#how">{copy.how}</a>
           <Link href="/lab">Motion Lab</Link>
           <Link href="/admin">Admin</Link>
           <a
@@ -61,6 +152,7 @@ export function CaptchaDemo() {
           >
             GitHub ↗
           </a>
+          <LanguageSwitch />
         </nav>
       </header>
 
@@ -68,30 +160,26 @@ export function CaptchaDemo() {
         <div className="demo-copy">
           <div className="demo-kicker">
             <span className="status-dot" />
-            PROTOTYPE 02 · INTERACTIVE CHALLENGE
+            {copy.kicker}
           </div>
           <h1>
-            Докажите, что
+            {copy.headline1}
             <br />
-            вы человек.
+            {copy.headline2}
             <br />
-            <em>Одним движением.</em>
+            <em>{copy.headline3}</em>
           </h1>
-          <p>
-            Объект спрятан в случайном поле. Один кадр не содержит ответа:
-            фигура появляется только тогда, когда глаз связывает движение точек
-            во времени.
-          </p>
+          <p>{copy.intro}</p>
           <div className="demo-principles">
-            <span>01 / один клик</span>
-            <span>02 / один результат</span>
-            <span>03 / новый шум каждый раз</span>
+            <span>{copy.principle1}</span>
+            <span>{copy.principle2}</span>
+            <span>{copy.principle3}</span>
           </div>
         </div>
 
         <div className="protected-demo">
           <div className="demo-card-label">
-            <span>ЗАЩИЩЁННОЕ ДЕЙСТВИЕ</span>
+            <span>{copy.protected}</span>
             <span>DEMO—SIGNUP</span>
           </div>
 
@@ -99,11 +187,9 @@ export function CaptchaDemo() {
             <div className="action-success" role="status">
               <span className="success-mark">✓</span>
               <div>
-                <small>ДЕЙСТВИЕ РАЗРЕШЕНО</small>
-                <h2>Вы внутри.</h2>
-                <p>
-                  Одноразовое доказательство принято демонстрационной формой.
-                </p>
+                <small>{copy.allowed}</small>
+                <h2>{copy.inside}</h2>
+                <p>{copy.accepted}</p>
               </div>
               <button
                 type="button"
@@ -112,7 +198,7 @@ export function CaptchaDemo() {
                   setActionComplete(false);
                 }}
               >
-                Повторить демо
+                {copy.repeat}
               </button>
             </div>
           ) : (
@@ -120,16 +206,14 @@ export function CaptchaDemo() {
               <div className="demo-form-head">
                 <span className="form-index">01</span>
                 <div>
-                  <h2>Запросить ранний доступ</h2>
-                  <p>
-                    Форма откроется только после успешной motion-проверки.
-                  </p>
+                  <h2>{copy.early}</h2>
+                  <p>{copy.formHint}</p>
                 </div>
               </div>
 
               <label className="demo-field">
-                <span>ИМЯ</span>
-                <input defaultValue="Research Visitor" aria-label="Имя" />
+                <span>{copy.name}</span>
+                <input defaultValue="Research Visitor" aria-label={copy.nameAria} />
               </label>
               <label className="demo-field">
                 <span>EMAIL</span>
@@ -144,7 +228,7 @@ export function CaptchaDemo() {
                 <span className="proof-icon">{proof ? "✓" : "◇"}</span>
                 <div>
                   <strong>
-                    {proof ? "Human proof готов" : "Требуется проверка"}
+                    {proof ? copy.proofReady : copy.required}
                   </strong>
                   <small>
                     {proof
@@ -160,70 +244,61 @@ export function CaptchaDemo() {
                 onClick={openChallenge}
               >
                 <span>
-                  {proof ? "Завершить действие" : "Продолжить с WHOIZE"}
+                  {proof ? copy.complete : copy.continue}
                 </span>
                 <span>↗</span>
               </button>
               <p className="local-note">
-                Локальный MVP: proof пока проверяется в браузере.
+                {copy.local}
               </p>
             </>
           )}
         </div>
       </section>
 
-      <section className="demo-metrics" aria-label="Параметры прототипа">
+      <section className="demo-metrics" aria-label={copy.metrics}>
         <div>
           <strong>01</strong>
-          <span>КЛИК НА ИСПЫТАНИЕ</span>
+          <span>{copy.metric1}</span>
         </div>
         <div>
           <strong>{config.durationSeconds}</strong>
-          <span>СЕКУНД ДО ИСТЕЧЕНИЯ</span>
+          <span>{copy.metric2}</span>
         </div>
         <div>
           <strong>{String(config.maxAttempts).padStart(2, "0")}</strong>
-          <span>ПОПЫТКИ ДО ПАУЗЫ</span>
+          <span>{copy.metric3}</span>
         </div>
         <div>
           <strong>{config.fps}</strong>
-          <span>КАДРОВ В СЕКУНДУ</span>
+          <span>{copy.metric4}</span>
         </div>
       </section>
 
       <section className="how-section" id="how">
         <div className="how-heading">
-          <span className="micro-label">КАК УСТРОЕН ЭТАП 1</span>
-          <h2>Полный цикл проверки — без притворной безопасности.</h2>
+          <span className="micro-label">{copy.stage}</span>
+          <h2>{copy.cycle}</h2>
         </div>
         <div className="how-grid">
           <article>
             <span>01</span>
             <h3>Challenge</h3>
-            <p>
-              Каждое открытие создаёт новую фигуру, позицию, направление и поле
-              шума. На ответ есть 60 секунд.
-            </p>
+            <p>{copy.challenge}</p>
           </article>
           <article>
             <span>02</span>
             <h3>One click</h3>
-            <p>
-              Первый клик завершает испытание. Попадание проверяется по реальной
-              маске фигуры, а не по грубому радиусу.
-            </p>
+            <p>{copy.oneClick}</p>
           </article>
           <article>
             <span>03</span>
             <h3>Proof</h3>
-            <p>
-              Успех создаёт одноразовое локальное доказательство. Серверная
-              версия и защита от replay — следующий этап.
-            </p>
+            <p>{copy.proof}</p>
           </article>
         </div>
         <Link className="lab-link" href="/lab">
-          Открыть Motion Lab и настроить сигнал <span>→</span>
+          {copy.openLab} <span>→</span>
         </Link>
       </section>
 
@@ -242,6 +317,7 @@ export function CaptchaDemo() {
           >
             <MotionCaptcha
               config={config}
+              locale={locale}
               onPass={handlePass}
               onClose={() => setCaptchaOpen(false)}
             />

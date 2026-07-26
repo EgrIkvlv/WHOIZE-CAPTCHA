@@ -18,6 +18,7 @@ export function HumanCheck() {
   return (
     <MotionCaptcha
       config={DEFAULT_CAPTCHA_CONFIG}
+      locale="en"
       onPass={(localProof) => {
         console.log("Research-only proof:", localProof);
       }}

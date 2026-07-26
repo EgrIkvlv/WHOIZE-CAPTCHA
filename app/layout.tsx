@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { LanguageProvider } from "./i18n";
 import "../packages/captcha-react/src/styles.css";
 import "./globals.css";
 
@@ -21,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s · WHOIZE",
     },
     description:
-      "Экспериментальная CAPTCHA: объект невозможно увидеть в одном кадре, но можно распознать по движению.",
+      "An experimental CAPTCHA: the object is invisible in a single frame and emerges only through motion.",
     openGraph: {
       title: "WHOIZE CAPTCHA",
       description: "A figure that exists only in time.",
@@ -51,8 +52,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
-      <body>{children}</body>
+    <html lang="en">
+      <body>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

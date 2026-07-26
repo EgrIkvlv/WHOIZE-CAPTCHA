@@ -13,6 +13,12 @@ import {
   normalizeCaptchaConfig,
   saveServerCaptchaConfig,
 } from "@/app/captcha-config";
+import {
+  LanguageSwitch,
+  presetLabel,
+  shapeLabel,
+  useLanguage,
+} from "@/app/i18n";
 
 type NumericConfigKey = {
   [Key in keyof CaptchaConfig]: CaptchaConfig[Key] extends number ? Key : never;
@@ -24,6 +30,99 @@ const PRESET_NAMES = Object.keys(MOTION_PRESETS) as Array<
   Exclude<MotionPresetName, "Custom">
 >;
 
+const COPY = {
+  en: {
+    loaded: "Server revision loaded",
+    defaults: "Using default values",
+    dirty: "Unpublished changes",
+    previewUpdated: "Preview updated",
+    waiting: "Awaiting result",
+    publishingRevision: "Publishing server revision…",
+    published: (revision: number) => `Revision #${revision} published`,
+    conflict: "Config changed in another session—the latest version was loaded",
+    saveFailed: "Unable to publish the configuration",
+    resetConfirm: "Publish the default CAPTCHA values?",
+    previewReset: "Preview reset",
+    logout: "SIGN OUT",
+    title: "CAPTCHA management",
+    scope: "SCOPE",
+    allVisitors: "All visitors",
+    scopeDescription:
+      "The published revision is stored on the server. New CAPTCHA instances load it on startup, while open tabs check for updates every 30 seconds.",
+    draftUnpublished: "DRAFT NOT PUBLISHED",
+    publishing: "PUBLISHING…",
+    publish: "PUBLISH →",
+    motionProfile: "Motion profile",
+    signalModel: "Signal model",
+    density: "Density",
+    dotSize: "Dot size",
+    coherence: "Coherence",
+    speed: "Speed",
+    frameRate: "Frame rate",
+    minSize: "Min size",
+    maxSize: "Max size",
+    lifecycle: "Lifecycle",
+    challengeTime: "Challenge time",
+    attempts: "Attempts",
+    retryDelay: "Delay after miss",
+    verificationDelay: "Verification simulation",
+    proofTtl: "Proof lifetime",
+    autoClose: "Close after success",
+    shapePool: "Shape pool",
+    restart: "↻ Restart",
+    previewPassed: "Verification passed",
+    serverNote:
+      "Writes are protected by the owner's server session. Every publication creates a new revision and a separate audit entry. Last update:",
+    resetDefaults: "Publish default values",
+    neverPublished: "never published",
+  },
+  ru: {
+    loaded: "Серверная версия загружена",
+    defaults: "Работают значения по умолчанию",
+    dirty: "Есть неопубликованные изменения",
+    previewUpdated: "Preview обновлён",
+    waiting: "Ожидает решения",
+    publishingRevision: "Публикуем серверную ревизию…",
+    published: (revision: number) => `Ревизия #${revision} опубликована`,
+    conflict: "Конфиг обновился в другой сессии — загружена новая версия",
+    saveFailed: "Не удалось опубликовать конфигурацию",
+    resetConfirm: "Опубликовать значения CAPTCHA по умолчанию?",
+    previewReset: "Preview сброшен",
+    logout: "ВЫЙТИ",
+    title: "Управление CAPTCHA",
+    scope: "ОБЛАСТЬ ДЕЙСТВИЯ",
+    allVisitors: "Все посетители",
+    scopeDescription:
+      "Опубликованная ревизия хранится на сервере. Новые CAPTCHA получают её при загрузке, а открытые вкладки проверяют обновления каждые 30 секунд.",
+    draftUnpublished: "DRAFT НЕ ОПУБЛИКОВАН",
+    publishing: "ПУБЛИКУЕМ…",
+    publish: "ОПУБЛИКОВАТЬ →",
+    motionProfile: "Профиль движения",
+    signalModel: "Модель сигнала",
+    density: "Плотность",
+    dotSize: "Размер точки",
+    coherence: "Связность",
+    speed: "Скорость",
+    frameRate: "Частота",
+    minSize: "Мин. размер",
+    maxSize: "Макс. размер",
+    lifecycle: "Жизненный цикл",
+    challengeTime: "Время задачи",
+    attempts: "Попытки",
+    retryDelay: "Пауза после промаха",
+    verificationDelay: "Имитация проверки",
+    proofTtl: "Срок proof",
+    autoClose: "Закрытие после успеха",
+    shapePool: "Набор фигур",
+    restart: "↻ Перезапустить",
+    previewPassed: "Проверка пройдена",
+    serverNote:
+      "Запись защищена серверной сессией владельца. Каждая публикация создаёт новую ревизию и отдельную запись в журнале. Последнее обновление:",
+    resetDefaults: "Опубликовать значения по умолчанию",
+    neverPublished: "ещё не публиковалось",
+  },
+} as const;
+
 export function AdminPanel({
   initialConfig,
   initialUpdatedAt,
@@ -33,15 +132,17 @@ export function AdminPanel({
   initialUpdatedAt: string | null;
   storage: "blob" | "memory" | "default";
 }) {
+  const { locale } = useLanguage();
+  const copy = COPY[locale];
   const [draft, setDraft] = useState(initialConfig);
   const [published, setPublished] = useState(initialConfig);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt);
   const [saveState, setSaveState] = useState<SaveState>("clean");
-  const [saveMessage, setSaveMessage] = useState(
-    initialUpdatedAt ? "Серверная версия загружена" : "Работают значения по умолчанию",
+  const [saveMessage, setSaveMessage] = useState<string>(
+    initialUpdatedAt ? COPY.en.loaded : COPY.en.defaults,
   );
   const [previewKey, setPreviewKey] = useState(0);
-  const [previewResult, setPreviewResult] = useState("Ожидает решения");
+  const [previewResult, setPreviewResult] = useState<string>(COPY.en.waiting);
 
   const dirty = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(published),
@@ -57,7 +158,7 @@ export function AdminPanel({
       }),
     );
     setSaveState("dirty");
-    setSaveMessage("Есть неопубликованные изменения");
+    setSaveMessage(copy.dirty);
   };
 
   const updateNumber = (
@@ -79,24 +180,24 @@ export function AdminPanel({
         ? draft.shapes.filter((item) => item !== shape)
         : [...draft.shapes, shape],
     });
-    restartPreview("Preview обновлён");
+    restartPreview(copy.previewUpdated);
   };
 
-  const restartPreview = (message = "Ожидает решения") => {
+  const restartPreview = (message: string = copy.waiting) => {
     setPreviewKey((value) => value + 1);
     setPreviewResult(message);
   };
 
   const publish = async (value = draft) => {
     setSaveState("saving");
-    setSaveMessage("Публикуем серверную ревизию…");
+    setSaveMessage(copy.publishingRevision);
     try {
       const saved = await saveServerCaptchaConfig(value);
       setDraft(saved);
       setPublished(saved);
       setUpdatedAt(new Date().toISOString());
       setSaveState("saved");
-      setSaveMessage(`Ревизия #${saved.revision} опубликована`);
+      setSaveMessage(copy.published(saved.revision));
     } catch (error) {
       const conflict = error as Error & {
         status?: number;
@@ -105,22 +206,22 @@ export function AdminPanel({
       if (conflict.status === 409 && conflict.currentConfig) {
         setDraft(conflict.currentConfig);
         setPublished(conflict.currentConfig);
-        setSaveMessage("Конфиг обновился в другой сессии — загружена новая версия");
+        setSaveMessage(copy.conflict);
       } else {
-        setSaveMessage(conflict.message);
+        setSaveMessage(copy.saveFailed);
       }
       setSaveState("error");
     }
   };
 
   const resetAll = () => {
-    if (!window.confirm("Опубликовать значения CAPTCHA по умолчанию?")) return;
+    if (!window.confirm(copy.resetConfirm)) return;
     const defaults = {
       ...DEFAULT_CAPTCHA_CONFIG,
       revision: published.revision,
     };
     setDraft(defaults);
-    restartPreview("Preview сброшен");
+    restartPreview(copy.previewReset);
     void publish(defaults);
   };
 
@@ -137,8 +238,9 @@ export function AdminPanel({
           </span>
           <Link href="/">CAPTCHA</Link>
           <Link href="/lab">MOTION LAB</Link>
+          <LanguageSwitch />
           <form action="/api/admin/logout" method="post">
-            <button type="submit">ВЫЙТИ</button>
+            <button type="submit">{copy.logout}</button>
           </form>
         </div>
       </header>
@@ -146,34 +248,36 @@ export function AdminPanel({
       <section className="admin-heading">
         <div>
           <p className="admin-eyebrow">OWNER SURFACE · CONFIG V2</p>
-          <h1>Управление CAPTCHA</h1>
+          <h1>{copy.title}</h1>
         </div>
         <div className="admin-scope-card">
-          <span>ОБЛАСТЬ ДЕЙСТВИЯ</span>
-          <strong>Все посетители</strong>
-          <p>
-            Опубликованная ревизия хранится на сервере. Новые CAPTCHA получают
-            её при загрузке, а открытые вкладки проверяют обновления каждые 30
-            секунд.
-          </p>
+          <span>{copy.scope}</span>
+          <strong>{copy.allVisitors}</strong>
+          <p>{copy.scopeDescription}</p>
         </div>
       </section>
 
       <section className="admin-publish-bar">
         <div className={`admin-save-state state-${saveState}`}>
           <i />
-          <span>{saveMessage}</span>
+          <span>
+            {saveState === "clean"
+              ? initialUpdatedAt
+                ? copy.loaded
+                : copy.defaults
+              : saveMessage}
+          </span>
         </div>
         <div>
           <small>
-            {dirty ? "DRAFT НЕ ОПУБЛИКОВАН" : `LIVE · REV ${published.revision}`}
+            {dirty ? copy.draftUnpublished : `LIVE · REV ${published.revision}`}
           </small>
           <button
             type="button"
             disabled={!dirty || saveState === "saving"}
             onClick={() => void publish()}
           >
-            {saveState === "saving" ? "ПУБЛИКУЕМ…" : "ОПУБЛИКОВАТЬ →"}
+            {saveState === "saving" ? copy.publishing : copy.publish}
           </button>
         </div>
       </section>
@@ -183,8 +287,8 @@ export function AdminPanel({
           <section className="admin-block">
             <BlockTitle
               number="01"
-              title="Профиль движения"
-              note={`DRAFT / ${draft.profileName.toUpperCase()}`}
+              title={copy.motionProfile}
+              note={`DRAFT / ${presetLabel(draft.profileName, locale).toUpperCase()}`}
             />
             <div className="admin-presets">
               {PRESET_NAMES.map((preset) => (
@@ -200,7 +304,7 @@ export function AdminPanel({
                     restartPreview();
                   }}
                 >
-                  <span>{preset}</span>
+                  <span>{presetLabel(preset, locale)}</span>
                   <small>
                     {MOTION_PRESETS[preset].density} ·{" "}
                     {MOTION_PRESETS[preset].fps} FPS
@@ -213,21 +317,23 @@ export function AdminPanel({
           <section className="admin-block">
             <BlockTitle
               number="02"
-              title="Модель сигнала"
+              title={copy.signalModel}
               note="DRAFT PARAMETERS"
             />
             <div className="admin-control-grid">
               <AdminRange
-                label="Плотность"
+                label={copy.density}
                 value={draft.density}
                 min={2200}
                 max={7200}
                 step={100}
-                output={draft.density.toLocaleString("ru-RU")}
+                output={draft.density.toLocaleString(
+                  locale === "ru" ? "ru-RU" : "en-US",
+                )}
                 onChange={(value) => updateNumber("density", value, true)}
               />
               <AdminRange
-                label="Размер точки"
+                label={copy.dotSize}
                 value={draft.dotSize}
                 min={0.8}
                 max={2.4}
@@ -236,7 +342,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("dotSize", value, true)}
               />
               <AdminRange
-                label="Связность"
+                label={copy.coherence}
                 value={draft.coherence}
                 min={35}
                 max={100}
@@ -245,7 +351,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("coherence", value, true)}
               />
               <AdminRange
-                label="Скорость"
+                label={copy.speed}
                 value={draft.speed}
                 min={18}
                 max={90}
@@ -254,7 +360,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("speed", value, true)}
               />
               <AdminRange
-                label="Частота"
+                label={copy.frameRate}
                 value={draft.fps}
                 min={12}
                 max={48}
@@ -264,7 +370,7 @@ export function AdminPanel({
               />
               <div className="radius-pair">
                 <AdminRange
-                  label="Мин. размер"
+                  label={copy.minSize}
                   value={draft.radiusMin}
                   min={42}
                   max={90}
@@ -278,7 +384,7 @@ export function AdminPanel({
                   }
                 />
                 <AdminRange
-                  label="Макс. размер"
+                  label={copy.maxSize}
                   value={draft.radiusMax}
                   min={44}
                   max={112}
@@ -298,12 +404,12 @@ export function AdminPanel({
           <section className="admin-block">
             <BlockTitle
               number="03"
-              title="Жизненный цикл"
+              title={copy.lifecycle}
               note="CHALLENGE POLICY"
             />
             <div className="admin-control-grid">
               <AdminRange
-                label="Время задачи"
+                label={copy.challengeTime}
                 value={draft.durationSeconds}
                 min={15}
                 max={180}
@@ -312,7 +418,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("durationSeconds", value)}
               />
               <AdminRange
-                label="Попытки"
+                label={copy.attempts}
                 value={draft.maxAttempts}
                 min={1}
                 max={8}
@@ -321,7 +427,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("maxAttempts", value)}
               />
               <AdminRange
-                label="Пауза после промаха"
+                label={copy.retryDelay}
                 value={draft.retryDelayMs}
                 min={300}
                 max={3000}
@@ -330,7 +436,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("retryDelayMs", value)}
               />
               <AdminRange
-                label="Имитация проверки"
+                label={copy.verificationDelay}
                 value={draft.verificationDelayMs}
                 min={0}
                 max={2000}
@@ -339,7 +445,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("verificationDelayMs", value)}
               />
               <AdminRange
-                label="Срок proof"
+                label={copy.proofTtl}
                 value={draft.proofTtlSeconds}
                 min={15}
                 max={600}
@@ -348,7 +454,7 @@ export function AdminPanel({
                 onChange={(value) => updateNumber("proofTtlSeconds", value)}
               />
               <AdminRange
-                label="Закрытие после успеха"
+                label={copy.autoClose}
                 value={draft.autoCloseDelayMs}
                 min={0}
                 max={5000}
@@ -360,7 +466,7 @@ export function AdminPanel({
           </section>
 
           <section className="admin-block">
-            <BlockTitle number="04" title="Набор фигур" note="OBJECT POOL" />
+            <BlockTitle number="04" title={copy.shapePool} note="OBJECT POOL" />
             <div className="shape-toggles">
               {getAllShapes().map((shape) => {
                 const enabled = draft.shapes.includes(shape);
@@ -374,7 +480,7 @@ export function AdminPanel({
                     disabled={enabled && draft.shapes.length === 1}
                   >
                     <span>{shapeGlyph(shape)}</span>
-                    <strong>{shape}</strong>
+                    <strong>{shapeLabel(shape, locale)}</strong>
                     <small>{enabled ? "ON" : "OFF"}</small>
                   </button>
                 );
@@ -390,7 +496,7 @@ export function AdminPanel({
               <strong>{previewResult}</strong>
             </div>
             <button type="button" onClick={() => restartPreview()}>
-              ↻ Перезапустить
+              {copy.restart}
             </button>
           </div>
           <div className="admin-preview-frame">
@@ -398,7 +504,8 @@ export function AdminPanel({
               key={previewKey}
               embedded
               config={draft}
-              onPass={() => setPreviewResult("Проверка пройдена")}
+              locale={locale}
+              onPass={() => setPreviewResult(copy.previewPassed)}
             />
           </div>
 
@@ -420,14 +527,12 @@ export function AdminPanel({
           <div className="admin-warning admin-server-note">
             <span>✓</span>
             <p>
-              Запись защищена серверной сессией владельца. Каждая публикация
-              создаёт новую ревизию и отдельную запись в журнале. Последнее
-              обновление: {formatTimestamp(updatedAt)}.
+              {copy.serverNote} {formatTimestamp(updatedAt, locale, copy.neverPublished)}.
             </p>
           </div>
 
           <button className="admin-reset" type="button" onClick={resetAll}>
-            Опубликовать значения по умолчанию
+            {copy.resetDefaults}
           </button>
         </aside>
       </section>
@@ -502,9 +607,13 @@ function shapeGlyph(shape: ShapeName) {
   return "★";
 }
 
-function formatTimestamp(value: string | null) {
-  if (!value) return "ещё не публиковалось";
-  return new Intl.DateTimeFormat("ru-RU", {
+function formatTimestamp(
+  value: string | null,
+  locale: "en" | "ru",
+  fallback: string,
+) {
+  if (!value) return fallback;
+  return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", {
     dateStyle: "short",
     timeStyle: "medium",
   }).format(new Date(value));
