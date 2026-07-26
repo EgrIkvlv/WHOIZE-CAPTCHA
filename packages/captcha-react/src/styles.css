@@ -129,20 +129,24 @@
 
 .whoize-captcha .captcha-canvas-wrap {
   position: relative;
+  aspect-ratio: 16 / 9;
   margin: 0 18px;
   overflow: hidden;
   border: 1px solid var(--ink);
   background: #e8e7e1;
 }
 
-.whoize-captcha .captcha-canvas-wrap canvas {
+.whoize-captcha .captcha-canvas-wrap canvas,
+.whoize-captcha .captcha-canvas-wrap img {
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
   display: block;
+  user-select: none;
 }
 
-.whoize-captcha .captcha-canvas-wrap.status-playing canvas {
+.whoize-captcha .captcha-canvas-wrap.status-playing canvas,
+.whoize-captcha .captcha-canvas-wrap.status-playing img {
   cursor: none;
 }
 
@@ -200,10 +204,16 @@
 }
 
 .whoize-captcha .captcha-canvas-wrap.status-verifying canvas,
+.whoize-captcha .captcha-canvas-wrap.status-verifying img,
 .whoize-captcha .captcha-canvas-wrap.status-passed canvas,
+.whoize-captcha .captcha-canvas-wrap.status-passed img,
 .whoize-captcha .captcha-canvas-wrap.status-failed canvas,
+.whoize-captcha .captcha-canvas-wrap.status-failed img,
 .whoize-captcha .captcha-canvas-wrap.status-expired canvas,
-.whoize-captcha .captcha-canvas-wrap.status-locked canvas {
+.whoize-captcha .captcha-canvas-wrap.status-expired img,
+.whoize-captcha .captcha-canvas-wrap.status-locked canvas,
+.whoize-captcha .captcha-canvas-wrap.status-locked img,
+.whoize-captcha .captcha-canvas-wrap.status-error img {
   cursor: default;
 }
 
@@ -237,7 +247,8 @@
 
 .whoize-captcha .result-failed .result-symbol,
 .whoize-captcha .result-expired .result-symbol,
-.whoize-captcha .result-locked .result-symbol {
+.whoize-captcha .result-locked .result-symbol,
+.whoize-captcha .result-error .result-symbol {
   background: var(--coral);
   color: var(--ink);
 }
@@ -289,7 +300,8 @@
 }
 
 @media (pointer: coarse) {
-  .whoize-captcha .captcha-canvas-wrap.status-playing canvas {
+  .whoize-captcha .captcha-canvas-wrap.status-playing canvas,
+  .whoize-captcha .captcha-canvas-wrap.status-playing img {
     cursor: pointer;
   }
 

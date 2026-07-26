@@ -51,12 +51,14 @@ research applications:
   and geometry;
 - `@whoize/captcha-react` — the reusable React challenge component;
 - `apps/demo` — the public CAPTCHA demo and Motion Lab;
+- `apps/server-captcha` — the server-rendered challenge, verification, and
+  one-time proof reference flow;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
 The deployed site has three connected surfaces:
 
-- `/` — a complete client-side CAPTCHA flow with a protected demo action;
+- `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -68,10 +70,10 @@ It includes:
 
 - four procedural masks: circle, triangle, diamond, and star;
 - randomized starting position and trajectory;
-- exact hit testing against the active mask;
+- server-side hit testing against the active mask and frame trajectory;
 - one click per challenge, a 60-second expiry, and a three-attempt limit;
 - explicit playing, verifying, passed, failed, expired, and locked states;
-- a local single-use proof demonstrated against a protected signup action;
+- a session-bound, short-lived proof consumed once by a protected endpoint;
 - a true freeze-frame control;
 - optional answer reveal for debugging;
 - presets plus controls for density, dot size, signal coherence, speed, and
@@ -80,7 +82,7 @@ It includes:
 - responsive desktop and mobile layouts.
 
 The control plane can change motion parameters, shape size and availability,
-challenge duration, attempt limits, retry timing, local proof lifetime, and
+challenge duration, attempt limits, retry timing, proof lifetime, and
 post-success behavior. Draft settings can be tested against the embedded
 preview before publication. Published revisions are stored in a private Vercel
 Blob, served through a read-only API, and picked up by all CAPTCHA clients
@@ -88,9 +90,12 @@ without a rebuild. Writes require an owner password and an authenticated,
 signed HttpOnly session. Every publication also creates an immutable audit
 record.
 
-The proof and answer verification are still client-side and are intentionally
-labelled as such. Moving generation, answers, and proof redemption to the
-server is the next security milestone.
+The public demo now creates the challenge on the server. Its response contains
+an animated pixel image plus non-secret timing metadata and an opaque
+challenge ID; the browser does not receive the mask, center, or trajectory.
+Click verification and protected-action proof redemption happen on the server.
+Challenge and proof records use D1 when a Cloudflare binding is present,
+private Vercel Blob storage on Vercel, and memory only in local development.
 
 ## Repository structure
 
@@ -101,7 +106,8 @@ WHOIZE-CAPTCHA/
 │   └── captcha-react/
 ├── apps/
 │   ├── demo/
-│   └── control-plane/
+│   ├── control-plane/
+│   └── server-captcha/
 ├── app/                    # thin Next.js route adapters
 ├── docs/
 └── tests/
@@ -109,9 +115,10 @@ WHOIZE-CAPTCHA/
 
 See [Architecture and repository boundary](docs/architecture.md) for the
 public/private split and [React integration](docs/integration.md) for SDK usage.
-The future private `WHOIZE-CLOUD` repository will contain production-only
-verification, adaptive risk policy, attack telemetry, and infrastructure—not
-the reproducible research mechanism.
+The private `WHOIZE-CLOUD` repository is reserved for production-only
+verification policy, adaptive risk scoring, attack telemetry, secrets, and
+infrastructure—not the reproducible research mechanism or this reference
+protocol.
 
 ## Run locally
 
@@ -197,15 +204,15 @@ for a machine?” It is:
 3. Compare frozen-frame, frame-stack, and full-video attacks.
 4. Add multiple shapes and target selection.
 5. Add “track and click the final position” challenges.
-6. Move challenge generation and verification to a server.
-7. Add short-lived, single-use proof tokens and rate limiting.
+6. Benchmark the server-rendered reference flow against purpose-built solvers.
+7. Add rate limiting and private adaptive risk policy.
 8. Design a non-motion accessibility alternative.
 
 ## Production architecture direction
 
-A real deployment must not expose masks, trajectories, or answers in browser
-state. The intended direction is server-side generation with short-lived
-challenge records and one-time verification tokens.
+The reference deployment no longer exposes masks, trajectories, or answers in
+browser state. It uses server-side generation with short-lived challenge
+records and one-time verification tokens.
 
 ```mermaid
 flowchart LR
@@ -220,9 +227,9 @@ flowchart LR
 
 CAPTCHA should remain one signal inside a broader anti-abuse system that also
 uses rate limits, session risk, replay prevention, and business-level controls.
-Those hosted operational controls belong in the future private
-`WHOIZE-CLOUD`; the public repository will continue to provide the research
-engine, SDK, protocol documentation, and reference implementation.
+Sensitive operational controls belong in private `WHOIZE-CLOUD`; this public
+repository provides the research engine, SDK, protocol documentation, and a
+reviewable server-verification reference.
 
 ## Accessibility
 

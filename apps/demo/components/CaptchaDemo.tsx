@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { MotionCaptcha } from "@whoize/captcha-react";
 import { useCaptchaConfig } from "@/app/captcha-config";
 import {
   LanguageSwitch,
   useLanguage,
 } from "@/app/i18n";
+import { ServerMotionCaptcha } from "./ServerMotionCaptcha";
 
 type Proof = {
   id: string;
@@ -39,21 +39,25 @@ const COPY = {
     proofReady: "Human proof ready",
     required: "Verification required",
     complete: "Complete action",
+    completing: "Redeeming proof…",
     continue: "Continue with WHOIZE",
-    local: "Local MVP: proof is still verified in the browser.",
+    local:
+      "The click is verified on the server. This action accepts only a short-lived, one-time proof.",
+    actionError:
+      "The proof expired or was already used. Please complete a new challenge.",
     metrics: "Prototype parameters",
     metric1: "CLICK PER CHALLENGE",
     metric2: "SECONDS UNTIL EXPIRY",
     metric3: "ATTEMPTS BEFORE LOCK",
     metric4: "FRAMES PER SECOND",
-    stage: "HOW STAGE 1 WORKS",
-    cycle: "A complete verification flow—without pretending it is secure.",
+    stage: "HOW STAGE 3 WORKS",
+    cycle: "Pixels in the browser. Answers and proof redemption on the server.",
     challenge:
-      "Every opening creates a new shape, position, direction, and noise field. You have 60 seconds to answer.",
+      "The server creates a new shape, trajectory, and random-dot animation. The browser receives only rendered pixels and an opaque challenge ID.",
     oneClick:
-      "The first click ends the challenge. The hit is checked against the actual shape mask, not a rough radius.",
+      "The browser sends the click coordinate and animation frame. The server checks it against the private shape mask and trajectory.",
     proof:
-      "Success creates a one-time local proof. Server verification and replay protection are the next stage.",
+      "Success creates a short-lived proof bound to this session and action. The protected endpoint consumes it once; replay is rejected.",
     openLab: "Open Motion Lab and tune the signal",
   },
   ru: {
@@ -80,21 +84,25 @@ const COPY = {
     proofReady: "Human proof готов",
     required: "Требуется проверка",
     complete: "Завершить действие",
+    completing: "Проверяем proof…",
     continue: "Продолжить с WHOIZE",
-    local: "Локальный MVP: proof пока проверяется в браузере.",
+    local:
+      "Клик проверяется на сервере. Действие принимает только короткоживущий одноразовый proof.",
+    actionError:
+      "Proof истёк или уже использован. Пройдите новое испытание.",
     metrics: "Параметры прототипа",
     metric1: "КЛИК НА ИСПЫТАНИЕ",
     metric2: "СЕКУНД ДО ИСТЕЧЕНИЯ",
     metric3: "ПОПЫТКИ ДО ПАУЗЫ",
     metric4: "КАДРОВ В СЕКУНДУ",
-    stage: "КАК УСТРОЕН ЭТАП 1",
-    cycle: "Полный цикл проверки — без притворной безопасности.",
+    stage: "КАК УСТРОЕН ЭТАП 3",
+    cycle: "В браузере — пиксели. Ответ и погашение proof — на сервере.",
     challenge:
-      "Каждое открытие создаёт новую фигуру, позицию, направление и поле шума. На ответ есть 60 секунд.",
+      "Сервер создаёт фигуру, траекторию и анимацию случайных точек. Браузер получает только пиксели и непрозрачный ID.",
     oneClick:
-      "Первый клик завершает испытание. Попадание проверяется по реальной маске фигуры, а не по грубому радиусу.",
+      "Браузер отправляет координату и кадр клика. Сервер сверяет их с закрытой маской фигуры и траекторией.",
     proof:
-      "Успех создаёт одноразовое локальное доказательство. Серверная версия и защита от replay — следующий этап.",
+      "Успех создаёт короткоживущий proof, привязанный к сессии и действию. Сервер принимает его один раз и отклоняет replay.",
     openLab: "Открыть Motion Lab и настроить сигнал",
   },
 } as const;
@@ -106,6 +114,8 @@ export function CaptchaDemo() {
   const [captchaOpen, setCaptchaOpen] = useState(false);
   const [proof, setProof] = useState<Proof | null>(null);
   const [actionComplete, setActionComplete] = useState(false);
+  const [actionPending, setActionPending] = useState(false);
+  const [actionError, setActionError] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -114,20 +124,45 @@ export function CaptchaDemo() {
     };
   }, []);
 
-  const openChallenge = () => {
+  const openChallenge = async () => {
     if (proof && proof.expiresAt > Date.now()) {
-      setActionComplete(true);
+      setActionPending(true);
+      setActionError(false);
+      try {
+        const response = await fetch("/api/demo-action", {
+          method: "POST",
+          cache: "no-store",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            proofToken: proof.id,
+            action: "demo-signup",
+          }),
+        });
+        const result = (await response.json()) as { success?: boolean };
+        if (!response.ok || !result.success) throw new Error("Proof rejected");
+        setActionComplete(true);
+        setProof(null);
+      } catch {
+        setProof(null);
+        setActionError(true);
+      } finally {
+        setActionPending(false);
+      }
       return;
     }
     setProof(null);
     setActionComplete(false);
+    setActionError(false);
     setCaptchaOpen(true);
   };
 
-  const handlePass = (token: string) => {
+  const handlePass = (token: string, expiresAt: number) => {
     setProof({
       id: token,
-      expiresAt: Date.now() + config.proofTtlSeconds * 1000,
+      expiresAt,
     });
     closeTimerRef.current = setTimeout(
       () => setCaptchaOpen(false),
@@ -196,6 +231,7 @@ export function CaptchaDemo() {
                 onClick={() => {
                   setProof(null);
                   setActionComplete(false);
+                  setActionError(false);
                 }}
               >
                 {copy.repeat}
@@ -241,15 +277,20 @@ export function CaptchaDemo() {
               <button
                 className="demo-submit"
                 type="button"
-                onClick={openChallenge}
+                onClick={() => void openChallenge()}
+                disabled={actionPending}
               >
                 <span>
-                  {proof ? copy.complete : copy.continue}
+                  {actionPending
+                    ? copy.completing
+                    : proof
+                      ? copy.complete
+                      : copy.continue}
                 </span>
                 <span>↗</span>
               </button>
               <p className="local-note">
-                {copy.local}
+                {actionError ? copy.actionError : copy.local}
               </p>
             </>
           )}
@@ -304,7 +345,7 @@ export function CaptchaDemo() {
 
       <footer className="demo-footer">
         <p>WHOIZE CAPTCHA · TEMPORAL PERCEPTION RESEARCH</p>
-        <p>MIT LICENSE · CLIENT-SIDE MVP · 2026</p>
+        <p>MIT LICENSE · SERVER-VERIFIED REFERENCE · 2026</p>
       </footer>
 
       {captchaOpen && (
@@ -315,8 +356,7 @@ export function CaptchaDemo() {
             aria-modal="true"
             aria-label="WHOIZE CAPTCHA"
           >
-            <MotionCaptcha
-              config={config}
+            <ServerMotionCaptcha
               locale={locale}
               onPass={handlePass}
               onClose={() => setCaptchaOpen(false)}

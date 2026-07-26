@@ -79,7 +79,7 @@ export async function readServerCaptchaConfig(): Promise<ConfigSnapshot> {
   return {
     ...stored,
     storage: "blob",
-    etag: result.blob.etag,
+    etag: result.blob.etag.replace(/^W\//, ""),
   };
 }
 

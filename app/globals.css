@@ -896,6 +896,11 @@ footer p {
   background: #c7ff4f;
 }
 
+.demo-submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .demo-submit span:last-child {
   font-size: 18px;
 }
@@ -1199,20 +1204,24 @@ footer p {
 
 .captcha-canvas-wrap {
   position: relative;
+  aspect-ratio: 16 / 9;
   margin: 0 18px;
   overflow: hidden;
   border: 1px solid var(--ink);
   background: #e8e7e1;
 }
 
-.captcha-canvas-wrap canvas {
+.captcha-canvas-wrap canvas,
+.captcha-canvas-wrap img {
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
   display: block;
+  user-select: none;
 }
 
-.captcha-canvas-wrap.status-playing canvas {
+.captcha-canvas-wrap.status-playing canvas,
+.captcha-canvas-wrap.status-playing img {
   cursor: none;
 }
 
@@ -1270,7 +1279,8 @@ footer p {
 }
 
 @media (pointer: coarse) {
-  .captcha-canvas-wrap.status-playing canvas {
+  .captcha-canvas-wrap.status-playing canvas,
+  .captcha-canvas-wrap.status-playing img {
     cursor: pointer;
   }
 
@@ -1280,10 +1290,16 @@ footer p {
 }
 
 .captcha-canvas-wrap.status-verifying canvas,
+.captcha-canvas-wrap.status-verifying img,
 .captcha-canvas-wrap.status-passed canvas,
+.captcha-canvas-wrap.status-passed img,
 .captcha-canvas-wrap.status-failed canvas,
+.captcha-canvas-wrap.status-failed img,
 .captcha-canvas-wrap.status-expired canvas,
-.captcha-canvas-wrap.status-locked canvas {
+.captcha-canvas-wrap.status-expired img,
+.captcha-canvas-wrap.status-locked canvas,
+.captcha-canvas-wrap.status-locked img,
+.captcha-canvas-wrap.status-error img {
   cursor: default;
 }
 
@@ -1317,7 +1333,8 @@ footer p {
 
 .result-failed .result-symbol,
 .result-expired .result-symbol,
-.result-locked .result-symbol {
+.result-locked .result-symbol,
+.result-error .result-symbol {
   background: var(--coral);
   color: var(--ink);
 }
