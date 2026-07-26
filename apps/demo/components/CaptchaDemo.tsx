@@ -51,9 +51,10 @@ const COPY = {
     metric3: "ATTEMPTS BEFORE LOCK",
     metric4: "FRAMES PER SECOND",
     stage: "HOW STAGE 3 WORKS",
-    cycle: "Pixels in the browser. Answers and proof redemption on the server.",
+    cycle:
+      "Buffered WebM pixels in the browser. Answers and proof redemption on the server.",
     challenge:
-      "The server creates a new shape, trajectory, and random-dot animation. The browser receives only rendered pixels and an opaque challenge ID.",
+      "The server creates one continuous trajectory and renders short VP8 WebM segments. The browser buffers pixels and never receives the mask, center, velocity, or random seeds.",
     oneClick:
       "The browser sends the click coordinate and animation frame. The server checks it against the private shape mask and trajectory.",
     proof:
@@ -96,9 +97,10 @@ const COPY = {
     metric3: "ПОПЫТКИ ДО ПАУЗЫ",
     metric4: "КАДРОВ В СЕКУНДУ",
     stage: "КАК УСТРОЕН ЭТАП 3",
-    cycle: "В браузере — пиксели. Ответ и погашение proof — на сервере.",
+    cycle:
+      "В браузере — буферизованные WebM-пиксели. Ответ и погашение proof — на сервере.",
     challenge:
-      "Сервер создаёт фигуру, траекторию и анимацию случайных точек. Браузер получает только пиксели и непрозрачный ID.",
+      "Сервер создаёт единую непрерывную траекторию и рендерит короткие VP8 WebM-сегменты. Браузер буферизует пиксели и не получает маску, центр, скорость или случайные seed.",
     oneClick:
       "Браузер отправляет координату и кадр клика. Сервер сверяет их с закрытой маской фигуры и траекторией.",
     proof:

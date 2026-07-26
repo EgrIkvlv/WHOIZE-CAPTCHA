@@ -22,7 +22,8 @@ image. WHOIZE explores a different primitive:
 
 - foreground and background dots share the same color, size, and approximate
   spatial density;
-- the background is regenerated continuously;
+- the laboratory can regenerate the background continuously, while the
+  server-video profile keeps it temporally stable for efficient compression;
 - dots inside an invisible mask preserve part of their relative position;
 - the visual system integrates that correlation over time and perceives a
   moving contour;
@@ -91,9 +92,12 @@ signed HttpOnly session. Every publication also creates an immutable audit
 record.
 
 The public demo now creates the challenge on the server. Its response contains
-an animated pixel image plus non-secret timing metadata and an opaque
-challenge ID; the browser does not receive the mask, center, or trajectory.
-Click verification and protected-action proof redemption happen on the server.
+only non-secret timing metadata and an opaque challenge ID. It then buffers
+one-second VP8 WebM segments generated at 640×360 and 48 fps. All segments use
+one continuous server-owned trajectory, so there is no animation-loop jump;
+the browser does not receive the mask, center, velocity, or random seeds. Click
+verification uses the global video frame, and protected-action proof redemption
+happens on the server.
 Challenge and proof records use D1 when a Cloudflare binding is present,
 private Vercel Blob storage on Vercel, and memory only in local development.
 
@@ -164,9 +168,11 @@ estimates how many particles the mask should contain at the selected global
 density.
 
 Background particles are sampled uniformly outside the current mask on every
-paint. Target particles are sampled uniformly inside the mask. A configurable
-percentage of target particles remains stable relative to the moving center;
-the rest is resampled. Those stable particles are the temporal signal.
+paint in Motion Lab. The server-video renderer instead reuses a deterministic
+background field across frames so VP8 can encode the full-density stream
+efficiently. Target particles are sampled uniformly inside the mask. A
+configurable percentage remains stable relative to the moving center; the rest
+is resampled. Those stable particles are the temporal signal.
 
 The canvas never draws a conventional filled silhouette during a normal
 challenge. “Show answer” adds an explicit outline only as a laboratory aid.
@@ -218,7 +224,7 @@ records and one-time verification tokens.
 flowchart LR
     A[Client site] --> B[Challenge API]
     B --> C[Server-side scene generator]
-    C --> D[Pixel stream]
+    C --> D[Continuous VP8 WebM segments]
     D --> A
     A --> E[Click coordinates]
     E --> F[Server verification]

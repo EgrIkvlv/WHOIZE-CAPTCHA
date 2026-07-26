@@ -4,10 +4,16 @@ import {
   type CaptchaConfig,
   type ShapeName,
 } from "@whoize/captcha-core";
+import createWebmModule from "webm-wasm/dist/webm-wasm.js";
 
-export const CHALLENGE_WIDTH = 384;
-export const CHALLENGE_HEIGHT = 216;
-export const CHALLENGE_CYCLE_SECONDS = 3;
+export const CHALLENGE_WIDTH = 640;
+export const CHALLENGE_HEIGHT = 360;
+export const CHALLENGE_SEGMENT_SECONDS = 1;
+export const WEBM_MIME_TYPE = 'video/webm; codecs="vp8"';
+
+const WEBM_BITRATE_KBPS = 3_500;
+const BACKGROUND_COLOR = [232, 231, 225, 255] as const;
+const DOT_COLOR = [16, 17, 15, 255] as const;
 
 export type Point = { x: number; y: number };
 
@@ -17,9 +23,38 @@ export type ChallengeScene = {
   width: number;
   height: number;
   fps: number;
-  positions: Point[];
-  image: Uint8Array;
+  durationFrames: number;
+  segmentFrames: number;
+  density: number;
+  dotSize: number;
+  coherence: number;
+  start: Point;
+  velocity: Point;
+  visualSeed: number;
 };
+
+type WebmEncoder = {
+  addRGBAFrame(frame: Uint8Array): boolean;
+  finalize(): boolean;
+  lastError(): string;
+  delete(): void;
+};
+
+type WebmModule = {
+  WebmEncoder: new (
+    timebaseNum: number,
+    timebaseDen: number,
+    width: number,
+    height: number,
+    bitrate: number,
+    realtime: boolean,
+    live: boolean,
+    onChunk: (chunk: ArrayBuffer) => void,
+  ) => WebmEncoder;
+  then?: unknown;
+};
+
+let webmModulePromise: Promise<WebmModule> | null = null;
 
 function mulberry32(seed: number) {
   return () => {
@@ -48,164 +83,133 @@ function chooseShape(config: CaptchaConfig, random: () => number) {
   return shapes[Math.floor(random() * shapes.length)];
 }
 
-function calculatePositions({
-  radius,
-  speed,
-  fps,
-  frameCount,
-  random,
-}: {
-  radius: number;
-  speed: number;
-  fps: number;
-  frameCount: number;
-  random: () => number;
-}) {
-  const margin = radius + 11;
-  const angle = random() * Math.PI * 2;
-  const scale = CHALLENGE_WIDTH / 640;
-  let x = margin + random() * (CHALLENGE_WIDTH - margin * 2);
-  let y = margin + random() * (CHALLENGE_HEIGHT - margin * 2);
-  let velocityX = Math.cos(angle) * speed * scale;
-  let velocityY = Math.sin(angle) * speed * scale;
-  const positions: Point[] = [];
+function reflectedCoordinate(
+  start: number,
+  velocity: number,
+  seconds: number,
+  minimum: number,
+  maximum: number,
+) {
+  const range = maximum - minimum;
+  const period = range * 2;
+  const distance = start - minimum + velocity * seconds;
+  const wrapped = ((distance % period) + period) % period;
+  return wrapped <= range
+    ? minimum + wrapped
+    : maximum - (wrapped - range);
+}
 
-  for (let frame = 0; frame < frameCount; frame += 1) {
-    positions.push({ x, y });
-    x += velocityX / fps;
-    y += velocityY / fps;
-    if (x < margin || x > CHALLENGE_WIDTH - margin) {
-      velocityX *= -1;
-      x = Math.max(margin, Math.min(CHALLENGE_WIDTH - margin, x));
-    }
-    if (y < margin || y > CHALLENGE_HEIGHT - margin) {
-      velocityY *= -1;
-      y = Math.max(margin, Math.min(CHALLENGE_HEIGHT - margin, y));
-    }
-  }
-
-  return positions;
+export function positionAtFrame(scene: ChallengeScene, frameIndex: number) {
+  const margin = scene.radius + 18;
+  const seconds = frameIndex / scene.fps;
+  return {
+    x: reflectedCoordinate(
+      scene.start.x,
+      scene.velocity.x,
+      seconds,
+      margin,
+      scene.width - margin,
+    ),
+    y: reflectedCoordinate(
+      scene.start.y,
+      scene.velocity.y,
+      seconds,
+      margin,
+      scene.height - margin,
+    ),
+  };
 }
 
 function drawSquare(
   pixels: Uint8Array,
+  width: number,
+  height: number,
   x: number,
   y: number,
   size: number,
 ) {
   const startX = Math.max(0, Math.floor(x));
   const startY = Math.max(0, Math.floor(y));
-  const endX = Math.min(CHALLENGE_WIDTH, Math.ceil(x + size));
-  const endY = Math.min(CHALLENGE_HEIGHT, Math.ceil(y + size));
+  const endX = Math.min(width, Math.ceil(x + size));
+  const endY = Math.min(height, Math.ceil(y + size));
 
   for (let pixelY = startY; pixelY < endY; pixelY += 1) {
     for (let pixelX = startX; pixelX < endX; pixelX += 1) {
-      const offset = (pixelY * CHALLENGE_WIDTH + pixelX) * 3;
-      pixels[offset] = 16;
-      pixels[offset + 1] = 17;
-      pixels[offset + 2] = 15;
+      const offset = (pixelY * width + pixelX) * 4;
+      pixels[offset] = DOT_COLOR[0];
+      pixels[offset + 1] = DOT_COLOR[1];
+      pixels[offset + 2] = DOT_COLOR[2];
+      pixels[offset + 3] = DOT_COLOR[3];
     }
   }
 }
 
-function renderFrames({
-  config,
-  shape,
-  radius,
-  positions,
-  random,
-}: {
-  config: CaptchaConfig;
-  shape: ShapeName;
-  radius: number;
-  positions: Point[];
-  random: () => number;
-}) {
-  const areaScale =
-    (CHALLENGE_WIDTH * CHALLENGE_HEIGHT) / (640 * 360);
-  const density = Math.round(config.density * areaScale);
+function createFrameRenderer(scene: ChallengeScene) {
+  const backgroundRandom = mulberry32(scene.visualSeed ^ 0x4b1d);
+  const targetRandom = mulberry32(scene.visualSeed ^ 0xa711);
+  const backgroundPoints = Array.from({ length: scene.density }, () => ({
+    x: backgroundRandom() * scene.width,
+    y: backgroundRandom() * scene.height,
+  }));
   const targetRatio =
-    (radius * radius * 4 * shapeAreaRatio(shape)) /
-    (CHALLENGE_WIDTH * CHALLENGE_HEIGHT);
-  const targetCount = Math.max(70, Math.floor(density * targetRatio));
-  const backgroundCount = Math.max(0, density - targetCount);
-  const dotSize = Math.max(1, config.dotSize * (CHALLENGE_WIDTH / 640));
-  const stableTargetPoints = Array.from({ length: targetCount }, () => ({
-    ...pointInShape(shape, random),
-    stable: random() * 100 < config.coherence,
+    (scene.radius * scene.radius * 4 * shapeAreaRatio(scene.shape)) /
+    (scene.width * scene.height);
+  const targetCount = Math.max(
+    120,
+    Math.floor(scene.density * targetRatio),
+  );
+  const targetPoints = Array.from({ length: targetCount }, () => ({
+    ...pointInShape(scene.shape, targetRandom),
+    stable: targetRandom() * 100 < scene.coherence,
   }));
 
-  return positions.map((center) => {
-    const pixels = new Uint8Array(
-      CHALLENGE_WIDTH * CHALLENGE_HEIGHT * 3,
-    );
-    for (let offset = 0; offset < pixels.length; offset += 3) {
-      pixels[offset] = 232;
-      pixels[offset + 1] = 231;
-      pixels[offset + 2] = 225;
+  return (globalFrameIndex: number) => {
+    const center = positionAtFrame(scene, globalFrameIndex);
+    const pixels = new Uint8Array(scene.width * scene.height * 4);
+    for (let offset = 0; offset < pixels.length; offset += 4) {
+      pixels[offset] = BACKGROUND_COLOR[0];
+      pixels[offset + 1] = BACKGROUND_COLOR[1];
+      pixels[offset + 2] = BACKGROUND_COLOR[2];
+      pixels[offset + 3] = BACKGROUND_COLOR[3];
     }
 
-    let placed = 0;
-    while (placed < backgroundCount) {
-      const x = random() * CHALLENGE_WIDTH;
-      const y = random() * CHALLENGE_HEIGHT;
+    for (const point of backgroundPoints) {
       if (
         !inShape(
-          shape,
-          (x - center.x) / radius,
-          (y - center.y) / radius,
+          scene.shape,
+          (point.x - center.x) / scene.radius,
+          (point.y - center.y) / scene.radius,
         )
       ) {
-        drawSquare(pixels, x, y, dotSize);
-        placed += 1;
+        drawSquare(
+          pixels,
+          scene.width,
+          scene.height,
+          point.x,
+          point.y,
+          scene.dotSize,
+        );
       }
     }
 
-    for (const point of stableTargetPoints) {
-      const current = point.stable ? point : pointInShape(shape, random);
+    const frameRandom = mulberry32(
+      (scene.visualSeed ^ Math.imul(globalFrameIndex + 1, 0x9e3779b1)) >>> 0,
+    );
+    for (const point of targetPoints) {
+      const current = point.stable
+        ? point
+        : pointInShape(scene.shape, frameRandom);
       drawSquare(
         pixels,
-        center.x + current.x * radius,
-        center.y + current.y * radius,
-        dotSize,
+        scene.width,
+        scene.height,
+        center.x + current.x * scene.radius,
+        center.y + current.y * scene.radius,
+        scene.dotSize,
       );
     }
     return pixels;
-  });
-}
-
-function uint32(value: number) {
-  const bytes = new Uint8Array(4);
-  new DataView(bytes.buffer).setUint32(0, value);
-  return bytes;
-}
-
-function uint16(value: number) {
-  const bytes = new Uint8Array(2);
-  new DataView(bytes.buffer).setUint16(0, value);
-  return bytes;
-}
-
-let crcTable: Uint32Array | null = null;
-
-function crc32(data: Uint8Array) {
-  if (!crcTable) {
-    crcTable = new Uint32Array(256);
-    for (let index = 0; index < 256; index += 1) {
-      let value = index;
-      for (let bit = 0; bit < 8; bit += 1) {
-        value =
-          value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
-      }
-      crcTable[index] = value >>> 0;
-    }
-  }
-
-  let crc = 0xffffffff;
-  for (const byte of data) {
-    crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
+  };
 }
 
 function concat(parts: Uint8Array[]) {
@@ -219,134 +223,134 @@ function concat(parts: Uint8Array[]) {
   return result;
 }
 
-function chunk(type: string, data: Uint8Array) {
-  const typeBytes = new TextEncoder().encode(type);
-  const body = concat([typeBytes, data]);
-  return concat([uint32(data.length), body, uint32(crc32(body))]);
-}
-
-async function deflate(data: Uint8Array) {
-  const stream = new Blob([Uint8Array.from(data).buffer]).stream().pipeThrough(
-    new CompressionStream("deflate"),
-  );
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
-async function encodeApng(frames: Uint8Array[], fps: number) {
-  const signature = new Uint8Array([
-    137, 80, 78, 71, 13, 10, 26, 10,
-  ]);
-  const ihdr = concat([
-    uint32(CHALLENGE_WIDTH),
-    uint32(CHALLENGE_HEIGHT),
-    new Uint8Array([8, 2, 0, 0, 0]),
-  ]);
-  const parts = [
-    signature,
-    chunk("IHDR", ihdr),
-    chunk("acTL", concat([uint32(frames.length), uint32(0)])),
-  ];
-  let sequence = 0;
-
-  for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
-    const pixels = frames[frameIndex];
-    const scanlines = new Uint8Array(
-      CHALLENGE_HEIGHT * (CHALLENGE_WIDTH * 3 + 1),
-    );
-    for (let y = 0; y < CHALLENGE_HEIGHT; y += 1) {
-      const targetOffset = y * (CHALLENGE_WIDTH * 3 + 1);
-      scanlines[targetOffset] = 0;
-      scanlines.set(
-        pixels.subarray(
-          y * CHALLENGE_WIDTH * 3,
-          (y + 1) * CHALLENGE_WIDTH * 3,
-        ),
-        targetOffset + 1,
-      );
+async function getWebmModule(wasmBinary: ArrayBuffer) {
+  webmModulePromise ??= new Promise<WebmModule>((resolve, reject) => {
+    let encoderModule: WebmModule;
+    try {
+      // The legacy Emscripten loader assumes CommonJS whenever a runtime
+      // exposes `require`. Node-compatible ESM workers expose it without the
+      // matching `__dirname`, so provide the harmless value the loader expects.
+      const runtimeGlobals = globalThis as typeof globalThis & {
+        __dirname?: string;
+      };
+      runtimeGlobals.__dirname ??= "";
+      encoderModule = createWebmModule({
+        noInitialRun: true,
+        wasmBinary,
+        onAbort: reject,
+        onRuntimeInitialized() {
+          delete encoderModule.then;
+          resolve(encoderModule);
+        },
+      }) as WebmModule;
+    } catch (error) {
+      reject(error);
     }
-
-    parts.push(
-      chunk(
-        "fcTL",
-        concat([
-          uint32(sequence++),
-          uint32(CHALLENGE_WIDTH),
-          uint32(CHALLENGE_HEIGHT),
-          uint32(0),
-          uint32(0),
-          uint16(1),
-          uint16(fps),
-          new Uint8Array([0, 0]),
-        ]),
-      ),
-    );
-    const compressed = await deflate(scanlines);
-    parts.push(
-      frameIndex === 0
-        ? chunk("IDAT", compressed)
-        : chunk("fdAT", concat([uint32(sequence++), compressed])),
-    );
-  }
-
-  parts.push(chunk("IEND", new Uint8Array()));
-  return concat(parts);
+  }).catch((error) => {
+    webmModulePromise = null;
+    throw error;
+  });
+  return webmModulePromise;
 }
 
-export async function generateChallengeScene(
+export function generateChallengeScene(
   config: CaptchaConfig,
   seed: number,
-): Promise<ChallengeScene> {
+): ChallengeScene {
   const random = mulberry32(seed);
   const shape = chooseShape(config, random);
-  const fps = Math.min(16, Math.max(12, config.fps));
-  const frameCount = fps * CHALLENGE_CYCLE_SECONDS;
-  const radiusScale = CHALLENGE_WIDTH / 640;
   const radius =
-    (config.radiusMin +
-      random() * (config.radiusMax - config.radiusMin)) *
-    radiusScale;
-  const positions = calculatePositions({
-    radius,
-    speed: config.speed,
-    fps,
-    frameCount,
-    random,
-  });
-  const frames = renderFrames({
-    config,
-    shape,
-    radius,
-    positions,
-    random,
-  });
+    config.radiusMin + random() * (config.radiusMax - config.radiusMin);
+  const margin = radius + 18;
+  const angle = random() * Math.PI * 2;
 
   return {
     shape,
     radius,
     width: CHALLENGE_WIDTH,
     height: CHALLENGE_HEIGHT,
-    fps,
-    positions,
-    image: await encodeApng(frames, fps),
+    fps: config.fps,
+    durationFrames: config.fps * config.durationSeconds,
+    segmentFrames: config.fps * CHALLENGE_SEGMENT_SECONDS,
+    density: config.density,
+    dotSize: config.dotSize,
+    coherence: config.coherence,
+    start: {
+      x: margin + random() * (CHALLENGE_WIDTH - margin * 2),
+      y: margin + random() * (CHALLENGE_HEIGHT - margin * 2),
+    },
+    velocity: {
+      x: Math.cos(angle) * config.speed,
+      y: Math.sin(angle) * config.speed,
+    },
+    visualSeed: (random() * 0xffffffff) >>> 0,
   };
 }
 
+export async function renderChallengeSegment({
+  scene,
+  segmentIndex,
+  wasmBinary,
+}: {
+  scene: ChallengeScene;
+  segmentIndex: number;
+  wasmBinary: ArrayBuffer;
+}) {
+  const encoderModule = await getWebmModule(wasmBinary);
+  const chunks: Uint8Array[] = [];
+  const encoder = new encoderModule.WebmEncoder(
+    1,
+    scene.fps,
+    scene.width,
+    scene.height,
+    WEBM_BITRATE_KBPS,
+    true,
+    true,
+    (chunk) => chunks.push(new Uint8Array(chunk)),
+  );
+  const renderFrame = createFrameRenderer(scene);
+  const firstFrame = segmentIndex * scene.segmentFrames;
+  const lastFrame = Math.min(
+    firstFrame + scene.segmentFrames,
+    scene.durationFrames,
+  );
+
+  try {
+    for (
+      let frameIndex = firstFrame;
+      frameIndex < lastFrame;
+      frameIndex += 1
+    ) {
+      if (!encoder.addRGBAFrame(renderFrame(frameIndex))) {
+        throw new Error(encoder.lastError() || "VP8 frame encoding failed");
+      }
+    }
+    if (!encoder.finalize()) {
+      throw new Error(encoder.lastError() || "WebM finalization failed");
+    }
+  } finally {
+    encoder.delete();
+  }
+
+  return concat(chunks);
+}
+
 export function isChallengeHit({
-  shape,
-  radius,
-  positions,
+  scene,
   frameIndex,
   x,
   y,
 }: {
-  shape: ShapeName;
-  radius: number;
-  positions: Point[];
+  scene: ChallengeScene;
   frameIndex: number;
   x: number;
   y: number;
 }) {
-  const center = positions[frameIndex];
-  if (!center) return false;
-  return inShape(shape, (x - center.x) / radius, (y - center.y) / radius);
+  if (frameIndex < 0 || frameIndex >= scene.durationFrames) return false;
+  const center = positionAtFrame(scene, frameIndex);
+  return inShape(
+    scene.shape,
+    (x - center.x) / scene.radius,
+    (y - center.y) / scene.radius,
+  );
 }

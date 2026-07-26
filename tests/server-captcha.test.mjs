@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { DEFAULT_CAPTCHA_CONFIG } from "../packages/captcha-core/src/index.ts";
 import {
+  positionAtFrame,
+  renderChallengeSegment,
+} from "../apps/server-captcha/server/challenge-engine.ts";
+import {
   createServerChallenge,
+  readServerChallengeSegment,
   redeemProof,
   verifyServerChallenge,
 } from "../apps/server-captcha/server/challenge-service.ts";
@@ -12,30 +18,29 @@ function resetStore() {
   globalThis.__whoizeCaptchaRecords = new Map();
 }
 
-test("creates an opaque pixel challenge and verifies the private answer", async () => {
+test("creates an opaque video challenge and verifies the private answer", async () => {
   resetStore();
   const now = 1_800_000_000_000;
   const sessionHash = "session-a";
-  const { record, image } = await createServerChallenge({
+  const { record } = await createServerChallenge({
     config: DEFAULT_CAPTCHA_CONFIG,
     sessionHash,
     now,
   });
 
-  assert.deepEqual(Array.from(image.subarray(0, 8)), [
-    137, 80, 78, 71, 13, 10, 26, 10,
-  ]);
-  assert.ok(image.length > 100_000);
-  assert.match(new TextDecoder().decode(image), /acTL/);
   assert.match(record.id, /^ch_[a-f0-9]{48}$/);
-  assert.equal(record.positions.length, record.fps * 3);
+  assert.equal(record.scene.width, 640);
+  assert.equal(record.scene.height, 360);
+  assert.equal(record.scene.fps, 48);
+  assert.equal(record.scene.density, 7_200);
+  assert.equal(record.scene.segmentFrames, 48);
 
   const privateRecord = await readRecord(
     `challenges/${record.id}`,
     Number.NEGATIVE_INFINITY,
   );
   assert.ok(privateRecord);
-  const center = privateRecord.value.positions[0];
+  const center = positionAtFrame(privateRecord.value.scene, 0);
   const result = await verifyServerChallenge({
     id: record.id,
     sessionHash,
@@ -48,6 +53,55 @@ test("creates an opaque pixel challenge and verifies the private answer", async 
 
   assert.equal(result.success, true);
   assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
+});
+
+test("renders a valid one-second VP8 WebM segment", async () => {
+  resetStore();
+  const { record } = await createServerChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "session-a",
+  });
+  const wasmBinary = await readFile(
+    new URL("../public/codecs/webm-wasm.wasm", import.meta.url),
+  );
+  const segment = await renderChallengeSegment({
+    scene: record.scene,
+    segmentIndex: 0,
+    wasmBinary: wasmBinary.buffer.slice(
+      wasmBinary.byteOffset,
+      wasmBinary.byteOffset + wasmBinary.byteLength,
+    ),
+  });
+
+  assert.deepEqual(Array.from(segment.subarray(0, 4)), [0x1a, 0x45, 0xdf, 0xa3]);
+  assert.ok(segment.length > 50_000);
+  assert.ok(segment.length < 1_000_000);
+});
+
+test("binds video segments to the challenge session", async () => {
+  resetStore();
+  const { record } = await createServerChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "session-a",
+  });
+  assert.equal(
+    (
+      await readServerChallengeSegment({
+        id: record.id,
+        sessionHash: "session-a",
+        segmentIndex: 1,
+      })
+    ).success,
+    true,
+  );
+  assert.deepEqual(
+    await readServerChallengeSegment({
+      id: record.id,
+      sessionHash: "session-b",
+      segmentIndex: 1,
+    }),
+    { success: false, reason: "session" },
+  );
 });
 
 test("binds a challenge to its session and enforces attempt limits", async () => {
@@ -93,8 +147,8 @@ test("binds a challenge to its session and enforces attempt limits", async () =>
   const locked = await verifyServerChallenge({
     id: record.id,
     sessionHash: "session-a",
-    x: record.positions[0].x,
-    y: record.positions[0].y,
+    x: positionAtFrame(record.scene, 0).x,
+    y: positionAtFrame(record.scene, 0).y,
     frameIndex: 0,
     proofTtlSeconds: 60,
     now: now + 1_100,
@@ -112,7 +166,7 @@ test("consumes a proof once and rejects replay", async () => {
     sessionHash,
     now,
   });
-  const center = record.positions[3];
+  const center = positionAtFrame(record.scene, 3);
   const verified = await verifyServerChallenge({
     id: record.id,
     sessionHash,
@@ -157,8 +211,8 @@ test("rejects expired challenges and proofs", async () => {
   const expiredChallenge = await verifyServerChallenge({
     id: record.id,
     sessionHash: "session-a",
-    x: record.positions[0].x,
-    y: record.positions[0].y,
+    x: positionAtFrame(record.scene, 0).x,
+    y: positionAtFrame(record.scene, 0).y,
     frameIndex: 0,
     proofTtlSeconds: 15,
     now: now + 15_001,
@@ -174,8 +228,8 @@ test("rejects expired challenges and proofs", async () => {
   const verified = await verifyServerChallenge({
     id: fresh.record.id,
     sessionHash: "session-a",
-    x: fresh.record.positions[0].x,
-    y: fresh.record.positions[0].y,
+    x: positionAtFrame(fresh.record.scene, 0).x,
+    y: positionAtFrame(fresh.record.scene, 0).y,
     frameIndex: 0,
     proofTtlSeconds: 15,
     now: now + 1_000,

@@ -14,12 +14,13 @@ type ChallengeStatus =
 
 type Challenge = {
   id: string;
-  imageUrl: string;
   shape: "circle" | "triangle" | "diamond" | "star";
   width: number;
   height: number;
   fps: number;
   frameCount: number;
+  segmentDurationMs: number;
+  segmentCount: number;
   expiresAt: number;
   maxAttempts: number;
 };
@@ -37,14 +38,54 @@ const GLYPH = {
   star: "★",
 } as const;
 
+const WEBM_MIME_TYPE = 'video/webm; codecs="vp8"';
+const MAX_BUFFER_AHEAD_SECONDS = 4;
+
+function waitForEvent(
+  target: EventTarget,
+  eventName: string,
+  signal: AbortSignal,
+) {
+  return new Promise<void>((resolve, reject) => {
+    const handleEvent = () => {
+      cleanup();
+      resolve();
+    };
+    const handleAbort = () => {
+      cleanup();
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const cleanup = () => {
+      target.removeEventListener(eventName, handleEvent);
+      signal.removeEventListener("abort", handleAbort);
+    };
+    target.addEventListener(eventName, handleEvent, { once: true });
+    signal.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
+function wait(milliseconds: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const handleAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", handleAbort);
+      resolve();
+    }, milliseconds);
+    signal.addEventListener("abort", handleAbort, { once: true });
+  });
+}
+
 export function ServerMotionCaptcha({
   onPass,
   onClose,
   locale = "en",
 }: ServerMotionCaptchaProps) {
   const aimCursorRef = useRef<HTMLDivElement>(null);
-  const animationStartedAtRef = useRef(0);
-  const challengeRef = useRef<Challenge | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fallbackOffsetRef = useRef(0);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [status, setStatus] = useState<ChallengeStatus>("loading");
   const [attempt, setAttempt] = useState(1);
@@ -109,49 +150,34 @@ export function ServerMotionCaptcha({
       const response = await fetch("/api/challenge", {
         method: "POST",
         cache: "no-store",
-        headers: { accept: "image/png" },
+        headers: { accept: "application/json" },
         signal,
       });
       if (!response.ok) throw new Error("Challenge request failed");
-      const image = await response.blob();
+      const next = (await response.json()) as Challenge;
       if (signal?.aborted) return;
-      const shape = response.headers.get("x-whoize-shape");
       if (
-        shape !== "circle" &&
-        shape !== "triangle" &&
-        shape !== "diamond" &&
-        shape !== "star"
+        next.shape !== "circle" &&
+        next.shape !== "triangle" &&
+        next.shape !== "diamond" &&
+        next.shape !== "star"
       ) {
         throw new Error("Challenge metadata is invalid");
       }
-      const next: Challenge = {
-        id: response.headers.get("x-whoize-challenge") ?? "",
-        imageUrl: URL.createObjectURL(image),
-        shape,
-        width: Number(response.headers.get("x-whoize-width")),
-        height: Number(response.headers.get("x-whoize-height")),
-        fps: Number(response.headers.get("x-whoize-fps")),
-        frameCount: Number(response.headers.get("x-whoize-frame-count")),
-        expiresAt: Number(response.headers.get("x-whoize-expires-at")),
-        maxAttempts: Number(response.headers.get("x-whoize-max-attempts")),
-      };
       if (
         !next.id ||
         !next.width ||
         !next.height ||
         !next.fps ||
         !next.frameCount ||
+        !next.segmentDurationMs ||
+        !next.segmentCount ||
         !next.expiresAt ||
         !next.maxAttempts
       ) {
-        URL.revokeObjectURL(next.imageUrl);
         throw new Error("Challenge metadata is incomplete");
       }
-      setChallenge((current) => {
-        if (current) URL.revokeObjectURL(current.imageUrl);
-        return next;
-      });
-      challengeRef.current = next;
+      setChallenge(next);
       setSecondsLeft(
         Math.max(0, Math.ceil((next.expiresAt - Date.now()) / 1000)),
       );
@@ -170,10 +196,109 @@ export function ServerMotionCaptcha({
     return () => {
       window.clearTimeout(startTimer);
       controller.abort();
-      const current = challengeRef.current;
-      if (current) URL.revokeObjectURL(current.imageUrl);
     };
   }, [loadChallenge]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!challenge || !video) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    let mediaUrl: string | null = null;
+    const fallbackUrls: string[] = [];
+
+    const segmentUrl = (index: number) =>
+      `/api/challenge/${encodeURIComponent(challenge.id)}/segment/${index}`;
+    const fetchSegment = async (index: number) => {
+      const response = await fetch(segmentUrl(index), {
+        cache: "no-store",
+        headers: { accept: WEBM_MIME_TYPE },
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Video segment ${index} failed`);
+      }
+      return response.arrayBuffer();
+    };
+
+    const startFallbackPlayback = async () => {
+      for (let index = 0; index < challenge.segmentCount; index += 1) {
+        const segment = await fetchSegment(index);
+        const url = URL.createObjectURL(
+          new Blob([segment], { type: WEBM_MIME_TYPE }),
+        );
+        fallbackUrls.push(url);
+        fallbackOffsetRef.current =
+          (index * challenge.segmentDurationMs) / 1000;
+        video.src = url;
+        await video.play();
+        if (index === 0) setStatus("playing");
+        await waitForEvent(video, "ended", signal);
+      }
+    };
+
+    const startBufferedPlayback = async () => {
+      const mediaSource = new MediaSource();
+      mediaUrl = URL.createObjectURL(mediaSource);
+      video.src = mediaUrl;
+      await waitForEvent(mediaSource, "sourceopen", signal);
+      const sourceBuffer = mediaSource.addSourceBuffer(WEBM_MIME_TYPE);
+      sourceBuffer.mode = "sequence";
+      fallbackOffsetRef.current = 0;
+
+      for (let index = 0; index < challenge.segmentCount; index += 1) {
+        while (
+          index > 0 &&
+          sourceBuffer.buffered.length &&
+          sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1) -
+            video.currentTime >
+            MAX_BUFFER_AHEAD_SECONDS
+        ) {
+          await wait(250, signal);
+        }
+        const segment = await fetchSegment(index);
+        sourceBuffer.appendBuffer(segment);
+        await waitForEvent(sourceBuffer, "updateend", signal);
+        if (index === 0) {
+          await video.play();
+          setStatus("playing");
+        }
+      }
+      if (mediaSource.readyState === "open" && !sourceBuffer.updating) {
+        mediaSource.endOfStream();
+      }
+    };
+
+    const start = async () => {
+      try {
+        if (
+          "MediaSource" in window &&
+          MediaSource.isTypeSupported(WEBM_MIME_TYPE)
+        ) {
+          await startBufferedPlayback();
+        } else if (video.canPlayType(WEBM_MIME_TYPE)) {
+          await startFallbackPlayback();
+        } else {
+          throw new Error("VP8 WebM playback is unavailable");
+        }
+      } catch (error) {
+        if (!signal.aborted) {
+          console.error("Unable to play CAPTCHA video", error);
+          setStatus("error");
+        }
+      }
+    };
+    void start();
+
+    return () => {
+      controller.abort();
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+      fallbackUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [challenge]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -196,22 +321,19 @@ export function ServerMotionCaptcha({
     return () => window.clearInterval(timer);
   }, [challenge, status]);
 
-  const handleImageLoad = () => {
-    animationStartedAtRef.current = performance.now();
-    setStatus("playing");
-  };
-
   const handleClick = async (
-    event: React.MouseEvent<HTMLImageElement>,
+    event: React.MouseEvent<HTMLVideoElement>,
   ) => {
     if (status !== "playing" || !challenge) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * challenge.width;
     const y = ((event.clientY - rect.top) / rect.height) * challenge.height;
-    const elapsed = performance.now() - animationStartedAtRef.current;
-    const frameIndex =
-      Math.floor((elapsed / 1000) * challenge.fps) %
-      challenge.frameCount;
+    const elapsed =
+      (fallbackOffsetRef.current + event.currentTarget.currentTime) * 1000;
+    const frameIndex = Math.min(
+      challenge.frameCount - 1,
+      Math.floor((elapsed / 1000) * challenge.fps),
+    );
     if (aimCursorRef.current) aimCursorRef.current.hidden = true;
     setStatus("verifying");
 
@@ -262,7 +384,7 @@ export function ServerMotionCaptcha({
   };
 
   const handlePointerMove = (
-    event: React.PointerEvent<HTMLImageElement>,
+    event: React.PointerEvent<HTMLVideoElement>,
   ) => {
     const aimCursor = aimCursorRef.current;
     if (!aimCursor || status !== "playing") {
@@ -321,14 +443,14 @@ export function ServerMotionCaptcha({
 
       <div className={`captcha-canvas-wrap status-${status}`}>
         {challenge && (
-          // The API returns a short-lived blob URL, so Next image optimization
-          // cannot be used for this server-generated animation.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={challenge.imageUrl}
-            alt={`${copy.canvas}: ${copy.shape[challenge.shape]}.`}
-            draggable={false}
-            onLoad={handleImageLoad}
+          <video
+            ref={videoRef}
+            aria-label={`${copy.canvas}: ${copy.shape[challenge.shape]}.`}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            disablePictureInPicture
             onClick={handleClick}
             onPointerEnter={handlePointerMove}
             onPointerMove={handlePointerMove}

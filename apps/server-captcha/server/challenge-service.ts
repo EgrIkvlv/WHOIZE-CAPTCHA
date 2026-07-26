@@ -1,8 +1,8 @@
-import type { CaptchaConfig, ShapeName } from "@whoize/captcha-core";
+import type { CaptchaConfig } from "@whoize/captcha-core";
 import {
   generateChallengeScene,
   isChallengeHit,
-  type Point,
+  type ChallengeScene,
 } from "./challenge-engine.ts";
 import {
   readRecord,
@@ -15,12 +15,7 @@ const ACTION = "demo-signup";
 
 export type ChallengeRecord = {
   id: string;
-  shape: ShapeName;
-  radius: number;
-  width: number;
-  height: number;
-  fps: number;
-  positions: Point[];
+  scene: ChallengeScene;
   sessionHash: string;
   action: typeof ACTION;
   expiresAt: number;
@@ -58,16 +53,11 @@ export async function createServerChallenge({
 }) {
   const id = createOpaqueToken("ch");
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const scene = await generateChallengeScene(config, seed);
+  const scene = generateChallengeScene(config, seed);
   const expiresAt = now + config.durationSeconds * 1000;
   const record: ChallengeRecord = {
     id,
-    shape: scene.shape,
-    radius: scene.radius,
-    width: scene.width,
-    height: scene.height,
-    fps: scene.fps,
-    positions: scene.positions,
+    scene,
     sessionHash,
     action: ACTION,
     expiresAt,
@@ -81,7 +71,51 @@ export async function createServerChallenge({
     value: record,
     expiresAt,
   });
-  return { record, image: scene.image };
+  return { record };
+}
+
+export type ReadChallengeResult =
+  | { success: true; record: ChallengeRecord }
+  | {
+      success: false;
+      reason: "not_found" | "expired" | "session" | "used" | "invalid";
+    };
+
+export async function readServerChallengeSegment({
+  id,
+  sessionHash,
+  segmentIndex,
+  now = Date.now(),
+}: {
+  id: string;
+  sessionHash: string;
+  segmentIndex: number;
+  now?: number;
+}): Promise<ReadChallengeResult> {
+  const stored = await readRecord<ChallengeRecord>(
+    challengeKey(id),
+    Number.NEGATIVE_INFINITY,
+  );
+  if (!stored) return { success: false, reason: "not_found" };
+  const challenge = stored.value;
+  if (challenge.sessionHash !== sessionHash) {
+    return { success: false, reason: "session" };
+  }
+  if (challenge.expiresAt <= now) {
+    return { success: false, reason: "expired" };
+  }
+  if (challenge.used) return { success: false, reason: "used" };
+  const segmentCount = Math.ceil(
+    challenge.scene.durationFrames / challenge.scene.segmentFrames,
+  );
+  if (
+    !Number.isInteger(segmentIndex) ||
+    segmentIndex < 0 ||
+    segmentIndex >= segmentCount
+  ) {
+    return { success: false, reason: "invalid" };
+  }
+  return { success: true, record: challenge };
 }
 
 export type VerifyResult =
@@ -151,18 +185,16 @@ export async function verifyServerChallenge({
       !Number.isInteger(frameIndex) ||
       x < 0 ||
       y < 0 ||
-      x > challenge.width ||
-      y > challenge.height ||
+      x > challenge.scene.width ||
+      y > challenge.scene.height ||
       frameIndex < 0 ||
-      frameIndex >= challenge.positions.length
+      frameIndex >= challenge.scene.durationFrames
     ) {
       return { success: false, reason: "invalid", attemptsRemaining: remaining };
     }
 
     const hit = isChallengeHit({
-      shape: challenge.shape,
-      radius: challenge.radius,
-      positions: challenge.positions,
+      scene: challenge.scene,
       frameIndex,
       x,
       y,
