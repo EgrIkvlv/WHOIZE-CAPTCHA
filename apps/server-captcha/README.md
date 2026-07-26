@@ -94,3 +94,20 @@ passed 16.7%, coherent flow passed 0%, tracking passed 8.3%, and the public
 shape template passed 4.2%. These figures measure the present solver suite,
 not universal resistance. Human readability and stronger learned-video attacks
 remain open tests.
+
+## v1.6b readable-regenerative experiment
+
+`/api/versions/webm-v16b/challenge` is a separate human-first branch. Target
+particles live for 8–12 frames and move through a smaller internal range.
+Background particles live for 3–8 frames, 48% regenerate immediately, and the
+remaining local flow uses smaller 64 px tiles with wider direction variation.
+
+The public response exposes only the `regenerative-readable` label and normal
+playback metadata. Target and background lifetimes, flow parameters, mask, and
+trajectory remain private.
+
+Across 24 production WebM scenes, the best current attack passed 16.7%.
+Frame difference, coherent flow, and tracking each passed 4.2%, while temporal
+persistence, density, and the public shape template each reached 16.7%. This
+keeps the measured automated result close to v1.6 while deliberately restoring
+more temporal evidence for people.

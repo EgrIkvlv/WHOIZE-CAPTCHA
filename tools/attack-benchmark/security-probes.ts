@@ -16,7 +16,9 @@ import {
   matchedMotionPublicChallenge,
 } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 import {
+  createReadableRegenerativeChallenge,
   createRegenerativeMotionChallenge,
+  readableRegenerativePublicChallenge,
   regenerativeMotionPublicChallenge,
 } from "../../apps/captcha-versions/server/regenerative-motion-service.ts";
 
@@ -223,6 +225,51 @@ export async function runRegenerativeMotionExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.6 exposes playback metadata and its variant label only; particle lifetimes, local flow, target mask, and trajectory remain server-side.",
+  };
+}
+
+export async function runReadableRegenerativeExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createReadableRegenerativeChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "readable-regenerative-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = readableRegenerativePublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "particles",
+    "lifetimes",
+    "profile",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "readable-regenerative-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "regenerative-readable" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.6b exposes playback metadata and its variant label only; readable target lifetimes, background lifetimes, local flow, and mask remain server-side.",
   };
 }
 

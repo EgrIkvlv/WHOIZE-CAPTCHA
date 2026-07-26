@@ -57,7 +57,7 @@ research applications:
 - `apps/captcha-versions` — runnable preserved implementations and comparison
   data for client Canvas, server APNG, server WebM, sparse final-frame,
   browser-blur, dynamic WebM-only, matched-motion decoy, and human-tuned decoy
-  builds, plus the regenerative-motion experiment;
+  builds, plus the regenerative-motion and readable-regenerative experiments;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -67,7 +67,7 @@ The deployed site has four connected surfaces:
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
   matched-motion decoy implementations, including the human-tuned v1.5b and
-  regenerative v1.6 branches;
+  regenerative v1.6 and readable v1.6b branches;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -80,6 +80,16 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.6b` is the readable correction to v1.6. Target particles now
+persist for 8–12 frames with smaller internal motion, while background
+particles last 3–8 frames and 48% regenerate immediately. This gives human
+vision roughly 0.17–0.25 seconds to integrate the target without creating
+permanent particle identities. In a 24-seed production-codec comparison, the
+best current attack still passed 16.7%; frame difference, coherent flow, and
+tracking each passed 4.2%. Transport remained approximately 1.25 MiB/s with
+1.32 seconds of local encoding per one-second segment. Human testing is still
+required, but v1.6b is the intended readable candidate.
 
 Version `v1.6` returns to one target and the visual simplicity of v1.3a while
 keeping the WebM-only security boundary. Target points move inside the private

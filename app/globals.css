@@ -180,11 +180,19 @@ button {
     rgba(242, 241, 234, 0.94);
 }
 
+.version-card.version-webm16b {
+  background:
+    radial-gradient(circle at 82% 22%, rgba(111, 196, 255, 0.18), transparent 28%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.7), transparent 58%),
+    rgba(242, 241, 234, 0.94);
+}
+
 .version-card.version-blur .version-card-body,
 .version-card.version-webm14 .version-card-body,
 .version-card.version-webm15 .version-card-body,
 .version-card.version-webm15b .version-card-body,
-.version-card.version-webm16 .version-card-body {
+.version-card.version-webm16 .version-card-body,
+.version-card.version-webm16b .version-card-body {
   padding: 9px 0 6px;
 }
 
@@ -192,7 +200,8 @@ button {
 .version-card.version-webm14 .version-index,
 .version-card.version-webm15 .version-index,
 .version-card.version-webm15b .version-index,
-.version-card.version-webm16 .version-index {
+.version-card.version-webm16 .version-index,
+.version-card.version-webm16b .version-index {
   font-size: 29px;
 }
 
@@ -200,7 +209,8 @@ button {
 .version-card.version-webm14 h2,
 .version-card.version-webm15 h2,
 .version-card.version-webm15b h2,
-.version-card.version-webm16 h2 {
+.version-card.version-webm16 h2,
+.version-card.version-webm16b h2 {
   margin-top: 10px;
   font-size: clamp(21px, 1.7vw, 26px);
   line-height: 0.94;
@@ -210,7 +220,8 @@ button {
 .version-card.version-webm14 .version-card-body p,
 .version-card.version-webm15 .version-card-body p,
 .version-card.version-webm15b .version-card-body p,
-.version-card.version-webm16 .version-card-body p {
+.version-card.version-webm16 .version-card-body p,
+.version-card.version-webm16b .version-card-body p {
   min-height: 26px;
   margin-top: 5px;
   font-size: 7px;

@@ -191,9 +191,9 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5/v1.5b/v1.6 exposure finding: only decoded WebM pixels and public
-  playback metadata reach the client; private scene and exact occupancy arrays
-  are absent.
+- v1.4/v1.5/v1.5b/v1.6/v1.6b exposure finding: only decoded WebM pixels and
+  public playback metadata reach the client; private scene and exact occupancy
+  arrays are absent.
 - Challenge replay: rejected after a successful verification.
 - Proof replay: first redemption succeeds; the second is rejected as used.
 
@@ -294,3 +294,40 @@ lifetimes. The next decision requires completion time, miss rate, and perceived
 strain from people, followed by learned multi-frame segmentation and video
 model attacks. Until then, v1.6 is the strongest measured automated-attack
 experiment, not the production default.
+
+## v1.6b readable-regenerative production WebM comparison
+
+The first readability profile used 10–16 target frames, 3–7 background frames,
+and 58% immediately fresh background. It made the target easier to integrate
+but also restored a 75% two-frame-difference pass rate, so it was rejected
+before publication.
+
+The final v1.6b profile uses a narrower asymmetry: 8–12 target frames, 3–8
+background frames, 48% immediately fresh background, smaller internal target
+motion, and 64 px local-flow tiles. The controlled comparison used 24 identical
+seeds, production VP8/WebM, FFmpeg gray8 decoding, and the private hit test.
+
+| Decoded production WebM attack | v1.6 success | v1.6b success | v1.6b median error | v1.6b median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 4.2% | 4.2% | 220.4 px | 0.01 ms |
+| Single-frame density | 12.5% | 16.7% | 105.0 px | 1.95 ms |
+| Two-frame difference | 0.0% | 4.2% | 221.2 px | 3.47 ms |
+| Temporal persistence | 12.5% | 16.7% | 129.6 px | 12.15 ms |
+| Coherent flow | 4.2% | 4.2% | 183.9 px | 144.73 ms |
+| Multi-frame tracking | 8.3% | 4.2% | 183.6 px | 1,020.80 ms |
+| Public-shape template | 4.2% | 16.7% | 159.0 px | 62.99 ms |
+
+Median one-second transport costs were:
+
+- v1.6: 1,248 KiB, 1,318 ms encode, 76 ms decode;
+- v1.6b: 1,246 KiB, 1,318 ms encode, 74 ms decode.
+
+The published profile keeps the best current attack at 16.7%, equal to the
+previous v1.6 benchmark, while restoring a longer and calmer signal for human
+vision. Existing attacks do see the intentional asymmetry—density,
+persistence, and shape-template success increased—but the catastrophic
+frame-difference shortcut from the rejected first profile is absent.
+
+The remaining question is empirical usability. v1.6b should be compared with
+v1.6 using human completion time, miss rate, and perceived strain before either
+version replaces the current main challenge.

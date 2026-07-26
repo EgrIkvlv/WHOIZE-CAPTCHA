@@ -37,6 +37,7 @@ npm run benchmark:attack -- --samples=24 --webm
 npm run benchmark:attack -- --samples=24 --webm-v15 --production-only
 npm run benchmark:attack -- --samples=24 --webm-v15b --production-only
 npm run benchmark:attack -- --samples=24 --webm-v16 --production-only
+npm run benchmark:attack -- --samples=24 --webm-v16b --production-only
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -72,6 +73,11 @@ the mask, an immediately regenerated background layer, and short local
 background flows. The report also runs a dedicated exposure audit for private
 particle lifetimes and flow parameters.
 
+`--webm-v16b` compares decoded v1.6 and the readable v1.6b profile using
+identical seeds. It measures whether longer target memory restores existing
+frame-difference, persistence, flow, tracking, or shape-template attacks and
+runs a separate client-exposure audit for the readable profile.
+
 Gemini is opt-in and reads secrets only from the process environment:
 
 ```bash
@@ -104,3 +110,5 @@ without pairing these bot rates with human completion and error rates.
 v1.6 removes stable particle identities rather than adding visible decoy
 shapes. Its current baseline result is stronger, but promotion still requires
 human and learned-video measurements.
+v1.6b deliberately restores a small target/background lifetime asymmetry and
+must therefore be evaluated as a paired usability and security result.

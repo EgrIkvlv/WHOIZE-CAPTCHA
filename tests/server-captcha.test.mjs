@@ -53,11 +53,16 @@ import {
 import {
   createRegenerativeMotionFrameRenderer,
   createRegenerativeMotionOccupancyRenderer,
+  V16B_READABLE_REGENERATIVE_PROFILE,
 } from "../apps/captcha-versions/server/regenerative-motion-engine.ts";
 import {
+  createReadableRegenerativeChallenge,
   createRegenerativeMotionChallenge,
+  readReadableRegenerativeSegment,
   readRegenerativeMotionSegment,
+  readableRegenerativePublicChallenge,
   regenerativeMotionPublicChallenge,
+  verifyReadableRegenerativeChallenge,
   verifyRegenerativeMotionChallenge,
 } from "../apps/captcha-versions/server/regenerative-motion-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
@@ -484,6 +489,64 @@ test("regenerates v1.6 particles without exposing its private flow", async () =>
   );
   const center = positionAtFrame(record.scene, 0);
   const result = await verifyRegenerativeMotionChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+});
+
+test("keeps the readable v1.6b profile private and separately runnable", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v16b";
+  const { record } = await createReadableRegenerativeChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = readableRegenerativePublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm16b_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "regenerative-readable");
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "positions",
+    "particles",
+    "lifetimes",
+    "profile",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const occupancyRenderer = createRegenerativeMotionOccupancyRenderer(
+    record.scene,
+    V16B_READABLE_REGENERATIVE_PROFILE,
+  );
+  assert.equal(occupancyRenderer(0).length, record.scene.density);
+  assert.notDeepEqual(occupancyRenderer(0), occupancyRenderer(1));
+  assert.equal(
+    (
+      await readReadableRegenerativeSegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 0);
+  const result = await verifyReadableRegenerativeChallenge({
     id: record.id,
     sessionHash,
     x: center.x,

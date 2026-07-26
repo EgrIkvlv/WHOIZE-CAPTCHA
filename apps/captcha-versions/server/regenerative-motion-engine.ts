@@ -35,6 +35,18 @@ export const V16_REGENERATIVE_MOTION_PROFILE: RegenerativeMotionProfile = {
   internalMotionMax: 0.14,
 };
 
+export const V16B_READABLE_REGENERATIVE_PROFILE: RegenerativeMotionProfile = {
+  freshBackgroundRatio: 0.48,
+  backgroundLifetimeMin: 3,
+  backgroundLifetimeMax: 8,
+  targetLifetimeMin: 8,
+  targetLifetimeMax: 12,
+  backgroundTileSize: 64,
+  backgroundDirectionJitter: 0.95,
+  internalMotionMin: 0.028,
+  internalMotionMax: 0.078,
+};
+
 function mulberry32(seed: number) {
   return () => {
     seed |= 0;

@@ -10,6 +10,7 @@ import {
   createV15Fixture,
   createV15bFixture,
   createV16Fixture,
+  createV16bFixture,
   evaluatePrediction,
   runSolver,
   summarize,
@@ -22,6 +23,7 @@ import {
   runMatchedMotionExposureAudit,
   runHumanTunedExposureAudit,
   runRegenerativeMotionExposureAudit,
+  runReadableRegenerativeExposureAudit,
 } from "./security-probes.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -33,17 +35,22 @@ const includeWebm = args.has("--webm");
 const includeV15 = args.has("--webm-v15");
 const includeV15b = args.has("--webm-v15b");
 const includeV16 = args.has("--webm-v16");
+const includeV16b = args.has("--webm-v16b");
 const productionOnly = args.has("--production-only");
 const includeProductionWebm =
-  includeWebm || includeV15 || includeV15b || includeV16;
-const selectedWebmVersion = includeV16
+  includeWebm || includeV15 || includeV15b || includeV16 || includeV16b;
+const selectedWebmVersion = includeV16b
+  ? "v16b"
+  : includeV16
   ? "v16"
   : includeV15b
     ? "v15b"
     : includeV15
       ? "v15"
       : "v14";
-const comparisonWebmVersion = includeV16
+const comparisonWebmVersion = includeV16b
+  ? "v16"
+  : includeV16
   ? "v15b"
   : includeV15b
     ? "v15"
@@ -55,6 +62,7 @@ const versionLabels = {
   v15: "v1.5",
   v15b: "v1.5b",
   v16: "v1.6",
+  v16b: "v1.6b",
 } as const;
 const seedBase = 0x51a7c000;
 const results: SolverResult[] = [];
@@ -63,7 +71,9 @@ const seeds = Array.from(
   (_, index) => seedBase + index * 7919,
 );
 const fixtures = seeds.map((seed) =>
-  includeV16
+  includeV16b
+    ? createV16bFixture(seed)
+    : includeV16
     ? createV16Fixture(seed)
     : includeV15b
     ? createV15bFixture(seed)
@@ -219,6 +229,7 @@ const protocolProbes = {
   matchedMotionExposure: await runMatchedMotionExposureAudit(),
   humanTunedExposure: await runHumanTunedExposureAudit(),
   regenerativeMotionExposure: await runRegenerativeMotionExposureAudit(),
+  readableRegenerativeExposure: await runReadableRegenerativeExposureAudit(),
   replay: await runReplayProbe(),
 };
 
@@ -235,7 +246,9 @@ const report = {
   schemaVersion: 3,
   generatedAt: new Date().toISOString(),
   target: {
-    version: includeV16
+    version: includeV16b
+      ? "v1.6b compared with v1.6"
+      : includeV16
       ? "v1.6 compared with v1.5b"
       : includeV15b
       ? "v1.5b compared with v1.5"
@@ -244,7 +257,9 @@ const report = {
       : includeWebm
         ? "v1.4"
         : "v1.3a/v1.3b",
-    format: includeV16
+    format: includeV16b
+      ? "readable regenerative v1.6b compared with v1.6 production VP8/WebM"
+      : includeV16
       ? "regenerative v1.6 compared with human-tuned v1.5b production VP8/WebM"
       : includeV15b
       ? "human-tuned v1.5b compared with v1.5 production VP8/WebM"
@@ -320,7 +335,7 @@ const outputDirectory = resolve("outputs/attack-benchmark");
 await mkdir(outputDirectory, { recursive: true });
 const outputPath = resolve(
   outputDirectory,
-  `report-${Date.now()}${includeV16 ? "-webm-v16" : includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
+  `report-${Date.now()}${includeV16b ? "-webm-v16b" : includeV16 ? "-webm-v16" : includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
 );
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
@@ -366,8 +381,10 @@ if (gemini?.result) {
   );
 }
 console.log(
-  `${includeV16 ? "v1.6 regenerative motion" : includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
-    (includeV16
+  `${includeV16b ? "v1.6b readable regenerative" : includeV16 ? "v1.6 regenerative motion" : includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
+    (includeV16b
+      ? protocolProbes.readableRegenerativeExposure
+      : includeV16
       ? protocolProbes.regenerativeMotionExposure
       : includeV15b
       ? protocolProbes.humanTunedExposure
@@ -380,7 +397,9 @@ console.log(
       ? "PASS"
       : "FAIL"
   }; exact occupancy stream exposed: ${
-    (includeV16
+    (includeV16b
+      ? protocolProbes.readableRegenerativeExposure
+      : includeV16
       ? protocolProbes.regenerativeMotionExposure
       : includeV15b
       ? protocolProbes.humanTunedExposure

@@ -18,17 +18,18 @@ type VersionId =
   | "webm14"
   | "webm15"
   | "webm15b"
-  | "webm16";
+  | "webm16"
+  | "webm16b";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 09 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 10 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented nine different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented ten different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -103,6 +104,11 @@ const COPY = {
         detail: "24 WebM · single-frame density",
         tone: "success",
       },
+      webm16b: {
+        score: "16.7% PASS",
+        detail: "24 WebM · three attacks tied",
+        tone: "success",
+      },
     },
     verdict: {
       canvas:
@@ -123,6 +129,8 @@ const COPY = {
         "A usability-first branch of v1.5. It intentionally reduces visual load while preserving several matched candidates. The benchmark confirms the security cost; only a human study can now tell whether the usability gain is worth it.",
       webm16:
         "The strongest current result against the seven local baselines: flow reached 0%, tracking 8.3%, and the best attack reached 16.7%. Human readability is still unknown, so this remains an experiment rather than the default.",
+      webm16b:
+        "A human-first correction that keeps the best current bot pass rate at 16.7%. The target now provides a longer, calmer signal without restoring the frame-difference and tracking shortcuts; direct human testing is the remaining decision.",
     },
     versions: {
       canvas: {
@@ -359,6 +367,32 @@ const COPY = {
           "Security and readability both require direct measurement",
         ],
       },
+      webm16b: {
+        name: "Readable Regenerative",
+        version: "v1.6b",
+        subtitle: "Longer target memory · shorter background memory",
+        summary:
+          "A separate v1.6 branch tuned for human integration. Target particles persist for 8–12 frames with smaller internal motion; background particles last 3–8 frames and 48% regenerate immediately.",
+        architecture:
+          "Readable private signal · asymmetric short memory · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Signal", "7,200 dots · one target"],
+          ["Target", "8–12 frame lifetime"],
+          ["Background", "3–8 frames · 48% fresh"],
+          ["Attacks", "4.2–16.7% across 24 WebM"],
+        ],
+        pros: [
+          "Gives human vision 0.17–0.25 seconds to integrate the target",
+          "Reduces internal target jitter without making it static",
+          "Still avoids permanent target and background particle identities",
+        ],
+        cons: [
+          "Longer target persistence may restore temporal solver accuracy",
+          "The asymmetric lifetime is now an intentional statistical signal",
+          "Human readability must be confirmed directly",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -370,16 +404,17 @@ const COPY = {
       webm15: ["High / busy", "No", "≈ 1.17 MB/s", "≈ 1.04 s/segment", "Non-looping", "CV: 58.3% best"],
       webm15b: ["High / calmer", "No", "≈ 1.12 MB/s", "≈ 1.03 s/segment", "Non-looping", "CV: 54.2% best"],
       webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
+      webm16b: ["High / readable", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Non-looping", "CV: 16.7% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 09 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 10 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная девятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная десятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -454,6 +489,11 @@ const COPY = {
         detail: "24 WebM · плотность одного кадра",
         tone: "success",
       },
+      webm16b: {
+        score: "16.7% ПРОХОД",
+        detail: "24 WebM · три атаки на одном уровне",
+        tone: "success",
+      },
     },
     verdict: {
       canvas:
@@ -474,6 +514,8 @@ const COPY = {
         "Ориентированная на удобство ветка v1.5. Она специально снижает визуальную нагрузку, сохраняя несколько matched-кандидатов. Benchmark подтвердил цену для защиты; теперь только тест на людях покажет, оправдан ли выигрыш в удобстве.",
       webm16:
         "Лучший текущий результат против семи локальных baseline: flow дал 0%, tracking — 8.3%, лучшая атака — 16.7%. Читаемость для человека пока неизвестна, поэтому это эксперимент, а не новая версия по умолчанию.",
+      webm16b:
+        "Human-first исправление, сохранившее лучший bot pass rate на уровне 16.7%. Цель теперь даёт более долгий и спокойный сигнал без возврата shortcut через разность кадров и tracking; осталось проверить людей.",
     },
     versions: {
       canvas: {
@@ -710,6 +752,32 @@ const COPY = {
           "Защиту и читаемость нужно измерить напрямую",
         ],
       },
+      webm16b: {
+        name: "Readable Regenerative",
+        version: "v1.6b",
+        subtitle: "Дольше память цели · короче память фона",
+        summary:
+          "Отдельная ветка v1.6 для человеческого восприятия. Точки цели живут 8–12 кадров и меньше двигаются внутри; фон живёт 3–8 кадров, а 48% точек пересоздаётся сразу.",
+        architecture:
+          "Читаемый приватный сигнал · асимметричная короткая память · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Сигнал", "7 200 точек · одна цель"],
+          ["Цель", "Жизнь 8–12 кадров"],
+          ["Фон", "3–8 кадров · 48% новый"],
+          ["Атаки", "4.2–16.7% на 24 WebM"],
+        ],
+        pros: [
+          "Даёт зрению 0.17–0.25 секунды на сборку цели",
+          "Уменьшает внутреннее движение цели, не делая её статичной",
+          "По-прежнему не создаёт постоянные particle ID цели и фона",
+        ],
+        cons: [
+          "Более долгая жизнь цели может вернуть точность temporal solver",
+          "Разница времени жизни теперь является намеренным сигналом",
+          "Читаемость нужно подтвердить напрямую",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -721,6 +789,7 @@ const COPY = {
       webm15: ["Высокое / насыщенное", "Нет", "≈ 1.17 МБ/с", "≈ 1.04 с/сегмент", "Без цикла", "CV: 58.3% лучший"],
       webm15b: ["Высокое / спокойнее", "Нет", "≈ 1.12 МБ/с", "≈ 1.03 с/сегмент", "Без цикла", "CV: 54.2% лучший"],
       webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
+      webm16b: ["Высокое / читаемое", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
     },
   },
 } as const;
@@ -735,6 +804,7 @@ const VERSION_IDS: VersionId[] = [
   "webm15",
   "webm15b",
   "webm16",
+  "webm16b",
 ];
 
 export function CaptchaVersions() {
@@ -801,7 +871,8 @@ export function CaptchaVersions() {
                         id === "webm14" ||
                         id === "webm15" ||
                         id === "webm15b" ||
-                        id === "webm16"
+                        id === "webm16" ||
+                        id === "webm16b"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -1062,13 +1133,23 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm16" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v16/challenge"
                       webmOnly
                       regenerativeMotion
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v16b/challenge"
+                      webmOnly
+                      readableRegenerative
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

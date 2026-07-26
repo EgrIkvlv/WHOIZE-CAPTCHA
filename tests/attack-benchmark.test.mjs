@@ -10,6 +10,7 @@ import {
   createV15Fixture,
   createV15bFixture,
   createV16Fixture,
+  createV16bFixture,
   runSolver,
   summarize,
 } from "../tools/attack-benchmark/benchmark-core.ts";
@@ -20,6 +21,7 @@ import {
   runMatchedMotionExposureAudit,
   runHumanTunedExposureAudit,
   runRegenerativeMotionExposureAudit,
+  runReadableRegenerativeExposureAudit,
 } from "../tools/attack-benchmark/security-probes.ts";
 import { createProductionWebmFixture } from "../tools/attack-benchmark/production-webm.ts";
 
@@ -143,6 +145,23 @@ test(
   },
 );
 
+test(
+  "decodes the real v1.6b production WebM before running attacks",
+  { skip: !hasFfmpeg },
+  async () => {
+    const exact = createV16bFixture(0x51a7c000);
+    const webm = await createProductionWebmFixture(0x51a7c000, "v16b");
+    assert.equal(exact.targetFrame, webm.targetFrame);
+    assert.equal(exact.representation, "v16b-exact-cells");
+    assert.equal(webm.representation, "webm-decoded");
+    assert.equal(webm.transportMetrics?.decodedFrames, 48);
+    assert.ok((webm.transportMetrics?.mediaBytes ?? 0) > 50_000);
+    const results = baselineSolvers.map((solver) => runSolver(solver, webm));
+    assert.equal(results.length, 7);
+    assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
+  },
+);
+
 test("coherent temporal solvers beat the one-frame baseline on fixed fixtures", () => {
   const fixtures = Array.from({ length: 6 }, (_, index) =>
     createFixture(0x51a7c000 + index * 7919),
@@ -188,6 +207,11 @@ test("audits client exposure and rejects challenge and proof replay", async () =
   assert.equal(regenerativeExposure.passed, true);
   assert.equal(regenerativeExposure.exactOccupancyFramesExposed, false);
   assert.deepEqual(regenerativeExposure.exposedPrivateFields, []);
+
+  const readableExposure = await runReadableRegenerativeExposureAudit();
+  assert.equal(readableExposure.passed, true);
+  assert.equal(readableExposure.exactOccupancyFramesExposed, false);
+  assert.deepEqual(readableExposure.exposedPrivateFields, []);
 
   const replay = await runReplayProbe();
   assert.equal(replay.passed, true);
