@@ -7,6 +7,11 @@ import {
   type DecodedSparseFrames,
   type SparseScene,
 } from "../../apps/captcha-versions/server/sparse-frames-engine.ts";
+import {
+  generateChallengeScene,
+  positionAtFrame,
+} from "../../apps/server-captcha/server/challenge-engine.ts";
+import { createDynamicNoiseOccupancyRenderer } from "../../apps/captcha-versions/server/webm-only-engine.ts";
 
 export type Point = { x: number; y: number };
 
@@ -16,10 +21,22 @@ export type BenchmarkFixture = {
   scene: SparseScene;
   stream: DecodedSparseFrames;
   targetFrame: number;
-  representation: "wsp1-exact" | "raster-clean" | "raster-blurred";
+  representation:
+    | "wsp1-exact"
+    | "v14-exact-cells"
+    | "raster-clean"
+    | "raster-blurred"
+    | "webm-decoded";
   rasterFrames?: Array<Uint8Array | undefined>;
   rasterThreshold?: number;
   blurPx?: number;
+  transportMetrics?: {
+    mediaBytes: number;
+    encodeMs: number;
+    decodeMs: number;
+    decodedFrames: number;
+    decoder: string;
+  };
 };
 
 export type SolverResult = {
@@ -366,6 +383,106 @@ export function createFixture(seed: number): BenchmarkFixture {
     stream: decodeSparseFrames(payload),
     targetFrame: Math.floor(scene.frameCount * 0.37),
     representation: "wsp1-exact",
+  };
+}
+
+export function createV14Fixture(seed: number): BenchmarkFixture {
+  const challengeScene = generateChallengeScene(DEFAULT_CAPTCHA_CONFIG, seed);
+  const targetFrame = Math.min(
+    challengeScene.durationFrames - 1,
+    challengeScene.segmentFrames * 2 +
+      Math.floor(challengeScene.segmentFrames * 0.7),
+  );
+  const positions = Array.from(
+    { length: challengeScene.durationFrames },
+    (_, frameIndex) => positionAtFrame(challengeScene, frameIndex),
+  );
+  const scene: SparseScene = {
+    shape: challengeScene.shape,
+    radius: challengeScene.radius,
+    width: challengeScene.width,
+    height: challengeScene.height,
+    fps: challengeScene.fps,
+    frameCount: challengeScene.durationFrames,
+    density: challengeScene.density,
+    dotSize: challengeScene.dotSize,
+    coherence: challengeScene.coherence,
+    positions,
+    visualSeed: challengeScene.visualSeed,
+  };
+  const frames = new Array<Uint32Array>(scene.frameCount);
+  const renderOccupancy =
+    createDynamicNoiseOccupancyRenderer(challengeScene);
+  for (
+    let frameIndex = targetFrame - 7;
+    frameIndex <= targetFrame;
+    frameIndex += 1
+  ) {
+    frames[frameIndex] = renderOccupancy(frameIndex);
+  }
+  return {
+    id: `v14-${seed.toString(16).padStart(8, "0")}`,
+    seed,
+    scene,
+    stream: {
+      width: scene.width,
+      height: scene.height,
+      fps: scene.fps,
+      frameCount: scene.frameCount,
+      density: scene.density,
+      dotSize: scene.dotSize,
+      loop: false,
+      frames,
+    },
+    targetFrame,
+    representation: "v14-exact-cells",
+  };
+}
+
+export function createDecodedWebmFixture({
+  source,
+  segmentIndex,
+  decodedDarknessFrames,
+  mediaBytes,
+  encodeMs,
+  decodeMs,
+  decoder,
+  rasterThreshold = 32,
+}: {
+  source: BenchmarkFixture;
+  segmentIndex: number;
+  decodedDarknessFrames: Uint8Array[];
+  mediaBytes: number;
+  encodeMs: number;
+  decodeMs: number;
+  decoder: string;
+  rasterThreshold?: number;
+}): BenchmarkFixture {
+  const rasterFrames: Array<Uint8Array | undefined> = new Array(
+    source.stream.frameCount,
+  );
+  const segmentStart = segmentIndex * source.stream.fps;
+  for (
+    let localIndex = 0;
+    localIndex < decodedDarknessFrames.length;
+    localIndex += 1
+  ) {
+    rasterFrames[segmentStart + localIndex] =
+      decodedDarknessFrames[localIndex];
+  }
+  return {
+    ...source,
+    id: `${source.id}-production-webm`,
+    representation: "webm-decoded",
+    rasterFrames,
+    rasterThreshold,
+    transportMetrics: {
+      mediaBytes,
+      encodeMs,
+      decodeMs,
+      decodedFrames: decodedDarknessFrames.length,
+      decoder,
+    },
   };
 }
 

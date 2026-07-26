@@ -77,11 +77,57 @@ threshold, and does not tune parameters per blur level. A stronger adversary
 could sweep thresholds, use grayscale correlation directly, deconvolve the
 blur, or run subpixel optical flow.
 
-WebM is intentionally absent from this table. Unlike APNG, WebM is lossy and
-depends on the production encoder, bitrate, keyframe interval, chroma format,
-and decoder output. It must be benchmarked by encoding and decoding the actual
-production stream; substituting a made-up compression proxy would produce a
-misleading number.
+## v1.4 production WebM comparison
+
+The third controlled run used 24 deterministic v1.4 scenes. For every seed,
+the benchmark generated one private continuous scene and observed the same
+eight-frame window through six representations:
+
+1. exact pre-encode occupied cells;
+2. a clean raster;
+3. raster blur at 1.2 px;
+4. raster blur at 2.4 px;
+5. raster blur at 4 px;
+6. the decoded output of the real production `webm-wasm` VP8 segment.
+
+The WebM was not approximated. Each one-second, 640×360, 48 fps segment was
+encoded by the same code and bitrate configuration used by v1.4, then decoded
+by FFmpeg to gray8 frames before thresholding and attack analysis.
+
+| Representation | Attack | Success | Median error | Median solver time |
+| --- | --- | ---: | ---: | ---: |
+| Exact pre-encode cells | Coherent flow | 100.0% | 4.2 px | 12.34 ms |
+| Clean raster | Two-frame difference | 100.0% | 12.5 px | 2.59 ms |
+| Raster, 1.2 px blur | Two-frame difference | 100.0% | 10.5 px | 4.01 ms |
+| Raster, 2.4 px blur | Two-frame difference | 100.0% | 14.2 px | 5.22 ms |
+| Raster, 4 px blur | Two-frame difference | 62.5% | 41.9 px | 4.97 ms |
+| Production VP8/WebM | Two-frame difference | 100.0% | 13.4 px | 3.49 ms |
+| Production VP8/WebM | Coherent flow | 100.0% | 9.3 px | 144.84 ms |
+| Production VP8/WebM | Multi-frame tracking | 100.0% | 7.0 px | 1019.99 ms |
+
+Median transport costs for one second were:
+
+- encoded segment: 1,241 KiB;
+- production VP8 encoding: 1,224 ms;
+- FFmpeg gray8 decoding: 73 ms.
+
+The security result is clear. v1.4 successfully removes WSP1 and exact
+occupancy arrays from browser state, closing the source-inspection shortcut.
+It does **not** stop the current visual attacks: a two-frame difference solver
+passed all 24 scenes in 3.49 ms median analysis time after decode. Coherent
+flow and tracking also passed all scenes.
+
+The operational result is also unfavorable. Fully regenerated high-frequency
+noise compresses poorly: approximately 1.21 MiB/s is about 72.7 MiB for a
+minute of continuous playback. Median local encoding took longer than the
+one-second media duration. Parallel serverless segment generation can hide
+some latency, but it does not remove bandwidth or compute cost.
+
+Therefore v1.4 is a useful security-boundary correction, not a successful
+anti-CV design. The next version should change the signal itself by adding
+motion-matched decoys and removing the “one low-change/coherent region”
+property. Codec or blur tuning alone is unlikely to create meaningful cost
+separation.
 
 ## Gemini smoke test
 
@@ -109,7 +155,7 @@ documentation.
 
 ## Next benchmark increments
 
-1. Add a production-codec WebM decode adapter under the same solver interface.
+1. Add motion-matched decoy clusters and rerun the production WebM benchmark.
 2. Sweep raster thresholds and use grayscale correlation without binarization.
 3. Sweep coherence, density, radius, speed, frame spacing, and frames observed.
 4. Add subpixel optical flow and robust clustering rather than integer shifts.

@@ -1,9 +1,9 @@
 # WHOIZE attack benchmark
 
 This runner measures reproducible baseline attacks against synthetic
-`v1.3a`/`v1.3b` sparse-frame challenges. It never contacts the production
-challenge API and never stores production answers, proof tokens, sessions, or
-telemetry.
+`v1.3a`/`v1.3b` sparse-frame challenges and real locally encoded `v1.4`
+production WebM segments. It never contacts the deployed challenge API and
+never stores production answers, proof tokens, sessions, or telemetry.
 
 ## Included attacks
 
@@ -31,6 +31,7 @@ the current provider price sheet.
 npm run benchmark:attack
 npm run benchmark:attack -- --samples=100
 npm run benchmark:attack -- --samples=24 --raster
+npm run benchmark:attack -- --samples=24 --webm
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -39,9 +40,13 @@ scene: exact WSP1 occupied cells, a clean raster, and raster screenshots with
 solver time. The clean raster is also the correct post-decode model for APNG,
 because APNG is lossless.
 
-The runner deliberately does not label an approximation as WebM. A defensible
-WebM number requires encoding with the production codec settings, decoding the
-result, and measuring the decoded frames. That adapter remains separate.
+`--webm` creates one deterministic v1.4 scene per seed and compares exact
+pre-encode occupancy cells, a clean raster, 1.2/2.4/4 px raster blur, and the
+decoded output of the actual `webm-wasm` VP8 production encoder. The encoded
+segment is piped through FFmpeg to gray8 frames; set `FFMPEG_PATH` when
+`ffmpeg` is not on `PATH`. The report records encoded bytes, server-side encode
+time, decoder time, and solver time separately. The deployed API is never
+called.
 
 Gemini is opt-in and reads secrets only from the process environment:
 
@@ -66,3 +71,5 @@ cost and reliability of attacks under explicit assumptions. The CSS blur in
 read the unfiltered Canvas data, so sparse-stream attacks should be assumed to
 have the same input as `v1.3a`. The blurred raster cases answer a narrower
 counterfactual question: what if an attacker were restricted to screenshots?
+The v1.4 WebM case is different: exact cells are absent from client state, but
+decoded pixels remain attacker-controlled input.

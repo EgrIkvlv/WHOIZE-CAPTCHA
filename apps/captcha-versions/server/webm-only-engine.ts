@@ -49,7 +49,7 @@ function drawSquare(
   }
 }
 
-export function createDynamicNoiseFrameRenderer(scene: ChallengeScene) {
+export function createDynamicNoiseOccupancyRenderer(scene: ChallengeScene) {
   const targetRandom = mulberry32(scene.visualSeed ^ 0xa711);
   const targetRatio =
     (scene.radius * scene.radius * 4 * shapeAreaRatio(scene.shape)) /
@@ -105,9 +105,18 @@ export function createDynamicNoiseFrameRenderer(scene: ChallengeScene) {
       }
     }
 
+    return Uint32Array.from(occupied);
+  };
+}
+
+export function createDynamicNoiseFrameRenderer(scene: ChallengeScene) {
+  const renderOccupancy = createDynamicNoiseOccupancyRenderer(scene);
+  return (globalFrameIndex: number) => {
     const pixels = new Uint8Array(scene.width * scene.height * 4);
     new Uint32Array(pixels.buffer).fill(BACKGROUND_RGBA32);
-    for (const cell of occupied) drawSquare(pixels, scene, cell);
+    for (const cell of renderOccupancy(globalFrameIndex)) {
+      drawSquare(pixels, scene, cell);
+    }
     return pixels;
   };
 }

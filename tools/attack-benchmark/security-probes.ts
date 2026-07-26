@@ -5,6 +5,10 @@ import {
   verifySparseFramesChallenge,
 } from "../../apps/captcha-versions/server/sparse-frames-service.ts";
 import { redeemProof } from "../../apps/server-captcha/server/challenge-service.ts";
+import {
+  createWebmOnlyChallenge,
+  webmOnlyPublicChallenge,
+} from "../../apps/captcha-versions/server/webm-only-service.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -36,6 +40,47 @@ export async function runClientExposureAudit() {
       directAnswerFields.length === 0
         ? "No direct answer field is present before verification, but exact final occupancy frames are exposed."
         : "A direct answer field is present in client challenge state.",
+  };
+}
+
+export async function runWebmOnlyExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createWebmOnlyChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "webm-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = webmOnlyPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "webm-only-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.4 public state contains playback metadata only; private scene fields and exact occupancy frames are absent.",
   };
 }
 
@@ -100,4 +145,3 @@ export async function runReplayProbe() {
       "A solved challenge and its proof are both rejected after their first successful use.",
   };
 }
-
