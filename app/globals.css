@@ -151,6 +151,27 @@ button {
     rgba(242, 241, 234, 0.94);
 }
 
+.version-card.version-blur .version-card-body {
+  padding: 12px 0 10px;
+}
+
+.version-card.version-blur .version-index {
+  font-size: 29px;
+}
+
+.version-card.version-blur h2 {
+  margin-top: 10px;
+  font-size: clamp(21px, 1.7vw, 26px);
+  line-height: 0.94;
+}
+
+.version-card.version-blur .version-card-body p {
+  min-height: 26px;
+  margin-top: 5px;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
 .version-card:hover {
   transform: translate(-2px, -2px);
   box-shadow: 8px 8px 0 rgba(18, 19, 16, 0.17);
