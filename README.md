@@ -234,7 +234,12 @@ for a machine?” It is:
 
 1. Record human success rate, response time, and click error across parameter
    combinations.
-2. Build baseline solvers using frame differencing and optical flow.
+2. Expand the reproducible baseline solver suite in
+   [`tools/attack-benchmark`](tools/attack-benchmark/README.md), which now
+   includes frozen-frame, frame-difference, temporal-persistence, coherent-flow,
+   tracking, random-click, and optional Gemini multimodal attacks.
+   The first controlled results and security implications are documented in
+   [Stage 4: reproducible attack benchmark](docs/attack-benchmark.md).
 3. Compare frozen-frame, frame-stack, and full-video attacks.
 4. Add multiple shapes and target selection.
 5. Add “track and click the final position” challenges.
