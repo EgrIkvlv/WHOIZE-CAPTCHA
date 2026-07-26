@@ -73,6 +73,7 @@ export function MotionCaptcha({
   const config = configOverride ?? serverConfig;
   const configRef = useRef(config);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const aimCursorRef = useRef<HTMLDivElement>(null);
   const shapeRef = useRef<ShapeName>("Звезда");
   const particlesRef = useRef<Point[]>([]);
   const centerRef = useRef({ x: 180, y: 180 });
@@ -308,6 +309,7 @@ export function MotionCaptcha({
       (y - center.y) / radiusRef.current,
     );
     markerRef.current = { x, y, hit };
+    if (aimCursorRef.current) aimCursorRef.current.hidden = true;
     updateStatus("verifying");
 
     const verifyTimer = setTimeout(() => {
@@ -330,6 +332,24 @@ export function MotionCaptcha({
       timeoutRefs.current.push(nextTimer);
     }, configRef.current.verificationDelayMs);
     timeoutRefs.current.push(verifyTimer);
+  };
+
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    const aimCursor = aimCursorRef.current;
+    if (!aimCursor || statusRef.current !== "playing") {
+      if (aimCursor) aimCursor.hidden = true;
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    aimCursor.style.left = `${event.clientX - rect.left}px`;
+    aimCursor.style.top = `${event.clientY - rect.top}px`;
+    aimCursor.hidden = false;
+  };
+
+  const hideAimCursor = () => {
+    if (aimCursorRef.current) aimCursorRef.current.hidden = true;
   };
 
   const resetAfterStop = () => {
@@ -398,9 +418,19 @@ export function MotionCaptcha({
           width={WIDTH}
           height={HEIGHT}
           onClick={handleClick}
+          onPointerEnter={handlePointerMove}
+          onPointerMove={handlePointerMove}
+          onPointerLeave={hideAimCursor}
           aria-label={`Поле динамического шума. Найдите фигуру: ${shape}.`}
         />
-        <div className="captcha-reticle">＋</div>
+        <div
+          ref={aimCursorRef}
+          className="captcha-aim-cursor"
+          aria-hidden="true"
+          hidden
+        >
+          <span />
+        </div>
         <div className={`captcha-result result-${status}`} aria-live="polite">
           <span className="result-symbol">
             {status === "passed"

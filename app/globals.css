@@ -1165,7 +1165,6 @@ footer p {
   overflow: hidden;
   border: 1px solid var(--ink);
   background: #e8e7e1;
-  cursor: crosshair;
 }
 
 .captcha-canvas-wrap canvas {
@@ -1175,26 +1174,79 @@ footer p {
   display: block;
 }
 
-.captcha-canvas-wrap.status-verifying,
-.captcha-canvas-wrap.status-passed,
-.captcha-canvas-wrap.status-failed,
-.captcha-canvas-wrap.status-expired,
-.captcha-canvas-wrap.status-locked {
-  cursor: default;
+.captcha-canvas-wrap.status-playing canvas {
+  cursor: none;
 }
 
-.captcha-reticle {
+.captcha-aim-cursor {
   position: absolute;
-  top: 10px;
-  right: 11px;
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  background: rgba(18, 19, 16, 0.9);
-  color: var(--acid);
-  font: 12px ui-monospace, monospace;
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--acid);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 2px 7px rgba(0, 0, 0, 0.38);
   pointer-events: none;
+}
+
+.captcha-aim-cursor::before,
+.captcha-aim-cursor::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--acid);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.captcha-aim-cursor::before {
+  width: 46px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+}
+
+.captcha-aim-cursor::after {
+  width: 2px;
+  height: 46px;
+  transform: translate(-50%, -50%);
+}
+
+.captcha-aim-cursor span {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--acid);
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.captcha-aim-cursor[hidden] {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .captcha-canvas-wrap.status-playing canvas {
+    cursor: pointer;
+  }
+
+  .captcha-aim-cursor {
+    display: none;
+  }
+}
+
+.captcha-canvas-wrap.status-verifying canvas,
+.captcha-canvas-wrap.status-passed canvas,
+.captcha-canvas-wrap.status-failed canvas,
+.captcha-canvas-wrap.status-expired canvas,
+.captcha-canvas-wrap.status-locked canvas {
+  cursor: default;
 }
 
 .captcha-result {
