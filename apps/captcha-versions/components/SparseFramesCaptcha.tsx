@@ -14,6 +14,20 @@ type Status =
 
 type Shape = "circle" | "triangle" | "diamond" | "star";
 
+type Reveal = {
+  centerX: number;
+  centerY: number;
+  radius: number;
+  frameIndex: number;
+};
+
+type Feedback = {
+  x: number;
+  y: number;
+  outcome: "verifying" | "hit" | "miss";
+  reveal?: Reveal;
+};
+
 type Challenge = {
   id: string;
   shape: Shape;
@@ -36,6 +50,97 @@ const GLYPH = {
   diamond: "◆",
   star: "★",
 } as const;
+
+function traceShape(
+  context: CanvasRenderingContext2D,
+  shape: Shape,
+  centerX: number,
+  centerY: number,
+  radius: number,
+) {
+  context.beginPath();
+  if (shape === "circle") {
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    return;
+  }
+  if (shape === "triangle") {
+    context.moveTo(centerX, centerY - radius * 0.92);
+    context.lineTo(centerX + radius, centerY + radius * 0.72);
+    context.lineTo(centerX - radius, centerY + radius * 0.72);
+    context.closePath();
+    return;
+  }
+  if (shape === "diamond") {
+    context.moveTo(centerX, centerY - radius);
+    context.lineTo(centerX + radius, centerY);
+    context.lineTo(centerX, centerY + radius);
+    context.lineTo(centerX - radius, centerY);
+    context.closePath();
+    return;
+  }
+  for (let point = 0; point < 10; point += 1) {
+    const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+    const pointRadius = point % 2 ? radius * 0.5 : radius;
+    const x = centerX + Math.cos(angle) * pointRadius;
+    const y = centerY + Math.sin(angle) * pointRadius;
+    if (point === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  }
+  context.closePath();
+}
+
+function strokeWithContrast(
+  context: CanvasRenderingContext2D,
+  color: string,
+  drawPath: () => void,
+) {
+  context.save();
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  drawPath();
+  context.strokeStyle = "#121310";
+  context.lineWidth = 7;
+  context.stroke();
+  drawPath();
+  context.strokeStyle = color;
+  context.lineWidth = 3.5;
+  context.stroke();
+  context.restore();
+}
+
+function drawFeedback(
+  context: CanvasRenderingContext2D,
+  shape: Shape,
+  feedback: Feedback,
+) {
+  const color =
+    feedback.outcome === "miss"
+      ? "#ff6a4d"
+      : feedback.outcome === "hit"
+        ? "#b6f03a"
+        : "#f2f1ea";
+
+  if (feedback.outcome === "hit" && feedback.reveal) {
+    strokeWithContrast(context, color, () =>
+      traceShape(
+        context,
+        shape,
+        feedback.reveal!.centerX,
+        feedback.reveal!.centerY,
+        feedback.reveal!.radius + 7,
+      ),
+    );
+  }
+
+  strokeWithContrast(context, color, () => {
+    context.beginPath();
+    context.arc(feedback.x, feedback.y, 11, 0, Math.PI * 2);
+    context.moveTo(feedback.x - 17, feedback.y);
+    context.lineTo(feedback.x + 17, feedback.y);
+    context.moveTo(feedback.x, feedback.y - 17);
+    context.lineTo(feedback.x, feedback.y + 17);
+  });
+}
 
 function decodeSparsePayload(payload: ArrayBuffer) {
   const bytes = new Uint8Array(payload);
@@ -103,10 +208,13 @@ export function SparseFramesCaptcha({
   const cursorRef = useRef<HTMLDivElement>(null);
   const startedAtRef = useRef(0);
   const currentFrameRef = useRef(0);
+  const frozenFrameRef = useRef<number | null>(null);
+  const resumeTimerRef = useRef<number | null>(null);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [attempt, setAttempt] = useState(1);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const copy =
     locale === "ru"
@@ -164,6 +272,12 @@ export function SparseFramesCaptcha({
         };
 
   const loadChallenge = useCallback(async (signal?: AbortSignal) => {
+    if (resumeTimerRef.current !== null) {
+      window.clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    frozenFrameRef.current = null;
+    setFeedback(null);
     setAttempt(1);
     setStatus("loading");
     try {
@@ -235,6 +349,9 @@ export function SparseFramesCaptcha({
     return () => {
       window.clearTimeout(timer);
       controller.abort();
+      if (resumeTimerRef.current !== null) {
+        window.clearTimeout(resumeTimerRef.current);
+      }
     };
   }, [loadChallenge]);
 
@@ -249,8 +366,9 @@ export function SparseFramesCaptcha({
     const draw = (time: number) => {
       const elapsed = time - startedAtRef.current;
       const frameIndex =
-        Math.floor((elapsed / 1000) * challenge.fps) %
-        challenge.frameCount;
+        frozenFrameRef.current ??
+        (Math.floor((elapsed / 1000) * challenge.fps) %
+          challenge.frameCount);
       currentFrameRef.current = frameIndex;
       if (frameIndex !== lastDrawnFrame) {
         context.fillStyle = "#e8e7e1";
@@ -263,13 +381,16 @@ export function SparseFramesCaptcha({
           context.rect(x, y, challenge.dotSize, challenge.dotSize);
         }
         context.fill();
+        if (feedback) {
+          drawFeedback(context, challenge.shape, feedback);
+        }
         lastDrawnFrame = frameIndex;
       }
       animationFrame = window.requestAnimationFrame(draw);
     };
     animationFrame = window.requestAnimationFrame(draw);
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [challenge]);
+  }, [challenge, feedback]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -300,6 +421,8 @@ export function SparseFramesCaptcha({
     const x = ((event.clientX - rect.left) / rect.width) * challenge.width;
     const y = ((event.clientY - rect.top) / rect.height) * challenge.height;
     const frameIndex = currentFrameRef.current;
+    frozenFrameRef.current = frameIndex;
+    setFeedback({ x, y, outcome: "verifying" });
     if (cursorRef.current) cursorRef.current.hidden = true;
     setStatus("verifying");
     try {
@@ -319,16 +442,35 @@ export function SparseFramesCaptcha({
         success?: boolean;
         reason?: string;
         attemptsRemaining?: number;
+        reveal?: Reveal;
       };
-      if (response.ok && result.success) {
+      if (
+        response.ok &&
+        result.success &&
+        result.reveal &&
+        Number.isFinite(result.reveal.centerX) &&
+        Number.isFinite(result.reveal.centerY) &&
+        Number.isFinite(result.reveal.radius) &&
+        result.reveal.frameIndex === frameIndex
+      ) {
+        setFeedback({ x, y, outcome: "hit", reveal: result.reveal });
         setStatus("passed");
       } else if (result.reason === "miss") {
         setAttempt(challenge.maxAttempts - (result.attemptsRemaining ?? 0) + 1);
+        setFeedback({ x, y, outcome: "miss" });
         setStatus("failed");
-        window.setTimeout(() => setStatus("playing"), 700);
+        resumeTimerRef.current = window.setTimeout(() => {
+          frozenFrameRef.current = null;
+          setFeedback(null);
+          setStatus("playing");
+          resumeTimerRef.current = null;
+        }, 700);
       } else if (result.reason === "expired") {
         setStatus("expired");
       } else if (result.reason === "locked" || result.reason === "used") {
+        if (result.reason === "locked") {
+          setFeedback({ x, y, outcome: "miss" });
+        }
         setStatus("locked");
       } else {
         setStatus("error");

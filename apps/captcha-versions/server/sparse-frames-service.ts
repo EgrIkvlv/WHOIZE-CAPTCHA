@@ -119,6 +119,7 @@ export async function verifySparseFramesChallenge({
       if (error instanceof RecordConflictError) continue;
       throw error;
     }
+    const center = challenge.scene.positions[frameIndex];
     return {
       success: hit,
       reason: hit
@@ -127,6 +128,14 @@ export async function verifySparseFramesChallenge({
           ? ("locked" as const)
           : ("miss" as const),
       attemptsRemaining: Math.max(0, next.maxAttempts - next.attempts),
+      reveal: hit
+        ? {
+            centerX: center.x,
+            centerY: center.y,
+            radius: challenge.scene.radius,
+            frameIndex,
+          }
+        : undefined,
     };
   }
   return { success: false, reason: "used" as const };

@@ -136,6 +136,28 @@ test("encodes full-quality v1.3a sparse frames and verifies the private path", a
     now: now + 1_000,
   });
   assert.equal(result.success, true);
+  assert.deepEqual(result.reveal, {
+    centerX: first.x,
+    centerY: first.y,
+    radius: record.scene.radius,
+    frameIndex: 0,
+  });
+
+  const missChallenge = await createSparseFramesChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const miss = await verifySparseFramesChallenge({
+    id: missChallenge.record.id,
+    sessionHash,
+    x: 0,
+    y: 0,
+    frameIndex: 0,
+    now: now + 1_000,
+  });
+  assert.equal(miss.success, false);
+  assert.equal(miss.reveal, undefined);
 });
 
 test("renders a valid one-second VP8 WebM segment", async () => {
