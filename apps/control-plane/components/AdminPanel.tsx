@@ -237,6 +237,7 @@ export function AdminPanel({
             SERVER CONFIG ONLINE
           </span>
           <Link href="/">CAPTCHA</Link>
+          <Link href="/versions">VERSIONS</Link>
           <Link href="/lab">MOTION LAB</Link>
           <LanguageSwitch />
           <form action="/api/admin/logout" method="post">

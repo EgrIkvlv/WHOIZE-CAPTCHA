@@ -17,6 +17,7 @@ type Proof = {
 const COPY = {
   en: {
     how: "How it works",
+    versions: "Versions",
     nav: "Primary navigation",
     kicker: "PROTOTYPE 02 · INTERACTIVE CHALLENGE",
     headline1: "Prove that",
@@ -63,6 +64,7 @@ const COPY = {
   },
   ru: {
     how: "Как работает",
+    versions: "Версии",
     nav: "Основная навигация",
     kicker: "ПРОТОТИП 02 · ИНТЕРАКТИВНАЯ ПРОВЕРКА",
     headline1: "Докажите, что",
@@ -180,6 +182,7 @@ export function CaptchaDemo() {
         </Link>
         <nav aria-label={copy.nav}>
           <a href="#how">{copy.how}</a>
+          <Link href="/versions">{copy.versions}</Link>
           <Link href="/lab">Motion Lab</Link>
           <Link href="/admin">Admin</Link>
           <a

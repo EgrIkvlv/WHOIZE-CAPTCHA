@@ -77,6 +77,7 @@ const PRESETS: Record<Difficulty, LabConfig> = {
 const COPY = {
   en: {
     back: "← Back to CAPTCHA",
+    versions: "Versions",
     headline: "The figure exists\nonly in time.",
     note:
       "One object is hidden inside the field. In a single frame its dots are statistically indistinguishable from the background—the shape is created only by coherent motion.",
@@ -116,6 +117,7 @@ const COPY = {
   },
   ru: {
     back: "← Вернуться к CAPTCHA",
+    versions: "Версии",
     headline: "Фигура существует\nтолько во времени.",
     note:
       "Внутри поля спрятан один объект. На отдельном кадре его точки статистически не отличаются от фона — форму создаёт только согласованное движение.",
@@ -470,6 +472,9 @@ export function CaptchaLab() {
           WHOIZE<span>/</span>MOTION LAB
         </Link>
         <div className="topbar-actions">
+          <Link className="lab-back" href="/versions">
+            {copy.versions}
+          </Link>
           <Link className="lab-back" href="/">
             {copy.back}
           </Link>

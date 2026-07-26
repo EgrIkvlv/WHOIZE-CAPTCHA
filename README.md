@@ -54,18 +54,28 @@ research applications:
 - `apps/demo` — the public CAPTCHA demo and Motion Lab;
 - `apps/server-captcha` — the server-rendered challenge, verification, and
   one-time proof reference flow;
+- `apps/captcha-versions` — runnable preserved implementations and comparison
+  data for client Canvas, server APNG, and server WebM builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
-The deployed site has three connected surfaces:
+The deployed site has four connected surfaces:
 
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
+- `/versions` — a runnable archive comparing the client Canvas, server APNG,
+  and server WebM implementations;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
 
 The CAPTCHA surface deliberately tests one core interaction: can a person find
 and click one moving shape whose evidence exists primarily between frames?
+
+The version archive keeps earlier architectures runnable instead of replacing
+them in place. Each entry records its actual resolution, dot density, frame
+rate, traffic profile, server cost, security boundary, advantages, and known
+limitations. This provides reproducible baselines for later `v1.x`
+experiments.
 
 It includes:
 

@@ -12,6 +12,10 @@ import {
   redeemProof,
   verifyServerChallenge,
 } from "../apps/server-captcha/server/challenge-service.ts";
+import {
+  createLegacyApngChallenge,
+  verifyLegacyApngChallenge,
+} from "../apps/captcha-versions/server/legacy-apng-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -53,6 +57,37 @@ test("creates an opaque video challenge and verifies the private answer", async 
 
   assert.equal(result.success, true);
   assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
+});
+
+test("preserves the legacy APNG build as a runnable server challenge", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const { record, image } = await createLegacyApngChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "session-a",
+    now,
+  });
+  assert.deepEqual(Array.from(image.subarray(0, 8)), [
+    137, 80, 78, 71, 13, 10, 26, 10,
+  ]);
+  assert.equal(record.width, 384);
+  assert.equal(record.height, 216);
+  assert.equal(record.fps, 16);
+  assert.equal(record.positions.length, 48);
+  assert.equal(record.effectiveDensity, 2_592);
+  assert.equal(record.effectiveDotSize, 1.44);
+  assert.ok(image.byteLength > 200_000);
+  assert.ok(image.byteLength < 1_000_000);
+
+  const result = await verifyLegacyApngChallenge({
+    id: record.id,
+    sessionHash: "session-a",
+    x: record.positions[0].x,
+    y: record.positions[0].y,
+    frameIndex: 0,
+    now: now + 500,
+  });
+  assert.equal(result.success, true);
 });
 
 test("renders a valid one-second VP8 WebM segment", async () => {

@@ -55,6 +55,20 @@ test("server-renders the separate motion lab route", async () => {
   assert.match(html, /class="captcha-aim-cursor"/);
 });
 
+test("server-renders the runnable CAPTCHA versions archive", async () => {
+  const response = await render("/versions");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /<title>CAPTCHA Versions · WHOIZE<\/title>/i);
+  assert.match(html, /CAPTCHA/);
+  assert.match(html, /Versions/);
+  assert.match(html, /Client Canvas/);
+  assert.match(html, /Server APNG/);
+  assert.match(html, /Server WebM/);
+  assert.match(html, /Launch version/);
+});
+
 test("server-renders the protected owner login", async () => {
   const response = await render("/admin");
   assert.equal(response.status, 200);
