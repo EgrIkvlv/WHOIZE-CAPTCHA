@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { CaptchaLab } from "./CaptchaLab";
+import { CaptchaDemo } from "./CaptchaDemo";
 
 export const metadata: Metadata = {
-  title: "WHOIZE — Motion CAPTCHA Lab",
+  title: "Motion CAPTCHA",
   description:
-    "Первый прототип CAPTCHA, в которой фигура существует только во времени.",
+    "Интерактивная CAPTCHA, в которой фигура проявляется только через движение.",
 };
 
 export default function Home() {
-  return <CaptchaLab />;
+  return <CaptchaDemo />;
 }

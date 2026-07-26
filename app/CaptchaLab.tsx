@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -34,11 +35,11 @@ const SHAPES: ShapeName[] = ["Круг", "Треугольник", "Ромб", "
 
 const PRESETS: Record<Difficulty, LabConfig> = {
   Читаемый: {
-    density: 3600,
-    dotSize: 1.8,
-    coherence: 92,
-    speed: 58,
-    refreshRate: 24,
+    density: 7200,
+    dotSize: 2.4,
+    coherence: 100,
+    speed: 52,
+    refreshRate: 48,
   },
   Баланс: {
     density: 5200,
@@ -372,13 +373,12 @@ export function CaptchaLab() {
   return (
     <main>
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="WHOIZE Motion Lab">
+        <Link className="brand" href="/" aria-label="WHOIZE CAPTCHA">
           WHOIZE<span>/</span>MOTION LAB
-        </a>
-        <div className="topbar-status">
-          <span className="status-dot" />
-          Прототип 01 · локальный эксперимент
-        </div>
+        </Link>
+        <Link className="lab-back" href="/">
+          ← Вернуться к CAPTCHA
+        </Link>
       </header>
 
       <section className="hero" id="top">

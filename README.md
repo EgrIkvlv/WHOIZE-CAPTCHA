@@ -44,21 +44,32 @@ flowchart LR
 
 ## Current prototype
 
-The first prototype deliberately tests only the core perceptual hypothesis:
-can a person find and click one moving shape whose evidence exists primarily
-between frames?
+The project now has two connected surfaces:
+
+- `/` — a complete client-side CAPTCHA flow with a protected demo action;
+- `/lab` — the original perception laboratory for tuning the signal.
+
+The CAPTCHA surface deliberately tests one core interaction: can a person find
+and click one moving shape whose evidence exists primarily between frames?
 
 It includes:
 
 - four procedural masks: circle, triangle, diamond, and star;
 - randomized starting position and trajectory;
 - exact hit testing against the active mask;
+- one click per challenge, a 60-second expiry, and a three-attempt limit;
+- explicit playing, verifying, passed, failed, expired, and locked states;
+- a local single-use proof demonstrated against a protected signup action;
 - a true freeze-frame control;
 - optional answer reveal for debugging;
 - presets plus controls for density, dot size, signal coherence, speed, and
   frame rate;
 - session accuracy, response-time median, and click-error history;
 - responsive desktop and mobile layouts.
+
+The proof and answer verification are still client-side and are intentionally
+labelled as such. Moving generation, answers, and proof redemption to the
+server is the next security milestone.
 
 ## Run locally
 
