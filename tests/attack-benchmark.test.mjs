@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import {
   baselineSolvers,
@@ -7,6 +8,7 @@ import {
   createRasterFixture,
   createV14Fixture,
   createV15Fixture,
+  createV15bFixture,
   runSolver,
   summarize,
 } from "../tools/attack-benchmark/benchmark-core.ts";
@@ -15,6 +17,7 @@ import {
   runReplayProbe,
   runWebmOnlyExposureAudit,
   runMatchedMotionExposureAudit,
+  runHumanTunedExposureAudit,
 } from "../tools/attack-benchmark/security-probes.ts";
 import { createProductionWebmFixture } from "../tools/attack-benchmark/production-webm.ts";
 
@@ -38,6 +41,23 @@ test("runs reproducible attack baselines against sparse fixtures", () => {
   assert.ok(results.every((result) => result.expected.x > 0));
   assert.ok(results.every((result) => result.expected.y > 0));
   assert.equal(summarize(results).length, 7);
+});
+
+test("keeps the archived v1.5 matched-motion fixture deterministic", () => {
+  const fixture = createV15Fixture(0x51a7c000);
+  const digest = createHash("sha256");
+  for (const frame of fixture.stream.frames) {
+    if (frame) {
+      digest.update(
+        new Uint8Array(frame.buffer, frame.byteOffset, frame.byteLength),
+      );
+    }
+  }
+  assert.equal(fixture.targetFrame, 129);
+  assert.equal(
+    digest.digest("hex"),
+    "2963f2a73ac8b2c72c9d6636520af90cc4738302b97c862c620340036d0c0d00",
+  );
 });
 
 test("runs the same attacks on clean and blurred raster-only fixtures", () => {
@@ -87,6 +107,23 @@ test(
   },
 );
 
+test(
+  "decodes the real v1.5b production WebM before running attacks",
+  { skip: !hasFfmpeg },
+  async () => {
+    const exact = createV15bFixture(0x51a7c000);
+    const webm = await createProductionWebmFixture(0x51a7c000, "v15b");
+    assert.equal(exact.targetFrame, webm.targetFrame);
+    assert.equal(exact.representation, "v15b-exact-cells");
+    assert.equal(webm.representation, "webm-decoded");
+    assert.equal(webm.transportMetrics?.decodedFrames, 48);
+    assert.ok((webm.transportMetrics?.mediaBytes ?? 0) > 50_000);
+    const results = baselineSolvers.map((solver) => runSolver(solver, webm));
+    assert.equal(results.length, 7);
+    assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
+  },
+);
+
 test("coherent temporal solvers beat the one-frame baseline on fixed fixtures", () => {
   const fixtures = Array.from({ length: 6 }, (_, index) =>
     createFixture(0x51a7c000 + index * 7919),
@@ -122,6 +159,11 @@ test("audits client exposure and rejects challenge and proof replay", async () =
   assert.equal(matchedMotionExposure.passed, true);
   assert.equal(matchedMotionExposure.exactOccupancyFramesExposed, false);
   assert.deepEqual(matchedMotionExposure.exposedPrivateFields, []);
+
+  const humanTunedExposure = await runHumanTunedExposureAudit();
+  assert.equal(humanTunedExposure.passed, true);
+  assert.equal(humanTunedExposure.exactOccupancyFramesExposed, false);
+  assert.deepEqual(humanTunedExposure.exposedPrivateFields, []);
 
   const replay = await runReplayProbe();
   assert.equal(replay.passed, true);

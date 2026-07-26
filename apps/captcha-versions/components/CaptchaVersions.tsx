@@ -16,17 +16,18 @@ type VersionId =
   | "sparse"
   | "blur"
   | "webm14"
-  | "webm15";
+  | "webm15"
+  | "webm15b";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 07 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 08 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented seven different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented eight different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -91,6 +92,11 @@ const COPY = {
         detail: "24 WebM · shape template",
         tone: "warning",
       },
+      webm15b: {
+        score: "54.2% PASS",
+        detail: "24 WebM · shape template",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -107,6 +113,8 @@ const COPY = {
         "The first v1.3-quality build that removes the exact point stream from client state. It closes the WSP1 shortcut, but pixel-level computer vision remains the next measured attack surface.",
       webm15:
         "The first version that changes the visual signal itself: five motion-matched decoy shapes and a moving background remove the single obvious coherent region. Human readability and stronger shape-aware attacks now need measurement.",
+      webm15b:
+        "A usability-first branch of v1.5. It intentionally reduces visual load while preserving several matched candidates. The benchmark confirms the security cost; only a human study can now tell whether the usability gain is worth it.",
     },
     versions: {
       canvas: {
@@ -276,7 +284,7 @@ const COPY = {
         metrics: [
           ["Frame", "640×360 · 48 fps"],
           ["Clusters", "1 target + 5 decoys"],
-          ["Media", "≈ 1.14 MB/s"],
+          ["Media", "≈ 1.17 MB/s"],
           ["Old attacks", "0–16.7%"],
           ["Shape-aware", "58.3%"],
         ],
@@ -291,6 +299,32 @@ const COPY = {
           "Security and usability claims require direct benchmark and human testing",
         ],
       },
+      webm15b: {
+        name: "Human-Tuned Decoys",
+        version: "v1.5b",
+        subtitle: "Three decoys · lighter matched-motion field",
+        summary:
+          "A readability-focused v1.5 branch with three decoys, 6,200 dots, larger shapes, and a lower share of continuously moving background points. Candidate paths are selected to stay separated during the first eight seconds.",
+        architecture:
+          "Human-tuned private scene · separated matched clusters · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Clusters", "1 target + 3 decoys"],
+          ["Signal", "6,200 dots · 74–82+ px"],
+          ["Media", "≈ 1.12 MB/s · 1.04 s encode"],
+          ["Attacks", "33.3–54.2% adapted"],
+        ],
+        pros: [
+          "Reduces simultaneous candidates and whole-field motion",
+          "Larger shapes and early path separation improve visual acquisition",
+          "Keeps target, decoys, trajectories, and verification server-side",
+        ],
+        cons: [
+          "Fewer candidates increase the solver's random cluster odds",
+          "Larger cleaner shapes may help shape-template classification",
+          "Human comfort still requires direct testing rather than inference",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -299,17 +333,18 @@ const COPY = {
       sparse: ["High", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
       blur: ["Softened", "No", "≈ 1.41 MB once", "One burst", "4 s loop", "Best current"],
       webm14: ["High", "No", "≈ 1.20 MB/s", "≈ 1.23 s/segment", "Non-looping", "CV: 100%"],
-      webm15: ["High / busy", "No", "≈ 1.14 MB/s", "≈ 1.04 s/segment", "Non-looping", "CV: 58.3% best"],
+      webm15: ["High / busy", "No", "≈ 1.17 MB/s", "≈ 1.04 s/segment", "Non-looping", "CV: 58.3% best"],
+      webm15b: ["High / calmer", "No", "≈ 1.12 MB/s", "≈ 1.03 s/segment", "Non-looping", "CV: 54.2% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 07 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 08 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная семью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная восемью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -374,6 +409,11 @@ const COPY = {
         detail: "24 WebM · шаблон формы",
         tone: "warning",
       },
+      webm15b: {
+        score: "54.2% ПРОХОД",
+        detail: "24 WebM · шаблон формы",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -390,6 +430,8 @@ const COPY = {
         "Первая версия с качеством v1.3, которая убирает точный point-stream из состояния клиента. WSP1-shortcut закрыт, но следующим объектом измерения остаётся компьютерное зрение по пикселям.",
       webm15:
         "Первая версия, которая меняет сам визуальный сигнал: пять motion-matched decoy-фигур и движущийся фон убирают единственную очевидную когерентную область. Теперь нужно измерить читаемость для людей и более сильные shape-aware атаки.",
+      webm15b:
+        "Ориентированная на удобство ветка v1.5. Она специально снижает визуальную нагрузку, сохраняя несколько matched-кандидатов. Benchmark подтвердил цену для защиты; теперь только тест на людях покажет, оправдан ли выигрыш в удобстве.",
     },
     versions: {
       canvas: {
@@ -559,7 +601,7 @@ const COPY = {
         metrics: [
           ["Кадр", "640×360 · 48 fps"],
           ["Кластеры", "1 цель + 5 decoy"],
-          ["Медиа", "≈ 1.14 МБ/с"],
+          ["Медиа", "≈ 1.17 МБ/с"],
           ["Старые атаки", "0–16.7%"],
           ["Shape-aware", "58.3%"],
         ],
@@ -574,6 +616,32 @@ const COPY = {
           "Защиту и удобство нужно подтвердить benchmark и тестами на людях",
         ],
       },
+      webm15b: {
+        name: "Human-Tuned Decoys",
+        version: "v1.5b",
+        subtitle: "Три decoy · облегчённое matched-motion поле",
+        summary:
+          "Ориентированная на читаемость версия v1.5 с тремя decoy, 6 200 точками, более крупными фигурами и меньшей долей постоянно движущегося фона. Траектории подбираются так, чтобы не сближаться первые восемь секунд.",
+        architecture:
+          "Human-tuned приватная сцена · разделённые matched-кластеры · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Кластеры", "1 цель + 3 decoy"],
+          ["Сигнал", "6 200 точек · 74–82+ px"],
+          ["Медиа", "≈ 1.12 МБ/с · рендер 1.04 с"],
+          ["Атаки", "33.3–54.2% адаптированные"],
+        ],
+        pros: [
+          "Уменьшает число одновременных кандидатов и движение всего поля",
+          "Более крупные фигуры и разделённые пути упрощают зрительный поиск",
+          "Цель, decoy, траектории и проверка остаются на сервере",
+        ],
+        cons: [
+          "Меньше кандидатов повышает шанс solver угадать кластер",
+          "Более крупные чистые фигуры могут помочь shape-template атаке",
+          "Комфорт человека всё равно нужно проверять напрямую",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -582,7 +650,8 @@ const COPY = {
       sparse: ["Высокое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
       blur: ["Смягчённое", "Нет", "≈ 1.41 МБ один раз", "Один пик", "Цикл 4 с", "Лучший сейчас"],
       webm14: ["Высокое", "Нет", "≈ 1.20 МБ/с", "≈ 1.23 с/сегмент", "Без цикла", "CV: 100%"],
-      webm15: ["Высокое / насыщенное", "Нет", "≈ 1.14 МБ/с", "≈ 1.04 с/сегмент", "Без цикла", "CV: 58.3% лучший"],
+      webm15: ["Высокое / насыщенное", "Нет", "≈ 1.17 МБ/с", "≈ 1.04 с/сегмент", "Без цикла", "CV: 58.3% лучший"],
+      webm15b: ["Высокое / спокойнее", "Нет", "≈ 1.12 МБ/с", "≈ 1.03 с/сегмент", "Без цикла", "CV: 54.2% лучший"],
     },
   },
 } as const;
@@ -595,6 +664,7 @@ const VERSION_IDS: VersionId[] = [
   "blur",
   "webm14",
   "webm15",
+  "webm15b",
 ];
 
 export function CaptchaVersions() {
@@ -657,7 +727,10 @@ export function CaptchaVersions() {
                 <span className={current ? "current" : ""}>
                   {current
                     ? copy.current
-                    : id === "blur" || id === "webm14" || id === "webm15"
+                    : id === "blur" ||
+                        id === "webm14" ||
+                        id === "webm15" ||
+                        id === "webm15b"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -898,13 +971,23 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm15" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v15/challenge"
                       webmOnly
                       matchedMotion
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v15b/challenge"
+                      webmOnly
+                      humanTuned
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

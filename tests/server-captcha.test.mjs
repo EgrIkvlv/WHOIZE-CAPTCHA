@@ -36,12 +36,18 @@ import {
 } from "../apps/captcha-versions/server/webm-only-service.ts";
 import {
   createMatchedMotionFrameRenderer,
+  HUMAN_TUNED_DECOY_COUNT,
   MATCHED_MOTION_DECOY_COUNT,
+  V15B_HUMAN_TUNED_PROFILE,
 } from "../apps/captcha-versions/server/matched-motion-engine.ts";
 import {
+  createHumanTunedChallenge,
   createMatchedMotionChallenge,
+  humanTunedPublicChallenge,
+  readHumanTunedSegment,
   matchedMotionPublicChallenge,
   readMatchedMotionSegment,
+  verifyHumanTunedChallenge,
   verifyMatchedMotionChallenge,
 } from "../apps/captcha-versions/server/matched-motion-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
@@ -354,6 +360,65 @@ test("keeps v1.5 target and decoy motion behind the WebM-only boundary", async (
   });
   assert.equal(result.success, true);
   assert.match(result.proofToken, /^proof_[a-f0-9]{48}$/);
+});
+
+test("creates a calmer v1.5b scene without exposing its tuned motion", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v15b";
+  const { record } = await createHumanTunedChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = humanTunedPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm15b_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.variant, "human-tuned-decoys");
+  assert.equal(record.scene.density, 6_200);
+  assert.ok(record.scene.radius >= 74);
+  assert.equal(HUMAN_TUNED_DECOY_COUNT, 3);
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "start",
+    "positions",
+    "frames",
+    "decoys",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const renderer = createMatchedMotionFrameRenderer(
+    record.scene,
+    V15B_HUMAN_TUNED_PROFILE,
+  );
+  assert.notDeepEqual(renderer(0), renderer(1));
+  assert.equal(
+    (
+      await readHumanTunedSegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 0);
+  const result = await verifyHumanTunedChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
 });
 
 test("binds video segments to the challenge session", async () => {

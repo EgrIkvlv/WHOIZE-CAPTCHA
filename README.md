@@ -56,7 +56,8 @@ research applications:
   one-time proof reference flow;
 - `apps/captcha-versions` — runnable preserved implementations and comparison
   data for client Canvas, server APNG, server WebM, sparse final-frame,
-  browser-blur, dynamic WebM-only, and matched-motion decoy builds;
+  browser-blur, dynamic WebM-only, matched-motion decoy, and human-tuned decoy
+  builds;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -65,7 +66,7 @@ The deployed site has four connected surfaces:
 - `/` — a server-verified CAPTCHA flow with a protected demo action;
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
-  matched-motion decoy implementations;
+  matched-motion decoy implementations, including the human-tuned v1.5b branch;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -78,6 +79,15 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.5b` is a separate usability-first branch of v1.5. It reduces the
+scene to three decoys, 6,200 dots, 58% coherent background motion, and larger
+74–82+ px shapes, while preferring paths that remain separated during the
+first eight seconds. The WebM-only transport and private verification boundary
+are unchanged. In a 24-seed production-codec comparison, the best adapted
+attack passed 54.2% of v1.5b scenes; coherent flow and tracking passed 33.3%
+and 37.5%, versus 16.7% on v1.5. The branch therefore records an explicit
+security-for-usability trade-off that still needs a human study.
 
 Version `v1.5` changes the visual signal instead of only changing its
 transport. One requested target moves beside five decoy shapes with matched

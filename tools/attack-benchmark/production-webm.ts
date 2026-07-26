@@ -6,11 +6,16 @@ import {
   generateChallengeScene,
 } from "../../apps/server-captcha/server/challenge-engine.ts";
 import { renderWebmOnlySegment } from "../../apps/captcha-versions/server/webm-only-engine.ts";
-import { renderMatchedMotionSegment } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
+import {
+  renderMatchedMotionSegment,
+  V15B_HUMAN_TUNED_PROFILE,
+} from "../../apps/captcha-versions/server/matched-motion-engine.ts";
+import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 import {
   createDecodedWebmFixture,
   createV14Fixture,
   createV15Fixture,
+  createV15bFixture,
   type BenchmarkFixture,
 } from "./benchmark-core.ts";
 
@@ -96,21 +101,34 @@ function decodeWebmToGray(
 
 export async function createProductionWebmFixture(
   seed: number,
-  version: "v14" | "v15" = "v14",
+  version: "v14" | "v15" | "v15b" = "v14",
 ): Promise<BenchmarkFixture> {
   const source =
-    version === "v15" ? createV15Fixture(seed) : createV14Fixture(seed);
-  const scene = generateChallengeScene(DEFAULT_CAPTCHA_CONFIG, seed);
+    version === "v15b"
+      ? createV15bFixture(seed)
+      : version === "v15"
+        ? createV15Fixture(seed)
+        : createV14Fixture(seed);
+  const scene = generateChallengeScene(
+    version === "v15b"
+      ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
+      : DEFAULT_CAPTCHA_CONFIG,
+    seed,
+  );
   const segmentIndex = Math.floor(
     source.targetFrame / scene.segmentFrames,
   );
   const encodeStartedAt = performance.now();
   const webm =
-    version === "v15"
+    version === "v15" || version === "v15b"
       ? await renderMatchedMotionSegment({
           scene,
           segmentIndex,
           wasmBinary: await readCodec(),
+          profile:
+            version === "v15b"
+              ? V15B_HUMAN_TUNED_PROFILE
+              : undefined,
         })
       : await renderWebmOnlySegment({
           scene,

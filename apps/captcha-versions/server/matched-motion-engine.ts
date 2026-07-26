@@ -11,10 +11,35 @@ import {
 
 const DOT_COLOR = [16, 17, 15, 255] as const;
 const BACKGROUND_RGBA32 = 0xffe1e7e8;
-const BACKGROUND_COHERENCE = 0.82;
-const CLUSTER_AREA_RATIO = 0.58;
 
-export const MATCHED_MOTION_DECOY_COUNT = 5;
+export type MatchedMotionProfile = {
+  decoyCount: number;
+  backgroundCoherence: number;
+  clusterAreaRatio: number;
+  minimumCenterDistanceScale: number;
+  separationWindowSeconds: number;
+};
+
+export const V15_MATCHED_MOTION_PROFILE: MatchedMotionProfile = {
+  decoyCount: 5,
+  backgroundCoherence: 0.82,
+  clusterAreaRatio: 0.58,
+  minimumCenterDistanceScale: 0.82,
+  separationWindowSeconds: 0,
+};
+
+export const V15B_HUMAN_TUNED_PROFILE: MatchedMotionProfile = {
+  decoyCount: 3,
+  backgroundCoherence: 0.58,
+  clusterAreaRatio: 0.58,
+  minimumCenterDistanceScale: 0.86,
+  separationWindowSeconds: 8,
+};
+
+export const MATCHED_MOTION_DECOY_COUNT =
+  V15_MATCHED_MOTION_PROFILE.decoyCount;
+export const HUMAN_TUNED_DECOY_COUNT =
+  V15B_HUMAN_TUNED_PROFILE.decoyCount;
 
 type MotionCluster = {
   shape: ShapeName;
@@ -92,7 +117,46 @@ function clusterPosition(cluster: MotionCluster, scene: ChallengeScene, frameInd
   };
 }
 
-function createClusters(scene: ChallengeScene) {
+function clustersStaySeparated({
+  candidate,
+  clusters,
+  scene,
+  profile,
+}: {
+  candidate: MotionCluster;
+  clusters: MotionCluster[];
+  scene: ChallengeScene;
+  profile: MatchedMotionProfile;
+}) {
+  const lastFrame = Math.min(
+    scene.durationFrames - 1,
+    Math.round(profile.separationWindowSeconds * scene.fps),
+  );
+  const step = Math.max(1, Math.round(scene.fps / 2));
+  for (let frameIndex = 0; frameIndex <= lastFrame; frameIndex += step) {
+    const candidateCenter = clusterPosition(candidate, scene, frameIndex);
+    for (const other of clusters) {
+      const otherCenter = clusterPosition(other, scene, frameIndex);
+      const minimumDistance =
+        (candidate.radius + other.radius) *
+        profile.minimumCenterDistanceScale;
+      if (
+        Math.hypot(
+          candidateCenter.x - otherCenter.x,
+          candidateCenter.y - otherCenter.y,
+        ) < minimumDistance
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function createClusters(
+  scene: ChallengeScene,
+  profile: MatchedMotionProfile,
+) {
   const random = mulberry32(scene.visualSeed ^ 0x15dec0);
   const decoyShapes = ALL_SHAPES.filter((shape) => shape !== scene.shape);
   const clusters: MotionCluster[] = [
@@ -105,46 +169,88 @@ function createClusters(scene: ChallengeScene) {
       target: true,
     },
   ];
-  const starts = [scene.start];
   const targetSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
 
-  for (let index = 0; index < MATCHED_MOTION_DECOY_COUNT; index += 1) {
-    const radius = scene.radius * (0.92 + random() * 0.16);
-    const margin = radius + 18;
-    let start = {
-      x: margin + random() * (scene.width - margin * 2),
-      y: margin + random() * (scene.height - margin * 2),
-    };
-    for (let attempt = 0; attempt < 24; attempt += 1) {
-      const candidate = {
+  if (profile.separationWindowSeconds <= 0) {
+    const starts = [scene.start];
+    for (let index = 0; index < profile.decoyCount; index += 1) {
+      const radius = scene.radius * (0.92 + random() * 0.16);
+      const margin = radius + 18;
+      let start = {
         x: margin + random() * (scene.width - margin * 2),
         y: margin + random() * (scene.height - margin * 2),
       };
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        const candidate = {
+          x: margin + random() * (scene.width - margin * 2),
+          y: margin + random() * (scene.height - margin * 2),
+        };
+        if (
+          starts.every(
+            (other) =>
+              Math.hypot(candidate.x - other.x, candidate.y - other.y) >
+              scene.radius * 1.65,
+          )
+        ) {
+          start = candidate;
+          break;
+        }
+      }
+      starts.push(start);
+      const angle = random() * Math.PI * 2;
+      const speed = targetSpeed * (0.9 + random() * 0.2);
+      clusters.push({
+        shape: decoyShapes[index % decoyShapes.length],
+        radius,
+        start,
+        velocity: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+        },
+        visualSeed: (random() * 0xffffffff) >>> 0,
+        target: false,
+      });
+    }
+    return clusters;
+  }
+
+  for (let index = 0; index < profile.decoyCount; index += 1) {
+    let accepted: MotionCluster | null = null;
+    let fallback: MotionCluster | null = null;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const radius = scene.radius * (0.92 + random() * 0.16);
+      const margin = radius + 18;
+      const angle = random() * Math.PI * 2;
+      const speed = targetSpeed * (0.9 + random() * 0.2);
+      const candidate: MotionCluster = {
+        shape: decoyShapes[index % decoyShapes.length],
+        radius,
+        start: {
+          x: margin + random() * (scene.width - margin * 2),
+          y: margin + random() * (scene.height - margin * 2),
+        },
+        velocity: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+        },
+        visualSeed: (random() * 0xffffffff) >>> 0,
+        target: false,
+      };
+      fallback = candidate;
       if (
-        starts.every(
-          (other) =>
-            Math.hypot(candidate.x - other.x, candidate.y - other.y) >
-            scene.radius * 1.65,
-        )
+        clustersStaySeparated({
+          candidate,
+          clusters,
+          scene,
+          profile,
+        })
       ) {
-        start = candidate;
+        accepted = candidate;
         break;
       }
     }
-    starts.push(start);
-    const angle = random() * Math.PI * 2;
-    const speed = targetSpeed * (0.9 + random() * 0.2);
-    clusters.push({
-      shape: decoyShapes[index % decoyShapes.length],
-      radius,
-      start,
-      velocity: {
-        x: Math.cos(angle) * speed,
-        y: Math.sin(angle) * speed,
-      },
-      visualSeed: (random() * 0xffffffff) >>> 0,
-      target: false,
-    });
+    const selected = accepted ?? fallback;
+    if (selected) clusters.push(selected);
   }
   return clusters;
 }
@@ -165,13 +271,16 @@ function drawSquare(pixels: Uint8Array, scene: ChallengeScene, cell: number) {
   }
 }
 
-export function createMatchedMotionOccupancyRenderer(scene: ChallengeScene) {
-  const clusters = createClusters(scene);
+export function createMatchedMotionOccupancyRenderer(
+  scene: ChallengeScene,
+  profile = V15_MATCHED_MOTION_PROFILE,
+) {
+  const clusters = createClusters(scene, profile);
   const clusterPointCount = Math.max(
     150,
     Math.floor(
       scene.density *
-        ((scene.radius * scene.radius * 4 * CLUSTER_AREA_RATIO) /
+        ((scene.radius * scene.radius * 4 * profile.clusterAreaRatio) /
           (scene.width * scene.height)),
     ),
   );
@@ -196,7 +305,7 @@ export function createMatchedMotionOccupancyRenderer(scene: ChallengeScene) {
       y: backgroundRandom() * scene.height,
       velocityX: Math.cos(angle) * speed,
       velocityY: Math.sin(angle) * speed,
-      coherent: backgroundRandom() < BACKGROUND_COHERENCE,
+      coherent: backgroundRandom() < profile.backgroundCoherence,
       phase: (backgroundRandom() * 0xffffffff) >>> 0,
     };
   });
@@ -256,8 +365,11 @@ export function createMatchedMotionOccupancyRenderer(scene: ChallengeScene) {
   };
 }
 
-export function createMatchedMotionFrameRenderer(scene: ChallengeScene) {
-  const renderOccupancy = createMatchedMotionOccupancyRenderer(scene);
+export function createMatchedMotionFrameRenderer(
+  scene: ChallengeScene,
+  profile = V15_MATCHED_MOTION_PROFILE,
+) {
+  const renderOccupancy = createMatchedMotionOccupancyRenderer(scene, profile);
   return (globalFrameIndex: number) => {
     const pixels = new Uint8Array(scene.width * scene.height * 4);
     new Uint32Array(pixels.buffer).fill(BACKGROUND_RGBA32);
@@ -272,10 +384,12 @@ export async function renderMatchedMotionSegment({
   scene,
   segmentIndex,
   wasmBinary,
+  profile = V15_MATCHED_MOTION_PROFILE,
 }: {
   scene: ChallengeScene;
   segmentIndex: number;
   wasmBinary: ArrayBuffer;
+  profile?: MatchedMotionProfile;
 }) {
   const firstFrame = segmentIndex * scene.segmentFrames;
   const lastFrame = Math.min(
@@ -289,6 +403,6 @@ export async function renderMatchedMotionSegment({
     firstFrame,
     lastFrame,
     wasmBinary,
-    renderFrame: createMatchedMotionFrameRenderer(scene),
+    renderFrame: createMatchedMotionFrameRenderer(scene, profile),
   });
 }

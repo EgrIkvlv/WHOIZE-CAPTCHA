@@ -25,7 +25,7 @@ type Challenge = {
   maxAttempts: number;
   transport?: "webm-only";
   codec?: "vp8";
-  variant?: "matched-motion-decoys";
+  variant?: "matched-motion-decoys" | "human-tuned-decoys";
 };
 
 export type ServerMotionCaptchaProps = {
@@ -35,6 +35,7 @@ export type ServerMotionCaptchaProps = {
   endpointBase?: string;
   webmOnly?: boolean;
   matchedMotion?: boolean;
+  humanTuned?: boolean;
 };
 
 const GLYPH = {
@@ -92,6 +93,7 @@ export function ServerMotionCaptcha({
   endpointBase = "/api/challenge",
   webmOnly = false,
   matchedMotion = false,
+  humanTuned = false,
 }: ServerMotionCaptchaProps) {
   const aimCursorRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -119,8 +121,10 @@ export function ServerMotionCaptcha({
           attempt: "ПОПЫТКА",
           remaining: "ОСТАЛОСЬ",
           canvas: "Серверное поле динамического шума. Найдите фигуру",
-          server: matchedMotion
-            ? "WebM-пиксели · 5 decoy-фигур · matched motion-фон"
+          server: humanTuned
+            ? "WebM-пиксели · 3 decoy · облегчённый matched motion-фон"
+            : matchedMotion
+              ? "WebM-пиксели · 5 decoy-фигур · matched motion-фон"
             : webmOnly
               ? "Только WebM-пиксели · WSP1 не передаётся в браузер"
             : "Серверная проверка · ответ не передаётся в браузер",
@@ -148,8 +152,10 @@ export function ServerMotionCaptcha({
           attempt: "ATTEMPT",
           remaining: "REMAINING",
           canvas: "Server-rendered dynamic noise field. Find the shape",
-          server: matchedMotion
-            ? "WebM pixels · 5 decoy shapes · matched background motion"
+          server: humanTuned
+            ? "WebM pixels · 3 decoys · lighter matched background motion"
+            : matchedMotion
+              ? "WebM pixels · 5 decoy shapes · matched background motion"
             : webmOnly
               ? "WebM pixels only · no WSP1 reaches the browser"
             : "Server verification · the answer stays off-device",
@@ -204,6 +210,9 @@ export function ServerMotionCaptcha({
       if (matchedMotion && next.variant !== "matched-motion-decoys") {
         throw new Error("Matched-motion variant metadata is invalid");
       }
+      if (humanTuned && next.variant !== "human-tuned-decoys") {
+        throw new Error("Human-tuned variant metadata is invalid");
+      }
       setChallenge(next);
       setSecondsLeft(
         Math.max(0, Math.ceil((next.expiresAt - Date.now()) / 1000)),
@@ -212,7 +221,7 @@ export function ServerMotionCaptcha({
       if (signal?.aborted) return;
       setStatus("error");
     }
-  }, [endpointBase, matchedMotion, webmOnly]);
+  }, [endpointBase, humanTuned, matchedMotion, webmOnly]);
 
   useEffect(() => {
     const controller = new AbortController();

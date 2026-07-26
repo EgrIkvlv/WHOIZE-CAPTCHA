@@ -191,15 +191,15 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5 exposure finding: only decoded WebM pixels and public playback
-  metadata reach the client; private scene and exact occupancy arrays are
-  absent.
+- v1.4/v1.5/v1.5b exposure finding: only decoded WebM pixels and public
+  playback metadata reach the client; private scene and exact occupancy arrays
+  are absent.
 - Challenge replay: rejected after a successful verification.
 - Proof replay: first redemption succeeds; the second is rejected as used.
 
 ## Next benchmark increments
 
-1. Add multi-frame shape classification for the v1.5 decoy scene.
+1. Add multi-frame shape classification for the v1.5 and v1.5b decoy scenes.
 2. Sweep raster thresholds and use grayscale correlation without binarization.
 3. Sweep coherence, density, radius, speed, frame spacing, and frames observed.
 4. Add subpixel optical flow and robust clustering rather than integer shifts.
@@ -214,3 +214,43 @@ The research objective is cost separation, not an “unbreakable” label. The
 current result shows that WSP1 is a weak security representation, v1.4 fixes
 that boundary without hiding the temporal signal, and v1.5 raises the attack
 from simple motion localization to shape-aware classification.
+
+## v1.5b human-tuned production WebM comparison
+
+Version v1.5b preserves the v1.5 server boundary and production VP8/WebM
+transport, but reduces visual load: three decoys instead of five, 6,200 dots
+instead of 7,200, 58% coherent background motion instead of 82%, larger
+74–82+ px shapes, and candidate paths selected for early separation. It is a
+separate experiment rather than a replacement for v1.5.
+
+The controlled run used 24 identical seeds and target trajectories. Both
+versions were encoded with the production `webm-wasm` VP8 encoder, decoded to
+gray8 through FFmpeg, and scored with the real private shape hit test.
+
+| Decoded production WebM attack | v1.5 success | v1.5b success | v1.5b median error | v1.5b median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 4.2% | 8.3% | 218.3 px | 0.01 ms |
+| Single-frame density | 16.7% | 33.3% | 68.3 px | 1.78 ms |
+| Two-frame difference | 0.0% | 0.0% | 193.9 px | 3.06 ms |
+| Temporal persistence | 16.7% | 41.7% | 68.5 px | 10.38 ms |
+| Coherent flow | 16.7% | 33.3% | 68.9 px | 125.14 ms |
+| Multi-frame tracking | 16.7% | 37.5% | 67.9 px | 882.68 ms |
+| Public-shape template | 58.3% | 54.2% | 32.5 px | 64.31 ms |
+
+Median one-second transport costs were:
+
+- v1.5: 1,171 KiB, 1,035 ms encode, 69 ms decode;
+- v1.5b: 1,120 KiB, 1,030 ms encode, 71 ms decode.
+
+The calmer profile compresses slightly better, but does not materially reduce
+encoding cost. More importantly, it is easier for the current solvers:
+temporal persistence rose from 4/24 to 10/24 successes, coherent flow rose
+from 4/24 to 8/24, and tracking rose from 4/24 to 9/24. The shape-template
+solver moved in the other direction, from 14/24 to 13/24.
+
+This is not automatically a failed branch. v1.5b was designed to buy human
+comfort, and that benefit has not yet been measured. The correct promotion
+criterion is therefore paired evidence: human completion time and error rate
+must improve enough to justify the measured increase in bot success. Until
+that study exists, v1.5 remains the stronger automated-attack baseline and
+v1.5b remains a usability experiment.

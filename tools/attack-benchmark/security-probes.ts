@@ -10,7 +10,9 @@ import {
   webmOnlyPublicChallenge,
 } from "../../apps/captcha-versions/server/webm-only-service.ts";
 import {
+  createHumanTunedChallenge,
   createMatchedMotionChallenge,
+  humanTunedPublicChallenge,
   matchedMotionPublicChallenge,
 } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 
@@ -128,6 +130,50 @@ export async function runMatchedMotionExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.5 exposes only playback metadata and its public variant label; target, decoy, and background motion remain server-side.",
+  };
+}
+
+export async function runHumanTunedExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createHumanTunedChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "human-tuned-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = humanTunedPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "decoys",
+    "profile",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "human-tuned-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "human-tuned-decoys" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.5b exposes only playback metadata and its public variant label; its target, three decoys, tuned density, and motion profile remain server-side.",
   };
 }
 

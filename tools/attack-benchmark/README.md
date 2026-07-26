@@ -35,6 +35,7 @@ npm run benchmark:attack -- --samples=100
 npm run benchmark:attack -- --samples=24 --raster
 npm run benchmark:attack -- --samples=24 --webm
 npm run benchmark:attack -- --samples=24 --webm-v15 --production-only
+npm run benchmark:attack -- --samples=24 --webm-v15b --production-only
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -55,6 +56,14 @@ called.
 and v1.5 production WebM. It also evaluates v1.5 exact, clean-raster, and blur
 representations unless `--production-only` is supplied. The production-only
 mode is the fastest direct codec comparison and still runs every solver.
+
+`--webm-v15b` uses identical seeds and target scenes to compare decoded v1.5
+and the human-tuned v1.5b production WebM. v1.5b has three rather than five
+decoys, fewer dots, less coherent background motion, larger shapes, and
+early-path separation. The report includes both transport profiles, every
+solver, and a dedicated client-exposure audit. Without `--production-only`,
+the runner also evaluates exact, clean-raster, and blurred v1.5b
+representations.
 
 Gemini is opt-in and reads secrets only from the process environment:
 
@@ -82,4 +91,6 @@ counterfactual question: what if an attacker were restricted to screenshots?
 The v1.4 and v1.5 WebM cases are different: exact cells are absent from client
 state, but decoded pixels remain attacker-controlled input. v1.5 intentionally
 converts the problem from locating the only coherent region into recognizing
-the requested shape among several motion-matched candidates.
+the requested shape among several motion-matched candidates. v1.5b deliberately
+trades some of that ambiguity for a calmer field; its value cannot be judged
+without pairing these bot rates with human completion and error rates.

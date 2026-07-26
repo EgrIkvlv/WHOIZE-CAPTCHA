@@ -59,3 +59,19 @@ adds only a static `matched-motion-decoys` variant label. This makes simple
 frame differencing and global coherent-flow clustering choose among several
 plausible regions instead of isolating the target. It deliberately leaves
 shape recognition as an attack surface to measure.
+
+## v1.5b human-tuned decoy experiment
+
+`/api/versions/webm-v15b/challenge` keeps the same WebM-only transport,
+session-bound private scene, server hit test, and one-time proof model as
+v1.5. It changes only the visual profile: one target plus three decoys, at
+most 6,200 dots, 58% coherent background motion, and 74–82+ px shapes.
+Candidate trajectories are sampled to prefer visible separation during the
+first eight seconds.
+
+The public response adds only the static `human-tuned-decoys` label; density,
+shape radius, cluster trajectories, and the target identity remain private.
+This branch is intentionally not presented as a security improvement. The
+24-scene production WebM benchmark measured a 54.2% best adapted attack pass
+rate and higher temporal-solver success than v1.5. It exists so the later human
+study can measure whether the readability improvement justifies that cost.

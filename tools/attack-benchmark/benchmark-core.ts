@@ -12,7 +12,11 @@ import {
   positionAtFrame,
 } from "../../apps/server-captcha/server/challenge-engine.ts";
 import { createDynamicNoiseOccupancyRenderer } from "../../apps/captcha-versions/server/webm-only-engine.ts";
-import { createMatchedMotionOccupancyRenderer } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
+import {
+  createMatchedMotionOccupancyRenderer,
+  V15B_HUMAN_TUNED_PROFILE,
+} from "../../apps/captcha-versions/server/matched-motion-engine.ts";
+import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 
 export type Point = { x: number; y: number };
 
@@ -26,6 +30,7 @@ export type BenchmarkFixture = {
     | "wsp1-exact"
     | "v14-exact-cells"
     | "v15-exact-cells"
+    | "v15b-exact-cells"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -484,11 +489,19 @@ export function createV15Fixture(seed: number): BenchmarkFixture {
   return createWebmFixture(seed, "v15");
 }
 
+export function createV15bFixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v15b");
+}
+
 function createWebmFixture(
   seed: number,
-  version: "v14" | "v15",
+  version: "v14" | "v15" | "v15b",
 ): BenchmarkFixture {
-  const challengeScene = generateChallengeScene(DEFAULT_CAPTCHA_CONFIG, seed);
+  const config =
+    version === "v15b"
+      ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
+      : DEFAULT_CAPTCHA_CONFIG;
+  const challengeScene = generateChallengeScene(config, seed);
   const targetFrame = Math.min(
     challengeScene.durationFrames - 1,
     challengeScene.segmentFrames * 2 +
@@ -513,9 +526,14 @@ function createWebmFixture(
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    version === "v15"
-      ? createMatchedMotionOccupancyRenderer(challengeScene)
-      : createDynamicNoiseOccupancyRenderer(challengeScene);
+    version === "v15b"
+      ? createMatchedMotionOccupancyRenderer(
+          challengeScene,
+          V15B_HUMAN_TUNED_PROFILE,
+        )
+      : version === "v15"
+        ? createMatchedMotionOccupancyRenderer(challengeScene)
+        : createDynamicNoiseOccupancyRenderer(challengeScene);
   for (
     let frameIndex = targetFrame - 7;
     frameIndex <= targetFrame;
@@ -539,7 +557,11 @@ function createWebmFixture(
     },
     targetFrame,
     representation:
-      version === "v15" ? "v15-exact-cells" : "v14-exact-cells",
+      version === "v15b"
+        ? "v15b-exact-cells"
+        : version === "v15"
+          ? "v15-exact-cells"
+          : "v14-exact-cells",
   };
 }
 
