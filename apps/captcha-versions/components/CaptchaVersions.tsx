@@ -166,7 +166,7 @@ const COPY = {
       },
       blur: {
         name: "Sparse + Browser Blur",
-        version: "v1.4",
+        version: "v1.3b",
         subtitle: "v1.3a with adjustable browser softness",
         summary:
           "The exact v1.3a server-generated sparse frame sequence is displayed through a light CSS blur that can be tuned live.",
@@ -353,7 +353,7 @@ const COPY = {
       },
       blur: {
         name: "Sparse + Browser Blur",
-        version: "v1.4",
+        version: "v1.3b",
         subtitle: "v1.3a с регулируемой мягкостью в браузере",
         summary:
           "Та же серверная последовательность sparse-кадров из v1.3a отображается через лёгкий CSS-blur, который можно менять на лету.",

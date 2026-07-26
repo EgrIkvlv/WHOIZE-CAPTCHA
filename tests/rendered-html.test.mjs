@@ -69,7 +69,7 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /Sparse Frames/);
   assert.match(html, /v1\.3a/);
   assert.match(html, /Sparse \+ Browser Blur/);
-  assert.match(html, /v1\.4/);
+  assert.match(html, /v1\.3b/);
   assert.match(html, /class="version-open"/);
   assert.match(html, />Open</);
 });

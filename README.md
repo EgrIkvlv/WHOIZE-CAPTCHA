@@ -78,7 +78,7 @@ rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
 
-Version `v1.4` preserves the complete `v1.3a` server-generated sparse-frame
+Version `v1.3b` preserves the complete `v1.3a` server-generated sparse-frame
 pipeline and applies an adjustable 0–4 px CSS blur only to the decoded Canvas.
 The live version modal exposes the filter strength without restarting the
 challenge, making it possible to compare perceived eye strain and readability
