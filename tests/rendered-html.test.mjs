@@ -74,6 +74,10 @@ test("server-renders the runnable CAPTCHA versions archive", async () => {
   assert.match(html, /v1\.4/);
   assert.match(html, /Matched Motion Decoys/);
   assert.match(html, /v1\.5/);
+  assert.match(html, /Best attack pass rate/);
+  assert.match(html, /24 WebM · shape template/);
+  assert.match(html, /58\.3% PASS/);
+  assert.match(html, /0 dedicated scenes/);
   assert.match(html, /class="version-open"/);
   assert.match(html, />Open</);
 });

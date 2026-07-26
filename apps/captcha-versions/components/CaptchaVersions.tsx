@@ -40,9 +40,10 @@ const COPY = {
     architecture: "Architecture",
     measured: "Observed prototype metrics",
     note:
-      "Numbers describe the current Readable profile and our deployed prototype—not universal performance guarantees. Network and cold-start latency vary by host.",
+      "Attack percentages are bot pass rates, so lower is better. Numbers describe the current Readable profile and our deployed prototype—not universal performance guarantees.",
     matrix: "Comparison matrix",
     criterion: "Criterion",
+    attackTest: "Best attack pass rate",
     blurControl: "Browser blur",
     blurHint:
       "Applied only to the decoded sparse Canvas. The private scene, frame stream, and server verification stay identical to v1.3a.",
@@ -53,6 +54,43 @@ const COPY = {
       compute: "Server compute",
       motion: "Motion continuity",
       security: "Security posture",
+    },
+    benchmarks: {
+      canvas: {
+        score: "BYPASSABLE",
+        detail: "Source audit · answer in client",
+        tone: "danger",
+      },
+      apng: {
+        score: "NOT RUN",
+        detail: "0 dedicated scenes",
+        tone: "pending",
+      },
+      webm: {
+        score: "NOT RUN",
+        detail: "0 dedicated scenes",
+        tone: "pending",
+      },
+      sparse: {
+        score: "100% PASS",
+        detail: "24 scenes · coherent flow",
+        tone: "danger",
+      },
+      blur: {
+        score: "100% PASS",
+        detail: "24 scenes · removable blur",
+        tone: "danger",
+      },
+      webm14: {
+        score: "100% PASS",
+        detail: "24 WebM · frame difference",
+        tone: "danger",
+      },
+      webm15: {
+        score: "58.3% PASS",
+        detail: "24 WebM · shape template",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -285,9 +323,10 @@ const COPY = {
     architecture: "Архитектура",
     measured: "Измеренные параметры прототипа",
     note:
-      "Цифры относятся к текущему профилю «Читаемый» и нашим деплоям, а не являются универсальной гарантией. Сеть и холодный старт зависят от хостинга.",
+      "Проценты атак — это доля успешных прохождений ботом: чем ниже, тем лучше. Цифры относятся к профилю «Читаемый» и нашим деплоям, а не являются универсальной гарантией.",
     matrix: "Матрица сравнения",
     criterion: "Критерий",
+    attackTest: "Проход лучшей атаки",
     blurControl: "Блюр в браузере",
     blurHint:
       "Применяется только к декодированному sparse Canvas. Приватная сцена, поток кадров и серверная проверка остаются как в v1.3a.",
@@ -298,6 +337,43 @@ const COPY = {
       compute: "Расчёты сервера",
       motion: "Непрерывность движения",
       security: "Уровень защищённости",
+    },
+    benchmarks: {
+      canvas: {
+        score: "ОБХОДИМА",
+        detail: "Аудит кода · ответ в клиенте",
+        tone: "danger",
+      },
+      apng: {
+        score: "НЕТ ТЕСТА",
+        detail: "0 отдельных сцен",
+        tone: "pending",
+      },
+      webm: {
+        score: "НЕТ ТЕСТА",
+        detail: "0 отдельных сцен",
+        tone: "pending",
+      },
+      sparse: {
+        score: "100% ПРОХОД",
+        detail: "24 сцены · coherent flow",
+        tone: "danger",
+      },
+      blur: {
+        score: "100% ПРОХОД",
+        detail: "24 сцены · снимаемый blur",
+        tone: "danger",
+      },
+      webm14: {
+        score: "100% ПРОХОД",
+        detail: "24 WebM · разность кадров",
+        tone: "danger",
+      },
+      webm15: {
+        score: "58.3% ПРОХОД",
+        detail: "24 WebM · шаблон формы",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -572,6 +648,7 @@ export function CaptchaVersions() {
       <section className="version-grid" aria-label={copy.measured}>
         {VERSION_IDS.map((id, index) => {
           const version = copy.versions[id];
+          const benchmark = copy.benchmarks[id];
           const current = id === "sparse";
           return (
             <article className={`version-card version-${id}`} key={id}>
@@ -591,6 +668,14 @@ export function CaptchaVersions() {
                 </span>
                 <h2>{version.name}</h2>
                 <p>{version.subtitle}</p>
+              </div>
+              <div
+                className={`version-card-benchmark benchmark-${benchmark.tone}`}
+                aria-label={`${copy.attackTest}: ${benchmark.score}. ${benchmark.detail}`}
+              >
+                <span>{copy.attackTest}</span>
+                <strong>{benchmark.score}</strong>
+                <small>{benchmark.detail}</small>
               </div>
               <button
                 type="button"

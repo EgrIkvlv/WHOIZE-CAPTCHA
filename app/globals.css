@@ -169,7 +169,7 @@ button {
 .version-card.version-blur .version-card-body,
 .version-card.version-webm14 .version-card-body,
 .version-card.version-webm15 .version-card-body {
-  padding: 12px 0 10px;
+  padding: 9px 0 6px;
 }
 
 .version-card.version-blur .version-index,
@@ -223,7 +223,7 @@ button {
 
 .version-card-body {
   flex: 1;
-  padding: 18px 0 14px;
+  padding: 12px 0 8px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -249,6 +249,56 @@ button {
   font: 8px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.055em;
   text-transform: uppercase;
+}
+
+.version-card-benchmark {
+  padding: 6px 0 7px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 7px;
+  row-gap: 2px;
+  border-top: 1px solid var(--line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.version-card-benchmark > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-card-benchmark > strong {
+  font-size: 8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.version-card-benchmark > small {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  color: #777a70;
+  font-size: 6px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-card-benchmark.benchmark-danger > strong {
+  color: #b8432e;
+}
+
+.version-card-benchmark.benchmark-warning > strong {
+  color: #668b16;
+}
+
+.version-card-benchmark.benchmark-pending > strong {
+  color: #85877f;
 }
 
 .version-open {
@@ -721,15 +771,28 @@ button {
   }
 
   .version-index {
-    font-size: 25px;
+    display: none;
   }
 
   .version-card h2 {
+    margin-top: 0;
     font-size: clamp(17px, 5vw, 23px);
   }
 
   .version-card-body p {
-    min-height: 26px;
+    display: none;
+  }
+
+  .version-card-benchmark {
+    padding: 5px 0 6px;
+  }
+
+  .version-card-benchmark > span,
+  .version-card-benchmark > small {
+    font-size: 5px;
+  }
+
+  .version-card-benchmark > strong {
     font-size: 6px;
   }
 
