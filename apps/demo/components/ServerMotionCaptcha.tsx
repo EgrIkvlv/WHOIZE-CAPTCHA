@@ -39,7 +39,8 @@ const GLYPH = {
 } as const;
 
 const WEBM_MIME_TYPE = 'video/webm; codecs="vp8"';
-const MAX_BUFFER_AHEAD_SECONDS = 4;
+const MAX_BUFFER_AHEAD_SECONDS = 6;
+const SEGMENT_FETCH_CONCURRENCY = 4;
 
 function waitForEvent(
   target: EventTarget,
@@ -245,23 +246,58 @@ export function ServerMotionCaptcha({
       const sourceBuffer = mediaSource.addSourceBuffer(WEBM_MIME_TYPE);
       sourceBuffer.mode = "sequence";
       fallbackOffsetRef.current = 0;
+      const pendingSegments = new Map<
+        number,
+        Promise<
+          { success: true; data: ArrayBuffer } | { success: false; error: unknown }
+        >
+      >();
+      const scheduleSegment = (index: number) => {
+        if (
+          index >= challenge.segmentCount ||
+          pendingSegments.has(index)
+        ) {
+          return;
+        }
+        pendingSegments.set(
+          index,
+          fetchSegment(index).then(
+            (data) => ({ success: true as const, data }),
+            (error) => ({ success: false as const, error }),
+          ),
+        );
+      };
+      for (
+        let index = 0;
+        index < Math.min(
+          SEGMENT_FETCH_CONCURRENCY,
+          challenge.segmentCount,
+        );
+        index += 1
+      ) {
+        scheduleSegment(index);
+      }
 
       for (let index = 0; index < challenge.segmentCount; index += 1) {
+        const pending = pendingSegments.get(index);
+        if (!pending) throw new Error(`Video segment ${index} was not queued`);
+        const result = await pending;
+        pendingSegments.delete(index);
+        if (!result.success) throw result.error;
+        scheduleSegment(index + SEGMENT_FETCH_CONCURRENCY);
+        sourceBuffer.appendBuffer(result.data);
+        await waitForEvent(sourceBuffer, "updateend", signal);
+        if (index === 0) {
+          await video.play();
+          setStatus("playing");
+        }
         while (
-          index > 0 &&
           sourceBuffer.buffered.length &&
           sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1) -
             video.currentTime >
             MAX_BUFFER_AHEAD_SECONDS
         ) {
           await wait(250, signal);
-        }
-        const segment = await fetchSegment(index);
-        sourceBuffer.appendBuffer(segment);
-        await waitForEvent(sourceBuffer, "updateend", signal);
-        if (index === 0) {
-          await video.play();
-          setStatus("playing");
         }
       }
       if (mediaSource.readyState === "open" && !sourceBuffer.updating) {

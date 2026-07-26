@@ -12,8 +12,8 @@ export const CHALLENGE_SEGMENT_SECONDS = 1;
 export const WEBM_MIME_TYPE = 'video/webm; codecs="vp8"';
 
 const WEBM_BITRATE_KBPS = 3_500;
-const BACKGROUND_COLOR = [232, 231, 225, 255] as const;
 const DOT_COLOR = [16, 17, 15, 255] as const;
+const BACKGROUND_RGBA32 = 0xffe1e7e8;
 
 export type Point = { x: number; y: number };
 
@@ -166,12 +166,7 @@ function createFrameRenderer(scene: ChallengeScene) {
   return (globalFrameIndex: number) => {
     const center = positionAtFrame(scene, globalFrameIndex);
     const pixels = new Uint8Array(scene.width * scene.height * 4);
-    for (let offset = 0; offset < pixels.length; offset += 4) {
-      pixels[offset] = BACKGROUND_COLOR[0];
-      pixels[offset + 1] = BACKGROUND_COLOR[1];
-      pixels[offset + 2] = BACKGROUND_COLOR[2];
-      pixels[offset + 3] = BACKGROUND_COLOR[3];
-    }
+    new Uint32Array(pixels.buffer).fill(BACKGROUND_RGBA32);
 
     for (const point of backgroundPoints) {
       if (
