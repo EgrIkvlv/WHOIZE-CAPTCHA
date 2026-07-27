@@ -2,6 +2,7 @@ import type { CaptchaConfig } from "@whoize/captcha-core";
 import {
   generateChallengeScene,
   isChallengeHit,
+  positionAtFrame,
   type ChallengeScene,
 } from "../../server-captcha/server/challenge-engine.ts";
 import {
@@ -258,6 +259,12 @@ export async function verifyWebmOnlyChallenge({
             0,
             next.maxAttempts - next.attempts,
           ),
+          reveal: {
+            centerX: positionAtFrame(challenge.scene, frameIndex).x,
+            centerY: positionAtFrame(challenge.scene, frameIndex).y,
+            radius: challenge.scene.radius,
+            frameIndex,
+          },
         }
       : {
           success: false,

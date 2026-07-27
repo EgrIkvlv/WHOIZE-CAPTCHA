@@ -17,6 +17,7 @@
     "test": "npm run build && node --experimental-strip-types --test tests/*.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "benchmark:attack": "node --experimental-strip-types tools/attack-benchmark/run.mts",
+    "benchmark:v18": "node --experimental-strip-types tools/attack-benchmark/v18-family.mts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

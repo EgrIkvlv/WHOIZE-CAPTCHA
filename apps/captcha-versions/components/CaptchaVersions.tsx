@@ -21,17 +21,19 @@ type VersionId =
   | "webm16"
   | "webm16b"
   | "webm17"
-  | "webm18";
+  | "webm18a"
+  | "webm18b"
+  | "webm18c";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 12 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 14 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented twelve different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented fourteen different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -116,9 +118,19 @@ const COPY = {
         detail: "24 WebM · temporal persistence",
         tone: "warning",
       },
-      webm18: {
-        score: "33.3% PASS",
-        detail: "24 WebM · shape template",
+      webm18a: {
+        score: "50.0% PASS",
+        detail: "24 WebM · frame difference",
+        tone: "warning",
+      },
+      webm18b: {
+        score: "100% PASS",
+        detail: "24 WebM · frame difference",
+        tone: "danger",
+      },
+      webm18c: {
+        score: "29.2% PASS",
+        detail: "24 exact-point scenes · tracking",
         tone: "warning",
       },
     },
@@ -145,8 +157,12 @@ const COPY = {
         "A human-first correction that keeps the best current bot pass rate at 16.7%. The target now provides a longer, calmer signal without restoring the frame-difference and tracking shortcuts; direct human testing is the remaining decision.",
       webm17:
         "A perception-first experiment: the target is smaller but temporally clearer, while its private path continuously changes speed and curvature without repeating. Mixed long-lived anchors kept flow and tracking at 8.3%, but temporal persistence rose to 25%; the remaining question is whether humans gain enough readability to justify that cost.",
-      webm18:
-        "A deliberate reset toward human readability. Four irregular moving blobs limit frame difference to 29.2% and flow/tracking to 25%, while the stable requested silhouette makes shape recognition the strongest measured attack at 33.3%. Human usability is now the deciding metric.",
+      webm18a:
+        "The density-matched WebM branch with four irregular motion decoys. Frame difference still passed 50%, but the same attack reached 100% after removing the decoys.",
+      webm18b:
+        "The cleanest version for human vision and the weakest temporal baseline: frame difference passed every scene, while flow and tracking reached 87.5%.",
+      webm18c:
+        "The v1.8a scene transported as exact points. These seven generic attacks peaked at 29.2%, lower than decoded WebM because VP8 creates exploitable artifacts; exact client-readable frames still expose a cleaner surface for a purpose-built solver.",
     },
     versions: {
       canvas: {
@@ -436,9 +452,9 @@ const COPY = {
           "The smaller click target needs direct human testing",
         ],
       },
-      webm18: {
+      webm18a: {
         name: "Readable Motion Decoys",
-        version: "v1.8",
+        version: "v1.8a",
         subtitle: "Clear target · four shapeless moving clusters",
         summary:
           "A stable geometric silhouette moves on a private stochastic path. Target, decoys, and background now use the same local dot density; four irregular blobs retain comparable moving mass without becoming dark static islands.",
@@ -451,7 +467,7 @@ const COPY = {
           ["Density", "Target / decoys ≈ background"],
           ["Path", "Continuous · stochastic · non-looping"],
           ["Background", "58% fresh · 2–5 frame flows"],
-          ["Attacks", "8.3–50.0% across 24 WebM"],
+          ["Attacks", "4.2–50.0% across 24 WebM"],
         ],
         pros: [
           "Restores a complete geometric silhouette for human vision",
@@ -462,6 +478,62 @@ const COPY = {
           "Two-frame difference is now the strongest baseline attack at 50%",
           "Four moving blobs may still add visual search load",
           "Human readability must be confirmed before further security tuning",
+        ],
+      },
+      webm18b: {
+        name: "Readable Motion Solo",
+        version: "v1.8b",
+        subtitle: "Same readable target · no additional figures",
+        summary:
+          "The exact v1.8a target, density-matched background, private stochastic path, and VP8/WebM boundary run without any decoy clusters.",
+        architecture:
+          "Readable private target · no decoys · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Target", "54–68 px · stable silhouette"],
+          ["Decoys", "None"],
+          ["Density", "Target ≈ background"],
+          ["Path", "Continuous · stochastic · non-looping"],
+          ["Background", "58% fresh · 2–5 frame flows"],
+          ["Attacks", "12.5–100% across 24 WebM"],
+        ],
+        pros: [
+          "Lowest visual search load in the v1.8 family",
+          "Keeps the density-matched frozen-frame presentation",
+          "Preserves the private WebM-only answer boundary",
+        ],
+        cons: [
+          "The target is the only coherent moving region",
+          "Temporal solvers are expected to become substantially stronger",
+          "Human testing must confirm the readability gain",
+        ],
+      },
+      webm18c: {
+        name: "Readable Motion Points",
+        version: "v1.8c",
+        subtitle: "v1.8a scene · v1.3a point transport",
+        summary:
+          "The same target, four decoys, density matching, and background as v1.8a are encoded as exact WSP1 point coordinates and rendered by Canvas in the browser.",
+        architecture:
+          "Server-generated exact points · 4 s WSP1 loop · Canvas rendering · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Signal", "7,200 exact coordinates per frame"],
+          ["Decoys", "4 density-matched moving blobs"],
+          ["Transport", "One exact point payload"],
+          ["Motion", "4 s loop"],
+          ["Exposure", "Every displayed point is client-readable"],
+          ["Attacks", "0–29.2% across 24 exact streams"],
+        ],
+        pros: [
+          "Avoids VP8 artifacts and server video encoding",
+          "Preserves the exact v1.8a visual composition",
+          "Starts from one finite payload and draws smoothly on Canvas",
+        ],
+        cons: [
+          "A purpose-built bot receives exact points without video decoding",
+          "The four-second sequence loops like v1.3a",
+          "The transport exposes a much cleaner attack surface",
         ],
       },
     },
@@ -477,17 +549,19 @@ const COPY = {
       webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
       webm16b: ["High / readable", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Non-looping", "CV: 16.7% best"],
       webm17: ["Compact / mixed memory", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Stochastic / no loop", "CV: 25.0% best"],
-      webm18: ["Clear / density-matched", "No", "≈ 1.21 MB/s", "≈ 1.28 s/segment", "Stochastic / no loop", "CV: 50.0% best"],
+      webm18a: ["Clear / density-matched", "No", "≈ 1.20 MB/s", "≈ 1.32 s/segment", "Stochastic / no loop", "CV: 50.0% best"],
+      webm18b: ["Clear / single target", "No", "≈ 1.23 MB/s", "≈ 1.29 s/segment", "Stochastic / no loop", "CV: 100% best"],
+      webm18c: ["Exact Canvas points", "Yes: exact frames", "≈ 1.41 MB once", "≈ 0.75 s burst", "4 s loop", "CV: 29.2% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 12 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 14 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная двенадцатью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная четырнадцатью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -572,9 +646,19 @@ const COPY = {
         detail: "24 WebM · temporal persistence",
         tone: "warning",
       },
-      webm18: {
-        score: "33.3% ПРОХОД",
-        detail: "24 WebM · шаблон формы",
+      webm18a: {
+        score: "50.0% ПРОХОД",
+        detail: "24 WebM · разность кадров",
+        tone: "warning",
+      },
+      webm18b: {
+        score: "100% ПРОХОД",
+        detail: "24 WebM · разность кадров",
+        tone: "danger",
+      },
+      webm18c: {
+        score: "29.2% ПРОХОД",
+        detail: "24 точных point-сцены · tracking",
         tone: "warning",
       },
     },
@@ -601,8 +685,12 @@ const COPY = {
         "Human-first исправление, сохранившее лучший bot pass rate на уровне 16.7%. Цель теперь даёт более долгий и спокойный сигнал без возврата shortcut через разность кадров и tracking; осталось проверить людей.",
       webm17:
         "Эксперимент с приоритетом восприятия: цель меньше, но её временной сигнал яснее, а приватная траектория непрерывно меняет скорость и кривизну без повторения. Смешанные долгоживущие точки удержали flow и tracking на 8.3%, но temporal persistence вырос до 25%; теперь нужно понять, достаточно ли выросла читаемость для человека.",
-      webm18:
-        "Осознанный возврат к человеческой читаемости. Четыре неправильных движущихся blob-кластера ограничили разность кадров уровнем 29.2%, а flow и tracking — 25%. Устойчивый искомый силуэт сделал распознавание формы сильнейшей атакой с 33.3%; теперь решающей метрикой становится удобство человека.",
+      webm18a:
+        "WebM-ветка с выровненной плотностью и четырьмя неправильными motion-decoy. Разность кадров всё ещё прошла 50%, но после удаления decoy та же атака достигла 100%.",
+      webm18b:
+        "Самая чистая версия для человеческого зрения и самый слабый временной baseline: разность кадров прошла все сцены, flow и tracking достигли 87.5%.",
+      webm18c:
+        "Сцена v1.8a передаётся точными точками. Семь общих атак достигли только 29.2% — ниже WebM из-за отсутствия VP8-артефактов; однако точные клиентские кадры остаются более чистой поверхностью для специализированного solver.",
     },
     versions: {
       canvas: {
@@ -892,9 +980,9 @@ const COPY = {
           "Меньшую цель нужно напрямую проверить на людях",
         ],
       },
-      webm18: {
+      webm18a: {
         name: "Readable Motion Decoys",
-        version: "v1.8",
+        version: "v1.8a",
         subtitle: "Ясная цель · четыре бесформенных движущихся кластера",
         summary:
           "Устойчивый геометрический силуэт движется по приватной случайной траектории. Цель, decoy и фон теперь используют одинаковую локальную плотность точек; четыре неправильных blob сохраняют сопоставимую движущуюся массу, не превращаясь в тёмные статические островки.",
@@ -907,7 +995,7 @@ const COPY = {
           ["Плотность", "Цель / decoy ≈ фон"],
           ["Путь", "Непрерывный · случайный · без цикла"],
           ["Фон", "58% новый · flow 2–5 кадров"],
-          ["Атаки", "8.3–50.0% на 24 WebM"],
+          ["Атаки", "4.2–50.0% на 24 WebM"],
         ],
         pros: [
           "Возвращает цельный геометрический силуэт для человеческого зрения",
@@ -918,6 +1006,62 @@ const COPY = {
           "Разность двух кадров теперь является сильнейшей baseline-атакой с 50%",
           "Четыре движущихся blob всё ещё увеличивают визуальную нагрузку",
           "Читаемость нужно подтвердить до дальнейшего усиления защиты",
+        ],
+      },
+      webm18b: {
+        name: "Readable Motion Solo",
+        version: "v1.8b",
+        subtitle: "Та же читаемая цель · без лишних фигур",
+        summary:
+          "Цель, выровненный фон, приватная случайная траектория и VP8/WebM-граница из v1.8a работают без дополнительных decoy-кластеров.",
+        architecture:
+          "Читаемая приватная цель · без decoy · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Цель", "54–68 px · устойчивый силуэт"],
+          ["Decoy", "Нет"],
+          ["Плотность", "Цель ≈ фон"],
+          ["Путь", "Непрерывный · случайный · без цикла"],
+          ["Фон", "58% новый · flow 2–5 кадров"],
+          ["Атаки", "12.5–100% на 24 WebM"],
+        ],
+        pros: [
+          "Минимальная визуальная нагрузка в семействе v1.8",
+          "Сохраняет выровненную плотность на замороженном кадре",
+          "Сохраняет приватную WebM-only границу ответа",
+        ],
+        cons: [
+          "Цель остаётся единственной когерентной движущейся областью",
+          "Временные solver, вероятно, станут существенно сильнее",
+          "Выигрыш читаемости нужно подтвердить на людях",
+        ],
+      },
+      webm18c: {
+        name: "Readable Motion Points",
+        version: "v1.8c",
+        subtitle: "Сцена v1.8a · point-транспорт v1.3a",
+        summary:
+          "Та же цель, четыре decoy, выравнивание плотности и фон из v1.8a кодируются точными WSP1-координатами и рисуются Canvas в браузере.",
+        architecture:
+          "Серверные точные точки · WSP1-цикл 4 с · Canvas · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Сигнал", "7 200 точных координат на кадр"],
+          ["Decoy", "4 движущихся blob с равной плотностью"],
+          ["Транспорт", "Один payload с точками"],
+          ["Движение", "Цикл 4 с"],
+          ["Exposure", "Все показанные точки читаются клиентом"],
+          ["Атаки", "0–29.2% на 24 точных потоках"],
+        ],
+        pros: [
+          "Нет VP8-артефактов и серверного видеокодирования",
+          "Сохраняет точную визуальную композицию v1.8a",
+          "Плавно рисуется Canvas после одного конечного payload",
+        ],
+        cons: [
+          "Специализированный бот получает точные координаты без декодирования видео",
+          "Четырёхсекундная последовательность повторяется, как в v1.3a",
+          "Транспорт открывает намного более чистую поверхность атаки",
         ],
       },
     },
@@ -933,7 +1077,9 @@ const COPY = {
       webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm16b: ["Высокое / читаемое", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm17: ["Компактное / смешанная память", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Случайное / без цикла", "CV: 25.0% лучший"],
-      webm18: ["Ясное / равная плотность", "Нет", "≈ 1.21 МБ/с", "≈ 1.28 с/сегмент", "Случайное / без цикла", "CV: 50.0% лучший"],
+      webm18a: ["Ясное / равная плотность", "Нет", "≈ 1.20 МБ/с", "≈ 1.32 с/сегмент", "Случайное / без цикла", "CV: 50.0% лучший"],
+      webm18b: ["Ясное / одна цель", "Нет", "≈ 1.23 МБ/с", "≈ 1.29 с/сегмент", "Случайное / без цикла", "CV: 100% лучший"],
+      webm18c: ["Точные Canvas-точки", "Да: точные кадры", "≈ 1.41 МБ один раз", "≈ 0.75 с burst", "Цикл 4 с", "CV: 29.2% лучший"],
     },
   },
 } as const;
@@ -950,7 +1096,9 @@ const VERSION_IDS: VersionId[] = [
   "webm16",
   "webm16b",
   "webm17",
-  "webm18",
+  "webm18a",
+  "webm18b",
+  "webm18c",
 ];
 
 export function CaptchaVersions() {
@@ -1020,7 +1168,9 @@ export function CaptchaVersions() {
                         id === "webm16" ||
                         id === "webm16b" ||
                         id === "webm17" ||
-                        id === "webm18"
+                        id === "webm18a" ||
+                        id === "webm18b" ||
+                        id === "webm18c"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -1311,14 +1461,32 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm18a" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
-                      endpointBase="/api/versions/webm-v18/challenge"
+                      endpointBase="/api/versions/webm-v18a/challenge"
                       webmOnly
                       readableMotionDecoys
                       onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : activeVersion === "webm18b" ? (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v18b/challenge"
+                      webmOnly
+                      readableMotionSolo
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <SparseFramesCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/points-v18c/challenge"
+                      readableMotionPoints
                       onClose={() => setActiveVersion(null)}
                     />
                   )}

@@ -201,10 +201,14 @@ export function SparseFramesCaptcha({
   onClose,
   onPass,
   locale = "en",
+  endpointBase = "/api/versions/sparse/challenge",
+  readableMotionPoints = false,
 }: {
   onClose?: () => void;
   onPass?: (proofToken: string, proofExpiresAt: number) => void;
   locale?: "en" | "ru";
+  endpointBase?: string;
+  readableMotionPoints?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -235,8 +239,9 @@ export function SparseFramesCaptcha({
           attempt: "ПОПЫТКА",
           remaining: "ОСТАЛОСЬ",
           close: "Закрыть Sparse Frames CAPTCHA",
-          server:
-            "Sparse final-raster · новый фон каждый кадр · бесшовный цикл 4 с",
+          server: readableMotionPoints
+            ? "Точные точки · читаемая фигура · 4 decoy · цикл 4 с"
+            : "Sparse final-raster · новый фон каждый кадр · бесшовный цикл 4 с",
           newChallenge: "Новый sparse challenge →",
           canvas: "Sparse CAPTCHA с динамическим шумом",
           shape: {
@@ -261,8 +266,9 @@ export function SparseFramesCaptcha({
           attempt: "ATTEMPT",
           remaining: "REMAINING",
           close: "Close Sparse Frames CAPTCHA",
-          server:
-            "Sparse final-raster · fresh background every frame · seamless 4 s loop",
+          server: readableMotionPoints
+            ? "Exact points · readable shape · 4 decoys · 4 s loop"
+            : "Sparse final-raster · fresh background every frame · seamless 4 s loop",
           newChallenge: "New sparse challenge →",
           canvas: "Dynamic-noise sparse CAPTCHA",
           shape: {
@@ -283,7 +289,7 @@ export function SparseFramesCaptcha({
     setAttempt(1);
     setStatus("loading");
     try {
-      const response = await fetch("/api/versions/sparse/challenge", {
+      const response = await fetch(endpointBase, {
         method: "POST",
         cache: "no-store",
         headers: { accept: "application/vnd.whoize.sparse-frames" },
@@ -293,6 +299,12 @@ export function SparseFramesCaptcha({
       const payload = await response.arrayBuffer();
       if (signal?.aborted) return;
       const decoded = decodeSparsePayload(payload);
+      if (
+        readableMotionPoints &&
+        response.headers.get("x-whoize-variant") !== "readable-motion-points"
+      ) {
+        throw new Error("Readable point metadata is invalid");
+      }
       const shape = response.headers.get("x-whoize-shape");
       if (
         shape !== "circle" &&
@@ -340,7 +352,7 @@ export function SparseFramesCaptcha({
     } catch {
       if (!signal?.aborted) setStatus("error");
     }
-  }, []);
+  }, [endpointBase, readableMotionPoints]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -429,7 +441,7 @@ export function SparseFramesCaptcha({
     setStatus("verifying");
     try {
       const response = await fetch(
-        `/api/versions/sparse/challenge/${encodeURIComponent(challenge.id)}/verify`,
+        `${endpointBase}/${encodeURIComponent(challenge.id)}/verify`,
         {
           method: "POST",
           cache: "no-store",
@@ -506,7 +518,7 @@ export function SparseFramesCaptcha({
     <section className="whoize-captcha">
       <div className="captcha-topline">
         <div className="captcha-logo">
-          WHOIZE<span>/</span>SPARSE
+          WHOIZE<span>/</span>{readableMotionPoints ? "POINTS" : "SPARSE"}
         </div>
         <div className="captcha-trial">
           {challenge

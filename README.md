@@ -69,7 +69,7 @@ The deployed site has four connected surfaces:
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
   matched-motion decoy implementations, including the human-tuned v1.5b and
   regenerative v1.6, readable v1.6b, compact stochastic v1.7, and readable
-  motion-decoy v1.8 branches;
+  v1.8a/v1.8b/v1.8c comparison branches;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -83,17 +83,16 @@ rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
 
-Version `v1.8` deliberately resets the optimization target toward human
-readability. A stable 54–68 px requested silhouette follows a private
-stochastic path, while four separated irregular blobs move with comparable
-moving mass, speed, and persistence. Point budgets are proportional to each
-mask's real area, overlapping regions are clipped, and scale changes adjust
-point count, keeping the target and decoys near background density in a frozen
-frame. The remaining background uses 58% fresh points and 2–5 frame local
-motion. In the 24-seed exact-frame benchmark, single-frame density passed 0%;
-after production VP8 decoding it passed 16.7% with a 162.1 px median error.
-Two-frame difference remains the main weakness at 50%. This branch prioritizes
-human readability while making the static density shortcut non-systematic.
+The `v1.8` family isolates two design choices around the same readable
+54–68 px stochastic target and density-matched background. `v1.8a` keeps four
+irregular decoys behind production WebM; its best baseline attack passed 50%.
+`v1.8b` removes the decoys and makes frame difference pass 100%, with flow and
+tracking at 87.5%. `v1.8c` restores the exact `v1.8a` visual scene but sends a
+four-second WSP1 point loop to Canvas like `v1.3a`; the seven generic baselines
+peaked at 29.2%, although exact client-readable frames remain a simpler surface
+for a purpose-built solver. The comparison demonstrates that WebM compression
+is not automatically a security gain and that the decoys materially suppress
+temporal localization.
 
 Version `v1.7` tests the proposed smaller-object strategy without relying on a
 loop or predictable reflected line. The private server record stores a smooth

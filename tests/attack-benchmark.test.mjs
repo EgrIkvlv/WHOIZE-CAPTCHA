@@ -13,6 +13,9 @@ import {
   createV16bFixture,
   createV17Fixture,
   createV18Fixture,
+  createV18aFixture,
+  createV18bFixture,
+  createV18cFixture,
   runSolver,
   summarize,
 } from "../tools/attack-benchmark/benchmark-core.ts";
@@ -26,6 +29,8 @@ import {
   runReadableRegenerativeExposureAudit,
   runStochasticReadableExposureAudit,
   runReadableDecoyExposureAudit,
+  runReadablePointExposureAudit,
+  runReadableSoloExposureAudit,
 } from "../tools/attack-benchmark/security-probes.ts";
 import { createProductionWebmFixture } from "../tools/attack-benchmark/production-webm.ts";
 
@@ -184,13 +189,13 @@ test(
 );
 
 test(
-  "decodes the real v1.8 production WebM before running attacks",
+  "decodes the real v1.8a production WebM before running attacks",
   { skip: !hasFfmpeg },
   async () => {
     const exact = createV18Fixture(0x51a7c000);
     const webm = await createProductionWebmFixture(0x51a7c000, "v18");
     assert.equal(exact.targetFrame, webm.targetFrame);
-    assert.equal(exact.representation, "v18-exact-cells");
+    assert.equal(exact.representation, "v18a-exact-cells");
     assert.equal(webm.representation, "webm-decoded");
     assert.equal(webm.transportMetrics?.decodedFrames, 48);
     assert.ok((webm.transportMetrics?.mediaBytes ?? 0) > 50_000);
@@ -199,6 +204,31 @@ test(
     assert.ok(results.every((result) => Number.isFinite(result.analysisMs)));
   },
 );
+
+test(
+  "decodes the real decoy-free v1.8b production WebM",
+  { skip: !hasFfmpeg },
+  async () => {
+    const exact = createV18bFixture(0x51a7c000);
+    const webm = await createProductionWebmFixture(0x51a7c000, "v18b");
+    assert.equal(exact.targetFrame, webm.targetFrame);
+    assert.equal(exact.representation, "v18b-exact-cells");
+    assert.equal(webm.representation, "webm-decoded");
+    assert.equal(webm.transportMetrics?.decodedFrames, 48);
+    assert.ok((webm.transportMetrics?.mediaBytes ?? 0) > 50_000);
+  },
+);
+
+test("keeps v1.8c pixels identical to the exact v1.8a point scene", () => {
+  const v18a = createV18aFixture(0x51a7c000);
+  const v18c = createV18cFixture(0x51a7c000);
+  assert.equal(v18c.representation, "v18c-exact-points");
+  assert.equal(v18c.stream.loop, true);
+  assert.deepEqual(
+    v18c.stream.frames[v18c.targetFrame],
+    v18a.stream.frames[v18a.targetFrame],
+  );
+});
 
 test("coherent temporal solvers beat the one-frame baseline on fixed fixtures", () => {
   const fixtures = Array.from({ length: 6 }, (_, index) =>
@@ -260,6 +290,16 @@ test("audits client exposure and rejects challenge and proof replay", async () =
   assert.equal(readableDecoyExposure.passed, true);
   assert.equal(readableDecoyExposure.exactOccupancyFramesExposed, false);
   assert.deepEqual(readableDecoyExposure.exposedPrivateFields, []);
+
+  const readableSoloExposure = await runReadableSoloExposureAudit();
+  assert.equal(readableSoloExposure.passed, true);
+  assert.equal(readableSoloExposure.exactOccupancyFramesExposed, false);
+  assert.deepEqual(readableSoloExposure.exposedPrivateFields, []);
+
+  const readablePointExposure = await runReadablePointExposureAudit();
+  assert.equal(readablePointExposure.passed, true);
+  assert.equal(readablePointExposure.exactOccupancyFramesExposed, true);
+  assert.ok(readablePointExposure.exposedPrivateFields.includes("frames"));
 
   const replay = await runReplayProbe();
   assert.equal(replay.passed, true);

@@ -75,13 +75,21 @@ import {
 } from "../apps/captcha-versions/server/regenerative-motion-service.ts";
 import {
   createReadableDecoyOccupancyRenderer,
+  V18A_READABLE_DECOY_COUNT,
+  V18B_READABLE_DECOY_COUNT,
   V18_READABLE_DECOY_COUNT,
 } from "../apps/captcha-versions/server/readable-decoy-engine.ts";
 import {
   createReadableDecoyChallenge,
+  createReadablePointChallenge,
+  createReadableSoloChallenge,
   readReadableDecoySegment,
+  readReadableSoloSegment,
   readableDecoyPublicChallenge,
+  readableSoloPublicChallenge,
   verifyReadableDecoyChallenge,
+  verifyReadablePointChallenge,
+  verifyReadableSoloChallenge,
 } from "../apps/captcha-versions/server/readable-decoy-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
@@ -634,7 +642,7 @@ test("keeps the compact v1.7 stochastic path private and verifies it", async () 
   assert.equal(result.success, true);
 });
 
-test("keeps v1.8 readable target and fragment decoys behind WebM", async () => {
+test("keeps v1.8a readable target and fragment decoys behind WebM", async () => {
   resetStore();
   const now = 1_800_000_000_000;
   const sessionHash = "session-v18";
@@ -646,13 +654,14 @@ test("keeps v1.8 readable target and fragment decoys behind WebM", async () => {
   const publicChallenge = readableDecoyPublicChallenge(record);
   const serialized = JSON.stringify(publicChallenge);
 
-  assert.match(record.id, /^webm18_[a-f0-9]{48}$/);
+  assert.match(record.id, /^webm18a_[a-f0-9]{48}$/);
   assert.equal(publicChallenge.transport, "webm-only");
   assert.equal(publicChallenge.variant, "readable-motion-decoys");
   assert.ok(record.scene.radius >= 54);
   assert.ok(record.scene.radius <= 68);
   assert.equal(record.scene.trajectory.length, record.scene.durationFrames);
   assert.equal(V18_READABLE_DECOY_COUNT, 4);
+  assert.equal(V18A_READABLE_DECOY_COUNT, 4);
   for (const forbidden of [
     "scene",
     "visualSeed",
@@ -716,6 +725,82 @@ test("keeps v1.8 readable target and fragment decoys behind WebM", async () => {
     now: now + 1_000,
   });
   assert.equal(result.success, true);
+});
+
+test("runs v1.8b without additional moving figures", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v18b";
+  const { record } = await createReadableSoloChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = readableSoloPublicChallenge(record);
+
+  assert.match(record.id, /^webm18b_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "readable-motion-solo");
+  assert.equal(V18B_READABLE_DECOY_COUNT, 0);
+  const occupancyRenderer = createReadableDecoyOccupancyRenderer(
+    record.scene,
+    { decoyCount: V18B_READABLE_DECOY_COUNT },
+  );
+  assert.equal(occupancyRenderer(90).length, record.scene.density);
+  assert.equal(
+    (
+      await readReadableSoloSegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 90);
+  const result = await verifyReadableSoloChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 90,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+});
+
+test("streams the v1.8a scene as exact v1.8c Canvas points", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v18c";
+  const { record, payload, frameCount } =
+    await createReadablePointChallenge({
+      config: DEFAULT_CAPTCHA_CONFIG,
+      sessionHash,
+      now,
+    });
+  const decoded = decodeSparseFrames(payload);
+
+  assert.match(record.id, /^points18c_[a-f0-9]{48}$/);
+  assert.equal(frameCount, record.scene.fps * 4);
+  assert.equal(decoded.frameCount, frameCount);
+  assert.equal(decoded.loop, true);
+  assert.equal(decoded.frames.length, frameCount);
+  assert.ok(decoded.frames.every((frame) => frame.length === record.scene.density));
+  const center = positionAtFrame(record.scene, 90);
+  const result = await verifyReadablePointChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 90,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+  assert.equal(result.reveal.frameIndex, 90);
 });
 
 test("binds video segments to the challenge session", async () => {

@@ -10,7 +10,13 @@ import { createStochasticTrajectory } from "./regenerative-motion-engine.ts";
 const DOT_COLOR = [16, 17, 15, 255] as const;
 const BACKGROUND_RGBA32 = 0xffe1e7e8;
 
-export const V18_READABLE_DECOY_COUNT = 4;
+export const V18A_READABLE_DECOY_COUNT = 4;
+export const V18B_READABLE_DECOY_COUNT = 0;
+export const V18_READABLE_DECOY_COUNT = V18A_READABLE_DECOY_COUNT;
+
+export type ReadableMotionRenderOptions = {
+  decoyCount?: number;
+};
 
 type FragmentMask = {
   phase: number;
@@ -118,7 +124,7 @@ function pathSeparationScore({
   return smallestRatio;
 }
 
-function createReadableDecoys(scene: ChallengeScene) {
+function createReadableDecoys(scene: ChallengeScene, decoyCount: number) {
   const random = mulberry32(scene.visualSeed ^ 0x18dec0);
   const targetPath =
     scene.trajectory ??
@@ -131,7 +137,7 @@ function createReadableDecoys(scene: ChallengeScene) {
   const decoys: ReadableDecoy[] = [];
   const targetSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
 
-  for (let index = 0; index < V18_READABLE_DECOY_COUNT; index += 1) {
+  for (let index = 0; index < decoyCount; index += 1) {
     const maskSeed = (random() * 0xffffffff) >>> 0;
     const maskRandom = mulberry32(maskSeed ^ 0xb10b);
     const mask = createFragmentMask(maskRandom);
@@ -232,16 +238,20 @@ function drawSquare(pixels: Uint8Array, scene: ChallengeScene, cell: number) {
   }
 }
 
-export function createReadableDecoyOccupancyRenderer(scene: ChallengeScene) {
+export function createReadableDecoyOccupancyRenderer(
+  scene: ChallengeScene,
+  { decoyCount = V18A_READABLE_DECOY_COUNT }: ReadableMotionRenderOptions = {},
+) {
   const targetRandom = mulberry32(scene.visualSeed ^ 0x18a711);
   const targetRatio =
     (scene.radius * scene.radius * 4 * shapeAreaRatio(scene.shape)) /
     (scene.width * scene.height);
   const targetPointCount = Math.max(1, Math.round(scene.density * targetRatio));
-  const targetPoints = Array.from({ length: Math.ceil(targetPointCount * 1.04) }, () =>
-    pointInShape(scene, targetRandom),
+  const targetPoints = Array.from(
+    { length: Math.ceil(targetPointCount * 1.04) },
+    () => pointInShape(scene, targetRandom),
   );
-  const decoys = createReadableDecoys(scene);
+  const decoys = createReadableDecoys(scene, decoyCount);
   const backgroundRandom = mulberry32(scene.visualSeed ^ 0x18bacc);
   const targetSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
   const backgroundSlots = Array.from(
@@ -403,8 +413,11 @@ export function createReadableDecoyOccupancyRenderer(scene: ChallengeScene) {
   };
 }
 
-export function createReadableDecoyFrameRenderer(scene: ChallengeScene) {
-  const renderOccupancy = createReadableDecoyOccupancyRenderer(scene);
+export function createReadableDecoyFrameRenderer(
+  scene: ChallengeScene,
+  options?: ReadableMotionRenderOptions,
+) {
+  const renderOccupancy = createReadableDecoyOccupancyRenderer(scene, options);
   return (globalFrameIndex: number) => {
     const pixels = new Uint8Array(scene.width * scene.height * 4);
     new Uint32Array(pixels.buffer).fill(BACKGROUND_RGBA32);
@@ -419,10 +432,12 @@ export async function renderReadableDecoySegment({
   scene,
   segmentIndex,
   wasmBinary,
+  options,
 }: {
   scene: ChallengeScene;
   segmentIndex: number;
   wasmBinary: ArrayBuffer;
+  options?: ReadableMotionRenderOptions;
 }) {
   const firstFrame = segmentIndex * scene.segmentFrames;
   const lastFrame = Math.min(
@@ -436,6 +451,6 @@ export async function renderReadableDecoySegment({
     firstFrame,
     lastFrame,
     wasmBinary,
-    renderFrame: createReadableDecoyFrameRenderer(scene),
+    renderFrame: createReadableDecoyFrameRenderer(scene, options),
   });
 }

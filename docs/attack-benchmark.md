@@ -191,7 +191,7 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5/v1.5b/v1.6/v1.6b/v1.7/v1.8 exposure finding: only decoded WebM pixels and
+- v1.4/v1.5/v1.5b/v1.6/v1.6b/v1.7/v1.8a/v1.8b exposure finding: only decoded WebM pixels and
   public playback metadata reach the client; private scene and exact occupancy
   arrays are absent.
 - Challenge replay: rejected after a successful verification.
@@ -368,16 +368,19 @@ The final v1.7 result deliberately accepts a higher 25% persistence attack in
 exchange for a potentially clearer target. Human completion time and miss rate
 must now decide whether that trade is useful.
 
-## v1.8 readable motion-decoy production WebM comparison
+## v1.8a/v1.8b/v1.8c transport and decoy comparison
 
-v1.8 keeps a readable 54–68 px geometric silhouette on a private non-looping
+v1.8a keeps a readable 54–68 px geometric silhouette on a private non-looping
 stochastic path. Four private irregular blob masks use comparable moving area,
 persistence, speeds, independent stochastic paths, and early separation. Point
 budgets are proportional to each mask's real area, overlapping masks do not
 stack points, and small scale changes adjust point count. Across 24 exact
 frames, the target contained 97.9% of the globally expected local density on
 average (96.0–100.0%), and the single-frame density baseline passed 0/24. The
-background is 58% fresh with 2–5 frame motion elsewhere.
+background is 58% fresh with 2–5 frame motion elsewhere. v1.8b renders the
+same target and background through WebM but sets the decoy count to zero.
+v1.8c restores all four v1.8a decoys while replacing WebM with the exact
+four-second WSP1 point stream and Canvas playback used by v1.3a.
 
 The first candidate used small fragmented decoys. Exact-cell attacks looked
 weak, but VP8 decoding made the larger stable target a unique low-change
@@ -385,25 +388,28 @@ window: frame difference passed 95.8% of 24 scenes. That candidate was
 rejected. Target-scale irregular blobs removed most of that codec-specific
 shortcut.
 
-| Decoded production WebM attack | v1.7 success | v1.8 success | v1.8 median error | v1.8 median solver time |
-| --- | ---: | ---: | ---: | ---: |
-| Random click | 0.0% | 0.0% | 209.3 px | 0.01 ms |
-| Single-frame density | 8.3% | 16.7% | 162.1 px | 1.88 ms |
-| Two-frame difference | 12.5% | 50.0% | 61.9 px | 3.31 ms |
-| Temporal persistence | 20.8% | 29.2% | 66.0 px | 11.64 ms |
-| Coherent flow | 4.2% | 33.3% | 61.8 px | 144.65 ms |
-| Multi-frame tracking | 12.5% | 41.7% | 60.2 px | 1,014.80 ms |
-| Public-shape template | 12.5% | 8.3% | 169.7 px | 58.28 ms |
+| Attack over 24 matched seeds | v1.8a WebM + 4 decoys | v1.8b WebM + 0 decoys | v1.8c exact points + 4 decoys |
+| --- | ---: | ---: | ---: |
+| Random click | 0.0% | 0.0% | 0.0% |
+| Single-frame density | 12.5% | 12.5% | 0.0% |
+| Two-frame difference | 50.0% | 100.0% | 8.3% |
+| Temporal persistence | 29.2% | 29.2% | 12.5% |
+| Coherent flow | 29.2% | 87.5% | 20.8% |
+| Multi-frame tracking | 41.7% | 87.5% | 29.2% |
+| Public-shape template | 4.2% | 12.5% | 16.7% |
 
-Median one-second transport costs were:
+Median transport costs were:
 
-- v1.7: 1,247 KiB, 1,330 ms encode, 77 ms decode;
-- v1.8: 1,205 KiB, 1,276 ms encode, 70 ms decode.
+- v1.8a: 1,200 KiB per second, 1,320 ms encode, 79 ms decode;
+- v1.8b: 1,228 KiB per second, 1,287 ms encode, 78 ms decode;
+- v1.8c: 1.41 MB once per four-second loop, 748 ms generation.
 
-The density-matched source removes the deterministic frozen-frame darkness
-shortcut. The decoded density solver still landed inside the target 4/24 times,
-but its 162.1 px median error and 0/24 exact-frame result indicate that it is
-selecting VP8/noise fluctuations rather than a consistently denser target.
-Temporal attacks remain materially stronger: two-frame difference passed 50%.
-Human completion time, miss rate, and perceived strain now determine whether
-this branch is a better product direction before temporal hardening resumes.
+The comparison produces two clear findings. First, decoys matter: removing
+them makes two-frame difference pass all 24 scenes and raises both flow and
+tracking to 87.5%. Second, WebM is not automatically safer for this signal.
+The exact v1.8c points scored lower against the seven generic baselines because
+they avoid exploitable VP8 residual artifacts. This does not make WSP1 a secure
+production boundary: the browser receives every exact frame, so a specialized
+solver can skip decoding, inspect the loop directly, and apply attacks that
+are not represented by these generic baselines. Human testing should now
+compare v1.8a against the much cleaner but intentionally weak v1.8b.

@@ -18,7 +18,11 @@ import {
   V16B_READABLE_REGENERATIVE_PROFILE,
   V17_STOCHASTIC_READABLE_PROFILE,
 } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
-import { renderReadableDecoySegment } from "../../apps/captcha-versions/server/readable-decoy-engine.ts";
+import {
+  renderReadableDecoySegment,
+  V18A_READABLE_DECOY_COUNT,
+  V18B_READABLE_DECOY_COUNT,
+} from "../../apps/captcha-versions/server/readable-decoy-engine.ts";
 import {
   createDecodedWebmFixture,
   createV14Fixture,
@@ -27,7 +31,8 @@ import {
   createV16Fixture,
   createV16bFixture,
   createV17Fixture,
-  createV18Fixture,
+  createV18aFixture,
+  createV18bFixture,
   type BenchmarkFixture,
 } from "./benchmark-core.ts";
 
@@ -113,11 +118,22 @@ function decodeWebmToGray(
 
 export async function createProductionWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17" | "v18" = "v14",
+  version:
+    | "v14"
+    | "v15"
+    | "v15b"
+    | "v16"
+    | "v16b"
+    | "v17"
+    | "v18"
+    | "v18a"
+    | "v18b" = "v14",
 ): Promise<BenchmarkFixture> {
   const source =
-    version === "v18"
-      ? createV18Fixture(seed)
+    version === "v18" || version === "v18a"
+      ? createV18aFixture(seed)
+      : version === "v18b"
+      ? createV18bFixture(seed)
       : version === "v17"
       ? createV17Fixture(seed)
       : version === "v16b"
@@ -130,7 +146,7 @@ export async function createProductionWebmFixture(
         ? createV15Fixture(seed)
         : createV14Fixture(seed);
   const scene =
-    version === "v18"
+    version === "v18" || version === "v18a" || version === "v18b"
       ? generateReadableDecoyScene(DEFAULT_CAPTCHA_CONFIG, seed)
       : version === "v17"
       ? generateStochasticReadableScene(DEFAULT_CAPTCHA_CONFIG, seed)
@@ -145,11 +161,17 @@ export async function createProductionWebmFixture(
   );
   const encodeStartedAt = performance.now();
   const webm =
-    version === "v18"
+    version === "v18" || version === "v18a" || version === "v18b"
       ? await renderReadableDecoySegment({
           scene,
           segmentIndex,
           wasmBinary: await readCodec(),
+          options: {
+            decoyCount:
+              version === "v18b"
+                ? V18B_READABLE_DECOY_COUNT
+                : V18A_READABLE_DECOY_COUNT,
+          },
         })
       : version === "v16" || version === "v16b" || version === "v17"
       ? await renderRegenerativeMotionSegment({

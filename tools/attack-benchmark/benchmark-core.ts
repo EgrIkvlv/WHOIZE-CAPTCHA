@@ -24,7 +24,11 @@ import {
   V16B_READABLE_REGENERATIVE_PROFILE,
   V17_STOCHASTIC_READABLE_PROFILE,
 } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
-import { createReadableDecoyOccupancyRenderer } from "../../apps/captcha-versions/server/readable-decoy-engine.ts";
+import {
+  createReadableDecoyOccupancyRenderer,
+  V18A_READABLE_DECOY_COUNT,
+  V18B_READABLE_DECOY_COUNT,
+} from "../../apps/captcha-versions/server/readable-decoy-engine.ts";
 
 export type Point = { x: number; y: number };
 
@@ -43,6 +47,9 @@ export type BenchmarkFixture = {
     | "v16b-exact-cells"
     | "v17-exact-cells"
     | "v18-exact-cells"
+    | "v18a-exact-cells"
+    | "v18b-exact-cells"
+    | "v18c-exact-points"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -518,19 +525,40 @@ export function createV17Fixture(seed: number): BenchmarkFixture {
 }
 
 export function createV18Fixture(seed: number): BenchmarkFixture {
-  return createWebmFixture(seed, "v18");
+  return createV18aFixture(seed);
+}
+
+export function createV18aFixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v18a");
+}
+
+export function createV18bFixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v18b");
+}
+
+export function createV18cFixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v18c");
 }
 
 function createWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17" | "v18",
+  version:
+    | "v14"
+    | "v15"
+    | "v15b"
+    | "v16"
+    | "v16b"
+    | "v17"
+    | "v18a"
+    | "v18b"
+    | "v18c",
 ): BenchmarkFixture {
   const config =
     version === "v15b"
       ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
       : DEFAULT_CAPTCHA_CONFIG;
   const challengeScene =
-    version === "v18"
+    version === "v18a" || version === "v18b" || version === "v18c"
       ? generateReadableDecoyScene(config, seed)
       : version === "v17"
       ? generateStochasticReadableScene(config, seed)
@@ -540,8 +568,12 @@ function createWebmFixture(
     challengeScene.segmentFrames * 2 +
       Math.floor(challengeScene.segmentFrames * 0.7),
   );
+  const frameCount =
+    version === "v18c"
+      ? challengeScene.fps * 4
+      : challengeScene.durationFrames;
   const positions = Array.from(
-    { length: challengeScene.durationFrames },
+    { length: frameCount },
     (_, frameIndex) => positionAtFrame(challengeScene, frameIndex),
   );
   const scene: SparseScene = {
@@ -550,7 +582,7 @@ function createWebmFixture(
     width: challengeScene.width,
     height: challengeScene.height,
     fps: challengeScene.fps,
-    frameCount: challengeScene.durationFrames,
+    frameCount,
     density: challengeScene.density,
     dotSize: challengeScene.dotSize,
     coherence: challengeScene.coherence,
@@ -559,8 +591,14 @@ function createWebmFixture(
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    version === "v18"
-      ? createReadableDecoyOccupancyRenderer(challengeScene)
+    version === "v18a" || version === "v18c"
+      ? createReadableDecoyOccupancyRenderer(challengeScene, {
+          decoyCount: V18A_READABLE_DECOY_COUNT,
+        })
+      : version === "v18b"
+      ? createReadableDecoyOccupancyRenderer(challengeScene, {
+          decoyCount: V18B_READABLE_DECOY_COUNT,
+        })
       : version === "v17"
       ? createRegenerativeMotionOccupancyRenderer(
           challengeScene,
@@ -599,13 +637,17 @@ function createWebmFixture(
       frameCount: scene.frameCount,
       density: scene.density,
       dotSize: scene.dotSize,
-      loop: false,
+      loop: version === "v18c",
       frames,
     },
     targetFrame,
     representation:
-      version === "v18"
-        ? "v18-exact-cells"
+      version === "v18a"
+        ? "v18a-exact-cells"
+        : version === "v18b"
+        ? "v18b-exact-cells"
+        : version === "v18c"
+        ? "v18c-exact-points"
         : version === "v17"
         ? "v17-exact-cells"
         : version === "v16b"

@@ -40,6 +40,7 @@ npm run benchmark:attack -- --samples=24 --webm-v16 --production-only
 npm run benchmark:attack -- --samples=24 --webm-v16b --production-only
 npm run benchmark:attack -- --samples=24 --webm-v17 --production-only
 npm run benchmark:attack -- --samples=24 --webm-v18 --production-only
+npm run benchmark:v18 -- --samples=24
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -92,6 +93,12 @@ stable requested shape, four target-scale irregular moving blobs, a rapidly
 regenerated background, and separate private stochastic paths. It measures the
 intentional readability trade against frame difference, flow, tracking, and
 the public shape template, plus transport and client exposure.
+
+`benchmark:v18` is the direct family comparison. It evaluates decoded
+production WebM for v1.8a with four decoys, decoded production WebM for v1.8b
+without decoys, and the exact WSP1 points received by v1.8c. All three use the
+same 24 seeds, target scenes, hit tests, and seven baseline attacks. It also
+records one-second WebM costs and the complete four-second point payload cost.
 
 Gemini is opt-in and reads secrets only from the process environment:
 

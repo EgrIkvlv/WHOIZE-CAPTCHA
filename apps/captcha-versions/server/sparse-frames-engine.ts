@@ -246,16 +246,44 @@ class BinaryWriter {
 
 export function encodeSparseFrames(scene: SparseScene) {
   const frames = createSparseFrames(scene);
+  return encodeSparseOccupancyFrames({
+    width: scene.width,
+    height: scene.height,
+    fps: scene.fps,
+    dotSize: scene.dotSize,
+    density: scene.density,
+    frames,
+    loop: true,
+  });
+}
+
+export function encodeSparseOccupancyFrames({
+  width,
+  height,
+  fps,
+  dotSize,
+  density,
+  frames,
+  loop,
+}: {
+  width: number;
+  height: number;
+  fps: number;
+  dotSize: number;
+  density: number;
+  frames: Uint32Array[];
+  loop: boolean;
+}) {
   const writer = new BinaryWriter();
   writer.ascii(SPARSE_MAGIC);
   writer.uint8(1);
-  writer.uint8(1);
-  writer.uint16(scene.width);
-  writer.uint16(scene.height);
-  writer.uint8(scene.fps);
-  writer.uint8(Math.round(scene.dotSize * 10));
-  writer.uint16(scene.frameCount);
-  writer.uint16(scene.density);
+  writer.uint8(loop ? 1 : 0);
+  writer.uint16(width);
+  writer.uint16(height);
+  writer.uint8(fps);
+  writer.uint8(Math.round(dotSize * 10));
+  writer.uint16(frames.length);
+  writer.uint16(density);
 
   for (const frame of frames) {
     writer.uint16(frame.length);

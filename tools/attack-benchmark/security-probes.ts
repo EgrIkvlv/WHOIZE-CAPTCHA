@@ -25,8 +25,12 @@ import {
 } from "../../apps/captcha-versions/server/regenerative-motion-service.ts";
 import {
   createReadableDecoyChallenge,
+  createReadablePointChallenge,
+  createReadableSoloChallenge,
   readableDecoyPublicChallenge,
+  readableSoloPublicChallenge,
 } from "../../apps/captcha-versions/server/readable-decoy-service.ts";
+import { decodeSparseFrames } from "../../apps/captcha-versions/server/sparse-frames-engine.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -368,7 +372,83 @@ export async function runReadableDecoyExposureAudit() {
     exposedPrivateFields,
     exactOccupancyFramesExposed: false,
     conclusion:
-      "v1.8 exposes playback metadata and its variant label only; the target path, fragment masks, decoy paths, radius, and hit test remain server-side.",
+      "v1.8a exposes playback metadata and its variant label only; the target path, fragment masks, decoy paths, radius, and hit test remain server-side.",
+  };
+}
+
+export async function runReadableSoloExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createReadableSoloChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "readable-solo-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = readableSoloPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "trajectory",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "readable-solo-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "readable-motion-solo" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.8b exposes playback metadata only; the target path, radius, mask, and hit test remain server-side.",
+  };
+}
+
+export async function runReadablePointExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { payload, frameCount } = await createReadablePointChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "readable-point-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const decoded = decodeSparseFrames(payload);
+  return {
+    probeId: "readable-point-client-exposure",
+    passed:
+      decoded.loop &&
+      decoded.frameCount === frameCount &&
+      decoded.frames.every((frame) => frame.length === decoded.density),
+    publicFields: [
+      "width",
+      "height",
+      "fps",
+      "frameCount",
+      "density",
+      "dotSize",
+      "frames",
+    ],
+    exposedPrivateFields: ["frames", "density", "dotSize"],
+    exactOccupancyFramesExposed: true,
+    conclusion:
+      "v1.8c intentionally exposes every exact occupied point in its four-second WSP1 loop; only the target identity and hit test remain server-side.",
   };
 }
 
