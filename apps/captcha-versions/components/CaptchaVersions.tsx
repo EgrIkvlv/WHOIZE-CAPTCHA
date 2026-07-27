@@ -130,7 +130,7 @@ const COPY = {
       },
       webm18c: {
         score: "29.2% PASS",
-        detail: "24 exact-point scenes · tracking",
+        detail: "24 exact streams · full security audit",
         tone: "warning",
       },
     },
@@ -162,7 +162,7 @@ const COPY = {
       webm18b:
         "The cleanest version for human vision and the weakest temporal baseline: frame difference passed every scene, while flow and tracking reached 87.5%.",
       webm18c:
-        "The v1.8a scene transported as exact points. These seven generic attacks peaked at 29.2%, lower than decoded WebM because VP8 creates exploitable artifacts; exact client-readable frames still expose a cleaner surface for a purpose-built solver.",
+        "The full audit found a 29.2% best coordinate attack, while the new exact-stream aligned-shape solver reached 20.8% using 25 frames. All 192 displayed frames are extractable from client state, but session binding, input validation, challenge replay, proof-session substitution, and proof replay were all rejected. This is a useful research transport, not a production security boundary.",
     },
     versions: {
       canvas: {
@@ -520,10 +520,12 @@ const COPY = {
           ["Frame", "640×360 · 48 fps"],
           ["Signal", "7,200 exact coordinates per frame"],
           ["Decoys", "4 density-matched moving blobs"],
-          ["Transport", "One exact point payload"],
+          ["Transport", "≈ 1.41 MB once · ≈ 0.74 s generation"],
           ["Motion", "4 s loop"],
-          ["Exposure", "Every displayed point is client-readable"],
-          ["Attacks", "0–29.2% across 24 exact streams"],
+          ["Generic attacks", "0–29.2% across 24 streams"],
+          ["Exact-stream solver", "20.8% · 25 frames · ≈ 0.64 s"],
+          ["Client extraction", "100% · all 192 frames"],
+          ["Protocol checks", "5/5 protections passed"],
         ],
         pros: [
           "Avoids VP8 artifacts and server video encoding",
@@ -658,7 +660,7 @@ const COPY = {
       },
       webm18c: {
         score: "29.2% ПРОХОД",
-        detail: "24 точных point-сцены · tracking",
+        detail: "24 точных потока · полный security-аудит",
         tone: "warning",
       },
     },
@@ -690,7 +692,7 @@ const COPY = {
       webm18b:
         "Самая чистая версия для человеческого зрения и самый слабый временной baseline: разность кадров прошла все сцены, flow и tracking достигли 87.5%.",
       webm18c:
-        "Сцена v1.8a передаётся точными точками. Семь общих атак достигли только 29.2% — ниже WebM из-за отсутствия VP8-артефактов; однако точные клиентские кадры остаются более чистой поверхностью для специализированного solver.",
+        "Полная проверка дала 29.2% для лучшей координатной атаки; новый exact-stream solver с выравниванием силуэта достиг 20.8%, используя 25 кадров. Все 192 показанных кадра извлекаются из состояния клиента, но привязка к сессии, валидация входа, replay challenge, подмена сессии proof и replay proof были отклонены. Это исследовательский транспорт, а не production-граница безопасности.",
     },
     versions: {
       canvas: {
@@ -1048,10 +1050,12 @@ const COPY = {
           ["Кадр", "640×360 · 48 fps"],
           ["Сигнал", "7 200 точных координат на кадр"],
           ["Decoy", "4 движущихся blob с равной плотностью"],
-          ["Транспорт", "Один payload с точками"],
+          ["Транспорт", "≈ 1.41 МБ один раз · генерация ≈ 0.74 с"],
           ["Движение", "Цикл 4 с"],
-          ["Exposure", "Все показанные точки читаются клиентом"],
-          ["Атаки", "0–29.2% на 24 точных потоках"],
+          ["Общие атаки", "0–29.2% на 24 потоках"],
+          ["Exact-stream solver", "20.8% · 25 кадров · ≈ 0.64 с"],
+          ["Извлечение клиентом", "100% · все 192 кадра"],
+          ["Проверки протокола", "5/5 защит пройдено"],
         ],
         pros: [
           "Нет VP8-артефактов и серверного видеокодирования",

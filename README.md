@@ -89,10 +89,14 @@ irregular decoys behind production WebM; its best baseline attack passed 50%.
 `v1.8b` removes the decoys and makes frame difference pass 100%, with flow and
 tracking at 87.5%. `v1.8c` restores the exact `v1.8a` visual scene but sends a
 four-second WSP1 point loop to Canvas like `v1.3a`; the seven generic baselines
-peaked at 29.2%, although exact client-readable frames remain a simpler surface
-for a purpose-built solver. The comparison demonstrates that WebM compression
-is not automatically a security gain and that the decoys materially suppress
-temporal localization.
+peaked at 29.2%. A dedicated exact-stream attack that discovers coherent
+regions, aligns 24 frame pairs, and classifies the accumulated silhouette
+passed 20.8% of the same 24 scenes at a median 0.64 seconds. The client can
+extract all 192 exact frames, while five protocol probes confirmed session
+binding, input validation, and one-use challenge/proof behavior. The comparison
+demonstrates that WebM compression is not automatically a security gain, that
+decoys materially suppress temporal localization, and that `v1.8c` is not a
+production-grade secrecy boundary.
 
 Version `v1.7` tests the proposed smaller-object strategy without relying on a
 loop or predictable reflected line. The private server record stores a smooth

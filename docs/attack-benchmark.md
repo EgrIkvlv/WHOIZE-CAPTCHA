@@ -413,3 +413,37 @@ production boundary: the browser receives every exact frame, so a specialized
 solver can skip decoding, inspect the loop directly, and apply attacks that
 are not represented by these generic baselines. Human testing should now
 compare v1.8a against the much cleaner but intentionally weak v1.8b.
+
+### Full v1.8c exact-stream audit
+
+The initial family table used the same seven generic solvers for all three
+transports. A second v1.8c-specific attack now uses the capability that WSP1
+actually gives an attacker: exact occupied cells from the complete four-second
+loop. It discovers multiple coherent regions, tracks and aligns 24 adjacent
+frame pairs, accumulates their stable silhouettes, and compares those
+silhouettes with the publicly requested target shape.
+
+Across the same 24 deterministic scenes, this purpose-built solver passed
+20.8% (5/24), with a median coordinate error of 122.6 px, 25 frames used, and
+0.64 seconds of local analysis. The generic eight-frame tracker remains the
+strongest measured coordinate attack at 29.2% (7/24). The specialized result
+does not improve the bypass rate yet, but it closes an important methodology
+gap: the benchmark now exercises the exact stream directly rather than treating
+it like decoded video.
+
+The accompanying exposure and protocol probes found:
+
+- 192/192 displayed frames, 7,200 occupied coordinates per frame, density, and
+  dot size are extractable from the client payload;
+- a foreign challenge session is rejected;
+- an invalid frame index is rejected without consuming a valid solution;
+- a solved challenge cannot be verified again;
+- a proof cannot be redeemed from a different session;
+- a redeemed proof cannot be used again.
+
+Therefore the server verification protocol behaves correctly, but transport
+confidentiality does not exist. The practical result is **29.2% best measured
+coordinate bypass, 100% frame extraction, and 5/5 protocol protections
+passing**. A stronger point-native solver or learned model can operate on all
+192 clean frames without paying video decode or thresholding cost, so v1.8c
+should remain a research comparison rather than the production candidate.

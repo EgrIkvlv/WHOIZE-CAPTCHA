@@ -17,9 +17,11 @@ import {
   type SolverResult,
 } from "./benchmark-core.ts";
 import { createProductionWebmFixture } from "./production-webm.ts";
+import { v18cExactStreamSolvers } from "./v18c-specialized.ts";
 import {
   runReadableDecoyExposureAudit,
   runReadablePointExposureAudit,
+  runReadablePointProtocolAudit,
   runReadableSoloExposureAudit,
 } from "./security-probes.ts";
 
@@ -91,6 +93,15 @@ const results: SolverResult[] = [];
 runFamily("v18a-production-webm", v18a, results);
 runFamily("v18b-production-webm", v18b, results);
 runFamily("v18c-exact-points", v18c, results);
+for (const fixture of v18c) {
+  for (const solver of v18cExactStreamSolvers) {
+    const result = runSolver(solver, fixture);
+    results.push({
+      ...result,
+      attackId: `v18c-purpose-built/${result.attackId}`,
+    });
+  }
+}
 
 const report = {
   schemaVersion: 1,
@@ -99,7 +110,10 @@ const report = {
   methodology: {
     samples,
     seeds,
-    attacks: baselineSolvers.map((solver) => solver.id),
+    attacks: {
+      generic: baselineSolvers.map((solver) => solver.id),
+      v18cPurposeBuilt: v18cExactStreamSolvers.map((solver) => solver.id),
+    },
     successDefinition: "Predicted point passes the private target shape hit test.",
     v18a: "Production VP8/WebM decoded to gray8; four density-matched decoys.",
     v18b: "Production VP8/WebM decoded to gray8; no decoys.",
@@ -141,7 +155,10 @@ const report = {
   protocolProbes: {
     v18a: await runReadableDecoyExposureAudit(),
     v18b: await runReadableSoloExposureAudit(),
-    v18c: await runReadablePointExposureAudit(),
+    v18c: {
+      exposure: await runReadablePointExposureAudit(),
+      protocol: await runReadablePointProtocolAudit(),
+    },
   },
   summaries: summarize(results),
   runs: results,

@@ -88,7 +88,7 @@ export type AttackSummary = {
   medianOperations: number;
 };
 
-type Solver = {
+export type Solver = {
   id: string;
   solve: (fixture: BenchmarkFixture) => {
     prediction: Point;
@@ -619,9 +619,12 @@ function createWebmFixture(
       : version === "v15"
         ? createMatchedMotionOccupancyRenderer(challengeScene)
         : createDynamicNoiseOccupancyRenderer(challengeScene);
+  const firstRenderedFrame = version === "v18c" ? 0 : targetFrame - 7;
+  const lastRenderedFrame =
+    version === "v18c" ? scene.frameCount - 1 : targetFrame;
   for (
-    let frameIndex = targetFrame - 7;
-    frameIndex <= targetFrame;
+    let frameIndex = firstRenderedFrame;
+    frameIndex <= lastRenderedFrame;
     frameIndex += 1
   ) {
     frames[frameIndex] = renderOccupancy(frameIndex);

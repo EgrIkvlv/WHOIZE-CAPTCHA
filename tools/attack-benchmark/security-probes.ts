@@ -29,8 +29,10 @@ import {
   createReadableSoloChallenge,
   readableDecoyPublicChallenge,
   readableSoloPublicChallenge,
+  verifyReadablePointChallenge,
 } from "../../apps/captcha-versions/server/readable-decoy-service.ts";
 import { decodeSparseFrames } from "../../apps/captcha-versions/server/sparse-frames-engine.ts";
+import { positionAtFrame } from "../../apps/server-captcha/server/challenge-engine.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -449,6 +451,102 @@ export async function runReadablePointExposureAudit() {
     exactOccupancyFramesExposed: true,
     conclusion:
       "v1.8c intentionally exposes every exact occupied point in its four-second WSP1 loop; only the target identity and hit test remain server-side.",
+  };
+}
+
+export async function runReadablePointProtocolAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const now = 1_800_000_000_000;
+  const sessionHash = "readable-point-protocol-audit";
+  const { record } = await createReadablePointChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const frameIndex = 90;
+  const center = positionAtFrame(record.scene, frameIndex);
+  const wrongSession = await verifyReadablePointChallenge({
+    id: record.id,
+    sessionHash: "other-session",
+    x: center.x,
+    y: center.y,
+    frameIndex,
+    proofTtlSeconds: DEFAULT_CAPTCHA_CONFIG.proofTtlSeconds,
+    now: now + 500,
+  });
+  const invalidFrame = await verifyReadablePointChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: -1,
+    proofTtlSeconds: DEFAULT_CAPTCHA_CONFIG.proofTtlSeconds,
+    now: now + 600,
+  });
+  const verified = await verifyReadablePointChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex,
+    proofTtlSeconds: DEFAULT_CAPTCHA_CONFIG.proofTtlSeconds,
+    now: now + 700,
+  });
+  if (!verified.success || !verified.proofToken) {
+    throw new Error("v1.8c protocol audit could not create a proof");
+  }
+  const challengeReplay = await verifyReadablePointChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex,
+    proofTtlSeconds: DEFAULT_CAPTCHA_CONFIG.proofTtlSeconds,
+    now: now + 800,
+  });
+  const wrongProofSession = await redeemProof({
+    token: verified.proofToken,
+    sessionHash: "other-session",
+    action: "demo-signup",
+    now: now + 900,
+  });
+  const firstRedemption = await redeemProof({
+    token: verified.proofToken,
+    sessionHash,
+    action: "demo-signup",
+    now: now + 1_000,
+  });
+  const proofReplay = await redeemProof({
+    token: verified.proofToken,
+    sessionHash,
+    action: "demo-signup",
+    now: now + 1_100,
+  });
+  return {
+    probeId: "v18c-session-validation-and-replay",
+    passed:
+      !wrongSession.success &&
+      wrongSession.reason === "session" &&
+      !invalidFrame.success &&
+      invalidFrame.reason === "invalid" &&
+      !challengeReplay.success &&
+      challengeReplay.reason === "used" &&
+      !wrongProofSession.success &&
+      wrongProofSession.reason === "session" &&
+      firstRedemption.success &&
+      !proofReplay.success &&
+      proofReplay.reason === "used",
+    wrongSession,
+    invalidFrame,
+    challengeReplay,
+    wrongProofSession,
+    firstRedemption,
+    proofReplay,
+    conclusion:
+      "v1.8c rejects a foreign session, an invalid frame, challenge replay, proof-session substitution, and proof replay.",
   };
 }
 

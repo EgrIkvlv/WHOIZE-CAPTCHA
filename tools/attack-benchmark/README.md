@@ -99,6 +99,11 @@ production WebM for v1.8a with four decoys, decoded production WebM for v1.8b
 without decoys, and the exact WSP1 points received by v1.8c. All three use the
 same 24 seeds, target scenes, hit tests, and seven baseline attacks. It also
 records one-second WebM costs and the complete four-second point payload cost.
+For v1.8c it additionally runs `exact-stream-aligned-shape`, which discovers
+coherent candidates from exact cells, aligns 24 frame pairs, and classifies the
+accumulated target silhouette. The report includes a v1.8c-specific protocol
+audit covering session substitution, invalid input, challenge replay, proof
+session substitution, and proof replay.
 
 Gemini is opt-in and reads secrets only from the process environment:
 

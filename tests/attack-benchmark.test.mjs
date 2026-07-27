@@ -30,9 +30,11 @@ import {
   runStochasticReadableExposureAudit,
   runReadableDecoyExposureAudit,
   runReadablePointExposureAudit,
+  runReadablePointProtocolAudit,
   runReadableSoloExposureAudit,
 } from "../tools/attack-benchmark/security-probes.ts";
 import { createProductionWebmFixture } from "../tools/attack-benchmark/production-webm.ts";
+import { v18cExactStreamSolvers } from "../tools/attack-benchmark/v18c-specialized.ts";
 
 const hasFfmpeg =
   spawnSync(process.env.FFMPEG_PATH || "ffmpeg", ["-version"], {
@@ -230,6 +232,19 @@ test("keeps v1.8c pixels identical to the exact v1.8a point scene", () => {
   );
 });
 
+test("runs the v1.8c exact-stream attack against the complete loop", () => {
+  const fixture = createV18cFixture(0x51a7c000);
+  assert.equal(fixture.stream.frames.length, fixture.stream.fps * 4);
+  assert.ok(fixture.stream.frames.every((frame) => frame.length === 7_200));
+  const results = v18cExactStreamSolvers.map((solver) =>
+    runSolver(solver, fixture),
+  );
+  assert.equal(results.length, 1);
+  assert.equal(results[0].framesUsed, 25);
+  assert.ok(Number.isFinite(results[0].coordinateErrorPx));
+  assert.ok(results[0].operations > fixture.stream.density);
+});
+
 test("coherent temporal solvers beat the one-frame baseline on fixed fixtures", () => {
   const fixtures = Array.from({ length: 6 }, (_, index) =>
     createFixture(0x51a7c000 + index * 7919),
@@ -305,4 +320,11 @@ test("audits client exposure and rejects challenge and proof replay", async () =
   assert.equal(replay.passed, true);
   assert.equal(replay.challengeReplay.success, false);
   assert.equal(replay.proofReplay.success, false);
+
+  const readablePointProtocol = await runReadablePointProtocolAudit();
+  assert.equal(readablePointProtocol.passed, true);
+  assert.equal(readablePointProtocol.wrongSession.reason, "session");
+  assert.equal(readablePointProtocol.invalidFrame.reason, "invalid");
+  assert.equal(readablePointProtocol.challengeReplay.reason, "used");
+  assert.equal(readablePointProtocol.proofReplay.reason, "used");
 });
