@@ -69,6 +69,16 @@ import {
   verifyRegenerativeMotionChallenge,
   verifyStochasticReadableChallenge,
 } from "../apps/captcha-versions/server/regenerative-motion-service.ts";
+import {
+  createReadableDecoyOccupancyRenderer,
+  V18_READABLE_DECOY_COUNT,
+} from "../apps/captcha-versions/server/readable-decoy-engine.ts";
+import {
+  createReadableDecoyChallenge,
+  readReadableDecoySegment,
+  readableDecoyPublicChallenge,
+  verifyReadableDecoyChallenge,
+} from "../apps/captcha-versions/server/readable-decoy-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
 function resetStore() {
@@ -614,6 +624,66 @@ test("keeps the compact v1.7 stochastic path private and verifies it", async () 
     x: center.x,
     y: center.y,
     frameIndex: 75,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+});
+
+test("keeps v1.8 readable target and fragment decoys behind WebM", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v18";
+  const { record } = await createReadableDecoyChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = readableDecoyPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm18_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "readable-motion-decoys");
+  assert.ok(record.scene.radius >= 54);
+  assert.ok(record.scene.radius <= 68);
+  assert.equal(record.scene.trajectory.length, record.scene.durationFrames);
+  assert.equal(V18_READABLE_DECOY_COUNT, 4);
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "positions",
+    "trajectory",
+    "particles",
+    "decoys",
+    "fragments",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const occupancyRenderer = createReadableDecoyOccupancyRenderer(record.scene);
+  assert.equal(occupancyRenderer(0).length, record.scene.density);
+  assert.notDeepEqual(occupancyRenderer(0), occupancyRenderer(1));
+  assert.equal(
+    (
+      await readReadableDecoySegment({
+        id: record.id,
+        sessionHash,
+        segmentIndex: 0,
+        now: now + 500,
+      })
+    ).success,
+    true,
+  );
+  const center = positionAtFrame(record.scene, 90);
+  const result = await verifyReadableDecoyChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 90,
     proofTtlSeconds: 60,
     now: now + 1_000,
   });

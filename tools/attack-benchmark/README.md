@@ -39,6 +39,7 @@ npm run benchmark:attack -- --samples=24 --webm-v15b --production-only
 npm run benchmark:attack -- --samples=24 --webm-v16 --production-only
 npm run benchmark:attack -- --samples=24 --webm-v16b --production-only
 npm run benchmark:attack -- --samples=24 --webm-v17 --production-only
+npm run benchmark:attack -- --samples=24 --webm-v18 --production-only
 ```
 
 `--raster` repeats every local solver against five representations of the same
@@ -85,6 +86,12 @@ mixed short- and long-lived target particles, and matching long-lived
 background anchors. The report measures the smaller hit area, production
 transport, all seven baseline attacks, and a dedicated exposure audit for the
 private path and anchor assignments.
+
+`--webm-v18` compares decoded v1.7 and v1.8 using identical seeds. v1.8 uses a
+stable requested shape, four target-scale irregular moving blobs, a rapidly
+regenerated background, and separate private stochastic paths. It measures the
+intentional readability trade against frame difference, flow, tracking, and
+the public shape template, plus transport and client exposure.
 
 Gemini is opt-in and reads secrets only from the process environment:
 

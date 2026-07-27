@@ -23,6 +23,10 @@ import {
   regenerativeMotionPublicChallenge,
   stochasticReadablePublicChallenge,
 } from "../../apps/captcha-versions/server/regenerative-motion-service.ts";
+import {
+  createReadableDecoyChallenge,
+  readableDecoyPublicChallenge,
+} from "../../apps/captcha-versions/server/readable-decoy-service.ts";
 
 export async function runClientExposureAudit() {
   const source = await readFile(
@@ -318,6 +322,53 @@ export async function runStochasticReadableExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.7 exposes playback metadata and its variant label only; the compact radius, full stochastic trajectory, particle lifetimes, and target mask remain server-side.",
+  };
+}
+
+export async function runReadableDecoyExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createReadableDecoyChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "readable-decoy-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = readableDecoyPublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "trajectory",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "particles",
+    "decoys",
+    "fragments",
+    "profile",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "readable-decoy-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "readable-motion-decoys" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.8 exposes playback metadata and its variant label only; the target path, fragment masks, decoy paths, radius, and hit test remain server-side.",
   };
 }
 

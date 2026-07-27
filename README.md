@@ -58,7 +58,7 @@ research applications:
   data for client Canvas, server APNG, server WebM, sparse final-frame,
   browser-blur, dynamic WebM-only, matched-motion decoy, and human-tuned decoy
   builds, plus the regenerative-motion, readable-regenerative, and compact
-  stochastic-path experiments;
+  stochastic-path experiments and the readable motion-decoy branch;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -68,7 +68,8 @@ The deployed site has four connected surfaces:
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
   matched-motion decoy implementations, including the human-tuned v1.5b and
-  regenerative v1.6, readable v1.6b, and compact stochastic v1.7 branches;
+  regenerative v1.6, readable v1.6b, compact stochastic v1.7, and readable
+  motion-decoy v1.8 branches;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -81,6 +82,16 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.8` deliberately resets the optimization target toward human
+readability. A stable 54–68 px requested silhouette follows a private
+stochastic path, while four separated irregular blobs move with comparable
+size, speed, and persistence. The remaining background uses 58% fresh points
+and 2–5 frame local motion. In the 24-seed production-codec benchmark, the
+shape template passed 33.3%, frame difference 29.2%, coherent flow 25%, and
+tracking 25%. This is weaker than v1.6–v1.7 against the present bots by design;
+its purpose is to restore a target a person can actually see and then measure
+the resulting usability-security trade.
 
 Version `v1.7` tests the proposed smaller-object strategy without relying on a
 loop or predictable reflected line. The private server record stores a smooth

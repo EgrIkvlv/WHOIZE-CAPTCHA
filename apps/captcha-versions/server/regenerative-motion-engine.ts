@@ -137,16 +137,29 @@ function interpolateAngle(from: number, to: number, amount: number) {
   return from + normalizeAngle(to - from) * amount;
 }
 
-function createStochasticTrajectory(scene: ChallengeScene) {
-  const random = mulberry32(scene.visualSeed ^ 0x17c0ffee);
-  const margin = scene.radius + 18;
+export function createStochasticTrajectory(
+  scene: ChallengeScene,
+  {
+    start = scene.start,
+    velocity = scene.velocity,
+    radius = scene.radius,
+    seed = scene.visualSeed ^ 0x17c0ffee,
+  }: {
+    start?: Point;
+    velocity?: Point;
+    radius?: number;
+    seed?: number;
+  } = {},
+) {
+  const random = mulberry32(seed);
+  const margin = radius + 18;
   const center = { x: scene.width / 2, y: scene.height / 2 };
   const positions: Point[] = [];
-  let position = { ...scene.start };
-  let heading = Math.atan2(scene.velocity.y, scene.velocity.x);
+  let position = { ...start };
+  let heading = Math.atan2(velocity.y, velocity.x);
   let turnRate = 0;
   let desiredTurnRate = 0;
-  const baseSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
+  const baseSpeed = Math.hypot(velocity.x, velocity.y);
   let speed = baseSpeed;
   let desiredSpeed = baseSpeed;
   let nextSteeringFrame = 0;
@@ -221,6 +234,33 @@ export function generateStochasticReadableScene(
   seed: number,
 ) {
   const scene = generateChallengeScene(stochasticReadableConfig(config), seed);
+  return {
+    ...scene,
+    trajectory: createStochasticTrajectory(scene),
+  };
+}
+
+export function readableDecoyConfig(config: CaptchaConfig): CaptchaConfig {
+  const radiusMin = Math.max(
+    54,
+    Math.min(60, Math.round(config.radiusMin * 0.92)),
+  );
+  const radiusMax = Math.max(
+    radiusMin + 4,
+    Math.min(68, Math.round(config.radiusMax * 0.92)),
+  );
+  return {
+    ...config,
+    radiusMin,
+    radiusMax,
+  };
+}
+
+export function generateReadableDecoyScene(
+  config: CaptchaConfig,
+  seed: number,
+) {
+  const scene = generateChallengeScene(readableDecoyConfig(config), seed);
   return {
     ...scene,
     trajectory: createStochasticTrajectory(scene),

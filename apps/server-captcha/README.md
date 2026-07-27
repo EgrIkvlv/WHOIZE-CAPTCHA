@@ -132,3 +132,23 @@ after coherent flow and tracking each passed 66.7% of 24 production WebM
 scenes. The mixed-anchor profile reduced both to 8.3%; temporal persistence is
 now the strongest measured attack at 25%. Human testing determines whether the
 readability gain is worth that increase over v1.6b.
+
+## v1.8 readable motion-decoy experiment
+
+`/api/versions/webm-v18/challenge` keeps the private stochastic target path,
+WebM-only transport, server hit test, and one-time proof flow. Unlike v1.6 and
+v1.7, its target points remain stable so the requested 54–68 px geometric
+silhouette is intentionally easy for a person to integrate.
+
+Four private irregular blob masks move on independently generated stochastic
+paths with comparable radius, speed, persistence, and early separation.
+Background points regenerate immediately in 58% of slots; the rest follow
+2–5 frame local motion. Public state exposes only the
+`readable-motion-decoys` label and playback metadata.
+
+The first small-fragment candidate was rejected because production VP8 made the
+stable target a unique low-change window and frame difference passed 95.8% of
+24 scenes. Enlarging the decoys to target-scale irregular blobs reduced frame
+difference to 29.2%. In the final 24-scene production comparison, flow and
+tracking each passed 25% and the public shape template reached 33.3%. The
+branch explicitly trades some automated resistance for a visible target.

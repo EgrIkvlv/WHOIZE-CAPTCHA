@@ -191,7 +191,7 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5/v1.5b/v1.6/v1.6b/v1.7 exposure finding: only decoded WebM pixels and
+- v1.4/v1.5/v1.5b/v1.6/v1.6b/v1.7/v1.8 exposure finding: only decoded WebM pixels and
   public playback metadata reach the client; private scene and exact occupancy
   arrays are absent.
 - Challenge replay: rejected after a successful verification.
@@ -367,3 +367,38 @@ the mixed background anchors were necessary to remove the 66.7% flow shortcut.
 The final v1.7 result deliberately accepts a higher 25% persistence attack in
 exchange for a potentially clearer target. Human completion time and miss rate
 must now decide whether that trade is useful.
+
+## v1.8 readable motion-decoy production WebM comparison
+
+v1.8 stops trying to make the target statistically indistinguishable from the
+background. The requested 54–68 px geometric silhouette uses stable points and
+a private non-looping stochastic path. Four private irregular blob masks use
+similar radii, persistence, speeds, independent stochastic paths, and early
+separation. The background is 58% fresh with 2–5 frame motion elsewhere.
+
+The first candidate used small fragmented decoys. Exact-cell attacks looked
+weak, but VP8 decoding made the larger stable target a unique low-change
+window: frame difference passed 95.8% of 24 scenes. That candidate was
+rejected. Target-scale irregular blobs removed most of that codec-specific
+shortcut.
+
+| Decoded production WebM attack | v1.7 success | v1.8 success | v1.8 median error | v1.8 median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 0.0% | 0.0% | 209.3 px | 0.01 ms |
+| Single-frame density | 4.2% | 8.3% | 86.1 px | 1.86 ms |
+| Two-frame difference | 4.2% | 29.2% | 62.8 px | 3.21 ms |
+| Temporal persistence | 20.8% | 20.8% | 73.0 px | 11.49 ms |
+| Coherent flow | 8.3% | 25.0% | 70.6 px | 143.82 ms |
+| Multi-frame tracking | 8.3% | 25.0% | 69.4 px | 1,005.69 ms |
+| Public-shape template | 8.3% | 33.3% | 82.7 px | 59.34 ms |
+
+Median one-second transport costs were:
+
+- v1.7: 1,264 KiB, 1,273 ms encode, 81 ms decode;
+- v1.8: 1,179 KiB, 1,340 ms encode, 73 ms decode.
+
+The result is intentionally not a security improvement over v1.7. It restores
+a stable human-readable target while keeping simple motion localization below
+one-third in this baseline suite. Human completion time, miss rate, and
+perceived strain now determine whether this branch is a better product
+direction.

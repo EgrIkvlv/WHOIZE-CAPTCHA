@@ -12,6 +12,7 @@ import {
   createV16Fixture,
   createV16bFixture,
   createV17Fixture,
+  createV18Fixture,
   evaluatePrediction,
   runSolver,
   summarize,
@@ -26,6 +27,7 @@ import {
   runRegenerativeMotionExposureAudit,
   runReadableRegenerativeExposureAudit,
   runStochasticReadableExposureAudit,
+  runReadableDecoyExposureAudit,
 } from "./security-probes.ts";
 
 const args = new Set(process.argv.slice(2));
@@ -39,10 +41,13 @@ const includeV15b = args.has("--webm-v15b");
 const includeV16 = args.has("--webm-v16");
 const includeV16b = args.has("--webm-v16b");
 const includeV17 = args.has("--webm-v17");
+const includeV18 = args.has("--webm-v18");
 const productionOnly = args.has("--production-only");
 const includeProductionWebm =
-  includeWebm || includeV15 || includeV15b || includeV16 || includeV16b || includeV17;
-const selectedWebmVersion = includeV17
+  includeWebm || includeV15 || includeV15b || includeV16 || includeV16b || includeV17 || includeV18;
+const selectedWebmVersion = includeV18
+  ? "v18"
+  : includeV17
   ? "v17"
   : includeV16b
   ? "v16b"
@@ -53,7 +58,9 @@ const selectedWebmVersion = includeV17
     : includeV15
       ? "v15"
       : "v14";
-const comparisonWebmVersion = includeV17
+const comparisonWebmVersion = includeV18
+  ? "v17"
+  : includeV17
   ? "v16b"
   : includeV16b
   ? "v16"
@@ -71,6 +78,7 @@ const versionLabels = {
   v16: "v1.6",
   v16b: "v1.6b",
   v17: "v1.7",
+  v18: "v1.8",
 } as const;
 const seedBase = 0x51a7c000;
 const results: SolverResult[] = [];
@@ -79,7 +87,9 @@ const seeds = Array.from(
   (_, index) => seedBase + index * 7919,
 );
 const fixtures = seeds.map((seed) =>
-  includeV17
+  includeV18
+    ? createV18Fixture(seed)
+    : includeV17
     ? createV17Fixture(seed)
     : includeV16b
     ? createV16bFixture(seed)
@@ -241,6 +251,7 @@ const protocolProbes = {
   regenerativeMotionExposure: await runRegenerativeMotionExposureAudit(),
   readableRegenerativeExposure: await runReadableRegenerativeExposureAudit(),
   stochasticReadableExposure: await runStochasticReadableExposureAudit(),
+  readableDecoyExposure: await runReadableDecoyExposureAudit(),
   replay: await runReplayProbe(),
 };
 
@@ -257,7 +268,9 @@ const report = {
   schemaVersion: 3,
   generatedAt: new Date().toISOString(),
   target: {
-    version: includeV17
+    version: includeV18
+      ? "v1.8 compared with v1.7"
+      : includeV17
       ? "v1.7 compared with v1.6b"
       : includeV16b
       ? "v1.6b compared with v1.6"
@@ -270,7 +283,9 @@ const report = {
       : includeWebm
         ? "v1.4"
         : "v1.3a/v1.3b",
-    format: includeV17
+    format: includeV18
+      ? "readable motion-decoy v1.8 compared with compact stochastic v1.7 production VP8/WebM"
+      : includeV17
       ? "compact stochastic v1.7 compared with readable regenerative v1.6b production VP8/WebM"
       : includeV16b
       ? "readable regenerative v1.6b compared with v1.6 production VP8/WebM"
@@ -350,7 +365,7 @@ const outputDirectory = resolve("outputs/attack-benchmark");
 await mkdir(outputDirectory, { recursive: true });
 const outputPath = resolve(
   outputDirectory,
-  `report-${Date.now()}${includeV17 ? "-webm-v17" : includeV16b ? "-webm-v16b" : includeV16 ? "-webm-v16" : includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
+  `report-${Date.now()}${includeV18 ? "-webm-v18" : includeV17 ? "-webm-v17" : includeV16b ? "-webm-v16b" : includeV16 ? "-webm-v16" : includeV15b ? "-webm-v15b" : includeV15 ? "-webm-v15" : includeWebm ? "-webm" : ""}${includeGemini ? "-gemini" : ""}.json`,
 );
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
@@ -396,8 +411,10 @@ if (gemini?.result) {
   );
 }
 console.log(
-  `${includeV17 ? "v1.7 stochastic compact" : includeV16b ? "v1.6b readable regenerative" : includeV16 ? "v1.6 regenerative motion" : includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
-    (includeV17
+  `${includeV18 ? "v1.8 readable motion decoys" : includeV17 ? "v1.7 stochastic compact" : includeV16b ? "v1.6b readable regenerative" : includeV16 ? "v1.6 regenerative motion" : includeV15b ? "v1.5b human tuned" : includeV15 ? "v1.5 matched motion" : includeWebm ? "v1.4 WebM-only" : "v1.3 sparse"} exposure audit: ${
+    (includeV18
+      ? protocolProbes.readableDecoyExposure
+      : includeV17
       ? protocolProbes.stochasticReadableExposure
       : includeV16b
       ? protocolProbes.readableRegenerativeExposure
@@ -414,7 +431,9 @@ console.log(
       ? "PASS"
       : "FAIL"
   }; exact occupancy stream exposed: ${
-    (includeV17
+    (includeV18
+      ? protocolProbes.readableDecoyExposure
+      : includeV17
       ? protocolProbes.stochasticReadableExposure
       : includeV16b
       ? protocolProbes.readableRegenerativeExposure

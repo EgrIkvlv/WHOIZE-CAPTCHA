@@ -19,10 +19,12 @@ import {
 import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 import {
   createRegenerativeMotionOccupancyRenderer,
+  generateReadableDecoyScene,
   generateStochasticReadableScene,
   V16B_READABLE_REGENERATIVE_PROFILE,
   V17_STOCHASTIC_READABLE_PROFILE,
 } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
+import { createReadableDecoyOccupancyRenderer } from "../../apps/captcha-versions/server/readable-decoy-engine.ts";
 
 export type Point = { x: number; y: number };
 
@@ -40,6 +42,7 @@ export type BenchmarkFixture = {
     | "v16-exact-cells"
     | "v16b-exact-cells"
     | "v17-exact-cells"
+    | "v18-exact-cells"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -514,16 +517,22 @@ export function createV17Fixture(seed: number): BenchmarkFixture {
   return createWebmFixture(seed, "v17");
 }
 
+export function createV18Fixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v18");
+}
+
 function createWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17",
+  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17" | "v18",
 ): BenchmarkFixture {
   const config =
     version === "v15b"
       ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
       : DEFAULT_CAPTCHA_CONFIG;
   const challengeScene =
-    version === "v17"
+    version === "v18"
+      ? generateReadableDecoyScene(config, seed)
+      : version === "v17"
       ? generateStochasticReadableScene(config, seed)
       : generateChallengeScene(config, seed);
   const targetFrame = Math.min(
@@ -550,7 +559,9 @@ function createWebmFixture(
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    version === "v17"
+    version === "v18"
+      ? createReadableDecoyOccupancyRenderer(challengeScene)
+      : version === "v17"
       ? createRegenerativeMotionOccupancyRenderer(
           challengeScene,
           V17_STOCHASTIC_READABLE_PROFILE,
@@ -593,7 +604,9 @@ function createWebmFixture(
     },
     targetFrame,
     representation:
-      version === "v17"
+      version === "v18"
+        ? "v18-exact-cells"
+        : version === "v17"
         ? "v17-exact-cells"
         : version === "v16b"
         ? "v16b-exact-cells"

@@ -20,17 +20,18 @@ type VersionId =
   | "webm15b"
   | "webm16"
   | "webm16b"
-  | "webm17";
+  | "webm17"
+  | "webm18";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 11 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 12 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented eleven different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented twelve different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -115,6 +116,11 @@ const COPY = {
         detail: "24 WebM · temporal persistence",
         tone: "warning",
       },
+      webm18: {
+        score: "33.3% PASS",
+        detail: "24 WebM · shape template",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -139,6 +145,8 @@ const COPY = {
         "A human-first correction that keeps the best current bot pass rate at 16.7%. The target now provides a longer, calmer signal without restoring the frame-difference and tracking shortcuts; direct human testing is the remaining decision.",
       webm17:
         "A perception-first experiment: the target is smaller but temporally clearer, while its private path continuously changes speed and curvature without repeating. Mixed long-lived anchors kept flow and tracking at 8.3%, but temporal persistence rose to 25%; the remaining question is whether humans gain enough readability to justify that cost.",
+      webm18:
+        "A deliberate reset toward human readability. Four irregular moving blobs limit frame difference to 29.2% and flow/tracking to 25%, while the stable requested silhouette makes shape recognition the strongest measured attack at 33.3%. Human usability is now the deciding metric.",
     },
     versions: {
       canvas: {
@@ -428,6 +436,33 @@ const COPY = {
           "The smaller click target needs direct human testing",
         ],
       },
+      webm18: {
+        name: "Readable Motion Decoys",
+        version: "v1.8",
+        subtitle: "Clear target · four shapeless moving clusters",
+        summary:
+          "A stable geometric silhouette moves on a private stochastic path. Four separated irregular blobs travel with comparable size, speed, and persistence, while the remaining background rapidly regenerates.",
+        architecture:
+          "Readable private target · fragment motion decoys · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Target", "54–68 px · stable silhouette"],
+          ["Decoys", "4 irregular moving blobs"],
+          ["Path", "Continuous · stochastic · non-looping"],
+          ["Background", "58% fresh · 2–5 frame flows"],
+          ["Attacks", "8.3–33.3% across 24 WebM"],
+        ],
+        pros: [
+          "Restores a complete geometric silhouette for human vision",
+          "Several moving regions prevent motion energy from identifying one target",
+          "Target and decoy paths remain private and separated early",
+        ],
+        cons: [
+          "Shape recognition becomes the expected primary attack",
+          "Four moving blobs may still add visual search load",
+          "Human readability must be confirmed before further security tuning",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -441,16 +476,17 @@ const COPY = {
       webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
       webm16b: ["High / readable", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Non-looping", "CV: 16.7% best"],
       webm17: ["Compact / mixed memory", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Stochastic / no loop", "CV: 25.0% best"],
+      webm18: ["Clear / multi-cluster", "No", "≈ 1.18 MB/s", "≈ 1.34 s/segment", "Stochastic / no loop", "CV: 33.3% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 11 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 12 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная одиннадцатью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная двенадцатью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -535,6 +571,11 @@ const COPY = {
         detail: "24 WebM · temporal persistence",
         tone: "warning",
       },
+      webm18: {
+        score: "33.3% ПРОХОД",
+        detail: "24 WebM · шаблон формы",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -559,6 +600,8 @@ const COPY = {
         "Human-first исправление, сохранившее лучший bot pass rate на уровне 16.7%. Цель теперь даёт более долгий и спокойный сигнал без возврата shortcut через разность кадров и tracking; осталось проверить людей.",
       webm17:
         "Эксперимент с приоритетом восприятия: цель меньше, но её временной сигнал яснее, а приватная траектория непрерывно меняет скорость и кривизну без повторения. Смешанные долгоживущие точки удержали flow и tracking на 8.3%, но temporal persistence вырос до 25%; теперь нужно понять, достаточно ли выросла читаемость для человека.",
+      webm18:
+        "Осознанный возврат к человеческой читаемости. Четыре неправильных движущихся blob-кластера ограничили разность кадров уровнем 29.2%, а flow и tracking — 25%. Устойчивый искомый силуэт сделал распознавание формы сильнейшей атакой с 33.3%; теперь решающей метрикой становится удобство человека.",
     },
     versions: {
       canvas: {
@@ -848,6 +891,33 @@ const COPY = {
           "Меньшую цель нужно напрямую проверить на людях",
         ],
       },
+      webm18: {
+        name: "Readable Motion Decoys",
+        version: "v1.8",
+        subtitle: "Ясная цель · четыре бесформенных движущихся кластера",
+        summary:
+          "Устойчивый геометрический силуэт движется по приватной случайной траектории. Четыре разделённых неправильных blob-кластера перемещаются с похожим размером, скоростью и устойчивостью, а остальной фон быстро пересобирается.",
+        architecture:
+          "Читаемая приватная цель · фрагментированные motion-decoy · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Цель", "54–68 px · устойчивый силуэт"],
+          ["Decoy", "4 неправильных движущихся blob"],
+          ["Путь", "Непрерывный · случайный · без цикла"],
+          ["Фон", "58% новый · flow 2–5 кадров"],
+          ["Атаки", "8.3–33.3% на 24 WebM"],
+        ],
+        pros: [
+          "Возвращает цельный геометрический силуэт для человеческого зрения",
+          "Несколько движущихся областей не позволяют энергии движения сразу выдать цель",
+          "Траектории цели и decoy приватны и поначалу разделены",
+        ],
+        cons: [
+          "Распознавание формы становится ожидаемой основной атакой",
+          "Четыре движущихся blob всё ещё увеличивают визуальную нагрузку",
+          "Читаемость нужно подтвердить до дальнейшего усиления защиты",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -861,6 +931,7 @@ const COPY = {
       webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm16b: ["Высокое / читаемое", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm17: ["Компактное / смешанная память", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Случайное / без цикла", "CV: 25.0% лучший"],
+      webm18: ["Ясное / несколько кластеров", "Нет", "≈ 1.18 МБ/с", "≈ 1.34 с/сегмент", "Случайное / без цикла", "CV: 33.3% лучший"],
     },
   },
 } as const;
@@ -877,6 +948,7 @@ const VERSION_IDS: VersionId[] = [
   "webm16",
   "webm16b",
   "webm17",
+  "webm18",
 ];
 
 export function CaptchaVersions() {
@@ -945,7 +1017,8 @@ export function CaptchaVersions() {
                         id === "webm15b" ||
                         id === "webm16" ||
                         id === "webm16b" ||
-                        id === "webm17"
+                        id === "webm17" ||
+                        id === "webm18"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -1226,13 +1299,23 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm17" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v17/challenge"
                       webmOnly
                       stochasticReadable
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v18/challenge"
+                      webmOnly
+                      readableMotionDecoys
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

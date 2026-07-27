@@ -30,7 +30,8 @@ type Challenge = {
     | "human-tuned-decoys"
     | "regenerative-motion"
     | "regenerative-readable"
-    | "stochastic-readable";
+    | "stochastic-readable"
+    | "readable-motion-decoys";
 };
 
 export type ServerMotionCaptchaProps = {
@@ -44,6 +45,7 @@ export type ServerMotionCaptchaProps = {
   regenerativeMotion?: boolean;
   readableRegenerative?: boolean;
   stochasticReadable?: boolean;
+  readableMotionDecoys?: boolean;
 };
 
 const GLYPH = {
@@ -105,6 +107,7 @@ export function ServerMotionCaptcha({
   regenerativeMotion = false,
   readableRegenerative = false,
   stochasticReadable = false,
+  readableMotionDecoys = false,
 }: ServerMotionCaptchaProps) {
   const aimCursorRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -132,7 +135,9 @@ export function ServerMotionCaptcha({
           attempt: "ПОПЫТКА",
           remaining: "ОСТАЛОСЬ",
           canvas: "Серверное поле динамического шума. Найдите фигуру",
-          server: stochasticReadable
+          server: readableMotionDecoys
+            ? "WebM-пиксели · читаемая фигура · 4 бесформенных motion-decoy"
+            : stochasticReadable
             ? "WebM-пиксели · компактная цель · приватный случайный путь без цикла"
             : readableRegenerative
             ? "WebM-пиксели · читаемый regenerative-сигнал · короткий хаотичный фон"
@@ -169,7 +174,9 @@ export function ServerMotionCaptcha({
           attempt: "ATTEMPT",
           remaining: "REMAINING",
           canvas: "Server-rendered dynamic noise field. Find the shape",
-          server: stochasticReadable
+          server: readableMotionDecoys
+            ? "WebM pixels · readable shape · 4 shapeless motion decoys"
+            : stochasticReadable
             ? "WebM pixels · compact target · private non-looping stochastic path"
             : readableRegenerative
             ? "WebM pixels · readable regenerative signal · short chaotic background"
@@ -248,6 +255,12 @@ export function ServerMotionCaptcha({
       if (stochasticReadable && next.variant !== "stochastic-readable") {
         throw new Error("Stochastic readable variant metadata is invalid");
       }
+      if (
+        readableMotionDecoys &&
+        next.variant !== "readable-motion-decoys"
+      ) {
+        throw new Error("Readable motion-decoy variant metadata is invalid");
+      }
       setChallenge(next);
       setSecondsLeft(
         Math.max(0, Math.ceil((next.expiresAt - Date.now()) / 1000)),
@@ -260,6 +273,7 @@ export function ServerMotionCaptcha({
     endpointBase,
     humanTuned,
     matchedMotion,
+    readableMotionDecoys,
     readableRegenerative,
     regenerativeMotion,
     stochasticReadable,
