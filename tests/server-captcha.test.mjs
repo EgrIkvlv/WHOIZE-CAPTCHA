@@ -54,16 +54,20 @@ import {
   createRegenerativeMotionFrameRenderer,
   createRegenerativeMotionOccupancyRenderer,
   V16B_READABLE_REGENERATIVE_PROFILE,
+  V17_STOCHASTIC_READABLE_PROFILE,
 } from "../apps/captcha-versions/server/regenerative-motion-engine.ts";
 import {
   createReadableRegenerativeChallenge,
   createRegenerativeMotionChallenge,
+  createStochasticReadableChallenge,
   readReadableRegenerativeSegment,
   readRegenerativeMotionSegment,
   readableRegenerativePublicChallenge,
   regenerativeMotionPublicChallenge,
+  stochasticReadablePublicChallenge,
   verifyReadableRegenerativeChallenge,
   verifyRegenerativeMotionChallenge,
+  verifyStochasticReadableChallenge,
 } from "../apps/captcha-versions/server/regenerative-motion-service.ts";
 import { readRecord } from "../apps/server-captcha/server/state-store.ts";
 
@@ -552,6 +556,64 @@ test("keeps the readable v1.6b profile private and separately runnable", async (
     x: center.x,
     y: center.y,
     frameIndex: 0,
+    proofTtlSeconds: 60,
+    now: now + 1_000,
+  });
+  assert.equal(result.success, true);
+});
+
+test("keeps the compact v1.7 stochastic path private and verifies it", async () => {
+  resetStore();
+  const now = 1_800_000_000_000;
+  const sessionHash = "session-v17";
+  const { record } = await createStochasticReadableChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash,
+    now,
+  });
+  const publicChallenge = stochasticReadablePublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+
+  assert.match(record.id, /^webm17_[a-f0-9]{48}$/);
+  assert.equal(publicChallenge.transport, "webm-only");
+  assert.equal(publicChallenge.variant, "stochastic-readable");
+  assert.ok(record.scene.radius >= 46);
+  assert.ok(record.scene.radius <= Math.round(DEFAULT_CAPTCHA_CONFIG.radiusMax * 0.82));
+  assert.equal(record.scene.trajectory.length, record.scene.durationFrames);
+  for (const forbidden of [
+    "scene",
+    "visualSeed",
+    "velocity",
+    "radius",
+    "positions",
+    "trajectory",
+    "particles",
+    "lifetimes",
+    "profile",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false);
+  }
+
+  const path = record.scene.trajectory;
+  const steps = path.slice(1).map((point, index) =>
+    Math.hypot(point.x - path[index].x, point.y - path[index].y),
+  );
+  assert.ok(Math.max(...steps) < DEFAULT_CAPTCHA_CONFIG.speed / record.scene.fps * 1.4);
+  assert.ok(new Set(path.map((point) => `${point.x.toFixed(3)}:${point.y.toFixed(3)}`)).size > path.length * 0.98);
+
+  const occupancyRenderer = createRegenerativeMotionOccupancyRenderer(
+    record.scene,
+    V17_STOCHASTIC_READABLE_PROFILE,
+  );
+  assert.equal(occupancyRenderer(0).length, record.scene.density);
+  assert.notDeepEqual(occupancyRenderer(0), occupancyRenderer(1));
+  const center = positionAtFrame(record.scene, 75);
+  const result = await verifyStochasticReadableChallenge({
+    id: record.id,
+    sessionHash,
+    x: center.x,
+    y: center.y,
+    frameIndex: 75,
     proofTtlSeconds: 60,
     now: now + 1_000,
   });

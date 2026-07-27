@@ -19,7 +19,9 @@ import {
 import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 import {
   createRegenerativeMotionOccupancyRenderer,
+  generateStochasticReadableScene,
   V16B_READABLE_REGENERATIVE_PROFILE,
+  V17_STOCHASTIC_READABLE_PROFILE,
 } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
 
 export type Point = { x: number; y: number };
@@ -37,6 +39,7 @@ export type BenchmarkFixture = {
     | "v15b-exact-cells"
     | "v16-exact-cells"
     | "v16b-exact-cells"
+    | "v17-exact-cells"
     | "raster-clean"
     | "raster-blurred"
     | "webm-decoded";
@@ -507,15 +510,22 @@ export function createV16bFixture(seed: number): BenchmarkFixture {
   return createWebmFixture(seed, "v16b");
 }
 
+export function createV17Fixture(seed: number): BenchmarkFixture {
+  return createWebmFixture(seed, "v17");
+}
+
 function createWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" | "v16" | "v16b",
+  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17",
 ): BenchmarkFixture {
   const config =
     version === "v15b"
       ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
       : DEFAULT_CAPTCHA_CONFIG;
-  const challengeScene = generateChallengeScene(config, seed);
+  const challengeScene =
+    version === "v17"
+      ? generateStochasticReadableScene(config, seed)
+      : generateChallengeScene(config, seed);
   const targetFrame = Math.min(
     challengeScene.durationFrames - 1,
     challengeScene.segmentFrames * 2 +
@@ -540,7 +550,12 @@ function createWebmFixture(
   };
   const frames = new Array<Uint32Array>(scene.frameCount);
   const renderOccupancy =
-    version === "v16b"
+    version === "v17"
+      ? createRegenerativeMotionOccupancyRenderer(
+          challengeScene,
+          V17_STOCHASTIC_READABLE_PROFILE,
+        )
+      : version === "v16b"
       ? createRegenerativeMotionOccupancyRenderer(
           challengeScene,
           V16B_READABLE_REGENERATIVE_PROFILE,
@@ -578,7 +593,9 @@ function createWebmFixture(
     },
     targetFrame,
     representation:
-      version === "v16b"
+      version === "v17"
+        ? "v17-exact-cells"
+        : version === "v16b"
         ? "v16b-exact-cells"
         : version === "v16"
         ? "v16-exact-cells"

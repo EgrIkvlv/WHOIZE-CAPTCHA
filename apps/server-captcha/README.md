@@ -111,3 +111,24 @@ Frame difference, coherent flow, and tracking each passed 4.2%, while temporal
 persistence, density, and the public shape template each reached 16.7%. This
 keeps the measured automated result close to v1.6 while deliberately restoring
 more temporal evidence for people.
+
+## v1.7 compact stochastic-path experiment
+
+`/api/versions/webm-v17/challenge` keeps the WebM-only and private verification
+boundary, but reduces the target radius by approximately 18% and replaces the
+reflected linear path with a full server-side stochastic trajectory. Speed and
+curvature change smoothly, boundary steering avoids teleports, and no path is
+looped back to its start.
+
+Most target particles live 5–9 frames; 30% become 14–20 frame visual anchors.
+The background keeps 3–7 frame local flows, 48% immediate regeneration, and
+18% 12–18 frame anchors. This gives people sparse stable evidence without
+making long lifetime exclusive to the target. The public response contains
+only the `stochastic-readable` label and playback metadata; the compact radius,
+trajectory, anchor assignments, mask, and hit test stay private.
+
+The first candidate made every target point live 14–20 frames. It was rejected
+after coherent flow and tracking each passed 66.7% of 24 production WebM
+scenes. The mixed-anchor profile reduced both to 8.3%; temporal persistence is
+now the strongest measured attack at 25%. Human testing determines whether the
+readability gain is worth that increase over v1.6b.

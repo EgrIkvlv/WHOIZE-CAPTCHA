@@ -19,17 +19,18 @@ type VersionId =
   | "webm15"
   | "webm15b"
   | "webm16"
-  | "webm16b";
+  | "webm16b"
+  | "webm17";
 
 const COPY = {
   en: {
     nav: "Versions navigation",
     back: "Home",
     lab: "Motion Lab",
-    kicker: "LIVE ARCHITECTURE ARCHIVE · 10 RUNNABLE BUILDS",
+    kicker: "LIVE ARCHITECTURE ARCHIVE · 11 RUNNABLE BUILDS",
     title: "CAPTCHA\nVersions",
     intro:
-      "The same motion idea, implemented ten different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
+      "The same motion idea, implemented eleven different ways. Launch every preserved build, compare the real trade-offs, and use the archive as a baseline for the next iteration.",
     current: "CURRENT",
     archived: "ARCHIVED",
     experiment: "EXPERIMENT",
@@ -43,7 +44,7 @@ const COPY = {
     architecture: "Architecture",
     measured: "Observed prototype metrics",
     note:
-      "Attack percentages are bot pass rates, so lower is better. Numbers describe the current Readable profile and our deployed prototype—not universal performance guarantees.",
+      "Attack percentages are bot pass rates, so lower is better. Numbers describe the current prototype profiles and deployed builds—not universal performance guarantees.",
     matrix: "Comparison matrix",
     criterion: "Criterion",
     attackTest: "Best attack pass rate",
@@ -109,6 +110,11 @@ const COPY = {
         detail: "24 WebM · three attacks tied",
         tone: "success",
       },
+      webm17: {
+        score: "25.0% PASS",
+        detail: "24 WebM · temporal persistence",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -131,6 +137,8 @@ const COPY = {
         "The strongest current result against the seven local baselines: flow reached 0%, tracking 8.3%, and the best attack reached 16.7%. Human readability is still unknown, so this remains an experiment rather than the default.",
       webm16b:
         "A human-first correction that keeps the best current bot pass rate at 16.7%. The target now provides a longer, calmer signal without restoring the frame-difference and tracking shortcuts; direct human testing is the remaining decision.",
+      webm17:
+        "A perception-first experiment: the target is smaller but temporally clearer, while its private path continuously changes speed and curvature without repeating. Mixed long-lived anchors kept flow and tracking at 8.3%, but temporal persistence rose to 25%; the remaining question is whether humans gain enough readability to justify that cost.",
     },
     versions: {
       canvas: {
@@ -393,6 +401,33 @@ const COPY = {
           "Human readability must be confirmed directly",
         ],
       },
+      webm17: {
+        name: "Stochastic Compact Target",
+        version: "v1.7",
+        subtitle: "Smaller silhouette · private non-repeating path",
+        summary:
+          "A compact target follows a server-generated stochastic trajectory whose curvature and speed change smoothly throughout the challenge. Thirty percent of target points form longer-lived visual anchors, while matching long-lived anchors are scattered through the chaotic background.",
+        architecture:
+          "Private stochastic trajectory · compact regenerative target · VP8/WebM only · server verification",
+        metrics: [
+          ["Frame", "640×360 · 48 fps"],
+          ["Target", "≈ 18% smaller"],
+          ["Path", "Continuous · stochastic · non-looping"],
+          ["Target memory", "5–9 frames · 30% at 14–20"],
+          ["Background", "3–7 frames · 18% long-lived"],
+          ["Attacks", "8.3–25.0% across 24 WebM"],
+        ],
+        pros: [
+          "A smaller hit region lowers the chance of a random successful click",
+          "Smooth random steering removes deterministic bounce and loop priors",
+          "Sparse long-lived anchors should restore a readable silhouette",
+        ],
+        cons: [
+          "A solver can still estimate current motion without predicting the future",
+          "Temporal persistence remains the strongest attack at 25%",
+          "The smaller click target needs direct human testing",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["High", "Yes", "Minimal", "None", "Continuous", "Low"],
@@ -405,16 +440,17 @@ const COPY = {
       webm15b: ["High / calmer", "No", "≈ 1.12 MB/s", "≈ 1.03 s/segment", "Non-looping", "CV: 54.2% best"],
       webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
       webm16b: ["High / readable", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Non-looping", "CV: 16.7% best"],
+      webm17: ["Compact / mixed memory", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Stochastic / no loop", "CV: 25.0% best"],
     },
   },
   ru: {
     nav: "Навигация по версиям",
     back: "Главная",
     lab: "Motion Lab",
-    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 10 РАБОЧИХ СБОРОК",
+    kicker: "ЖИВОЙ АРХИВ АРХИТЕКТУР · 11 РАБОЧИХ СБОРОК",
     title: "Версии\nCAPTCHA",
     intro:
-      "Одна motion-идея, реализованная десятью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
+      "Одна motion-идея, реализованная одиннадцатью способами. Каждую сохранённую сборку можно запустить, сравнить реальные компромиссы и использовать как основу следующей итерации.",
     current: "ТЕКУЩАЯ",
     archived: "АРХИВ",
     experiment: "ЭКСПЕРИМЕНТ",
@@ -428,7 +464,7 @@ const COPY = {
     architecture: "Архитектура",
     measured: "Измеренные параметры прототипа",
     note:
-      "Проценты атак — это доля успешных прохождений ботом: чем ниже, тем лучше. Цифры относятся к профилю «Читаемый» и нашим деплоям, а не являются универсальной гарантией.",
+      "Проценты атак — это доля успешных прохождений ботом: чем ниже, тем лучше. Цифры относятся к текущим профилям прототипа и нашим деплоям, а не являются универсальной гарантией.",
     matrix: "Матрица сравнения",
     criterion: "Критерий",
     attackTest: "Проход лучшей атаки",
@@ -494,6 +530,11 @@ const COPY = {
         detail: "24 WebM · три атаки на одном уровне",
         tone: "success",
       },
+      webm17: {
+        score: "25.0% ПРОХОД",
+        detail: "24 WebM · temporal persistence",
+        tone: "warning",
+      },
     },
     verdict: {
       canvas:
@@ -516,6 +557,8 @@ const COPY = {
         "Лучший текущий результат против семи локальных baseline: flow дал 0%, tracking — 8.3%, лучшая атака — 16.7%. Читаемость для человека пока неизвестна, поэтому это эксперимент, а не новая версия по умолчанию.",
       webm16b:
         "Human-first исправление, сохранившее лучший bot pass rate на уровне 16.7%. Цель теперь даёт более долгий и спокойный сигнал без возврата shortcut через разность кадров и tracking; осталось проверить людей.",
+      webm17:
+        "Эксперимент с приоритетом восприятия: цель меньше, но её временной сигнал яснее, а приватная траектория непрерывно меняет скорость и кривизну без повторения. Смешанные долгоживущие точки удержали flow и tracking на 8.3%, но temporal persistence вырос до 25%; теперь нужно понять, достаточно ли выросла читаемость для человека.",
     },
     versions: {
       canvas: {
@@ -778,6 +821,33 @@ const COPY = {
           "Читаемость нужно подтвердить напрямую",
         ],
       },
+      webm17: {
+        name: "Stochastic Compact Target",
+        version: "v1.7",
+        subtitle: "Меньший силуэт · приватный неповторяющийся путь",
+        summary:
+          "Компактная цель движется по созданной сервером случайной траектории, плавно меняющей кривизну и скорость. Тридцать процентов точек цели образуют более устойчивые визуальные опоры, а похожие долгоживущие точки разбросаны по хаотичному фону.",
+        architecture:
+          "Приватная stochastic-траектория · компактная regenerative-цель · только VP8/WebM · серверная проверка",
+        metrics: [
+          ["Кадр", "640×360 · 48 fps"],
+          ["Цель", "Примерно на 18% меньше"],
+          ["Путь", "Непрерывный · случайный · без цикла"],
+          ["Память цели", "5–9 кадров · 30% живут 14–20"],
+          ["Фон", "3–7 кадров · 18% долгоживущих"],
+          ["Атаки", "8.3–25.0% на 24 WebM"],
+        ],
+        pros: [
+          "Меньшая область попадания снижает вероятность случайного успеха",
+          "Плавное случайное управление убирает простой bounce и повтор пути",
+          "Редкие долгоживущие опоры должны вернуть читаемый силуэт",
+        ],
+        cons: [
+          "Solver всё ещё может оценивать текущее движение, не предсказывая будущее",
+          "Temporal persistence остаётся сильнейшей атакой с 25%",
+          "Меньшую цель нужно напрямую проверить на людях",
+        ],
+      },
     },
     matrixValues: {
       canvas: ["Высокое", "Да", "Минимальный", "Нет", "Непрерывное", "Низкий"],
@@ -790,6 +860,7 @@ const COPY = {
       webm15b: ["Высокое / спокойнее", "Нет", "≈ 1.12 МБ/с", "≈ 1.03 с/сегмент", "Без цикла", "CV: 54.2% лучший"],
       webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm16b: ["Высокое / читаемое", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
+      webm17: ["Компактное / смешанная память", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Случайное / без цикла", "CV: 25.0% лучший"],
     },
   },
 } as const;
@@ -805,6 +876,7 @@ const VERSION_IDS: VersionId[] = [
   "webm15b",
   "webm16",
   "webm16b",
+  "webm17",
 ];
 
 export function CaptchaVersions() {
@@ -872,7 +944,8 @@ export function CaptchaVersions() {
                         id === "webm15" ||
                         id === "webm15b" ||
                         id === "webm16" ||
-                        id === "webm16b"
+                        id === "webm16b" ||
+                        id === "webm17"
                       ? copy.experiment
                       : copy.archived}
                 </span>
@@ -1143,13 +1216,23 @@ export function CaptchaVersions() {
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />
-                  ) : (
+                  ) : activeVersion === "webm16b" ? (
                     <ServerMotionCaptcha
                       key={relaunchKey}
                       locale={locale}
                       endpointBase="/api/versions/webm-v16b/challenge"
                       webmOnly
                       readableRegenerative
+                      onPass={() => undefined}
+                      onClose={() => setActiveVersion(null)}
+                    />
+                  ) : (
+                    <ServerMotionCaptcha
+                      key={relaunchKey}
+                      locale={locale}
+                      endpointBase="/api/versions/webm-v17/challenge"
+                      webmOnly
+                      stochasticReadable
                       onPass={() => undefined}
                       onClose={() => setActiveVersion(null)}
                     />

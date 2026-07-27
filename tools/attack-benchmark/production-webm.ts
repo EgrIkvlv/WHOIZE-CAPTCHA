@@ -12,8 +12,10 @@ import {
 } from "../../apps/captcha-versions/server/matched-motion-engine.ts";
 import { humanTunedConfig } from "../../apps/captcha-versions/server/matched-motion-service.ts";
 import {
+  generateStochasticReadableScene,
   renderRegenerativeMotionSegment,
   V16B_READABLE_REGENERATIVE_PROFILE,
+  V17_STOCHASTIC_READABLE_PROFILE,
 } from "../../apps/captcha-versions/server/regenerative-motion-engine.ts";
 import {
   createDecodedWebmFixture,
@@ -22,6 +24,7 @@ import {
   createV15bFixture,
   createV16Fixture,
   createV16bFixture,
+  createV17Fixture,
   type BenchmarkFixture,
 } from "./benchmark-core.ts";
 
@@ -107,10 +110,12 @@ function decodeWebmToGray(
 
 export async function createProductionWebmFixture(
   seed: number,
-  version: "v14" | "v15" | "v15b" | "v16" | "v16b" = "v14",
+  version: "v14" | "v15" | "v15b" | "v16" | "v16b" | "v17" = "v14",
 ): Promise<BenchmarkFixture> {
   const source =
-    version === "v16b"
+    version === "v17"
+      ? createV17Fixture(seed)
+      : version === "v16b"
       ? createV16bFixture(seed)
       : version === "v16"
       ? createV16Fixture(seed)
@@ -119,24 +124,29 @@ export async function createProductionWebmFixture(
       : version === "v15"
         ? createV15Fixture(seed)
         : createV14Fixture(seed);
-  const scene = generateChallengeScene(
-    version === "v15b"
-      ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
-      : DEFAULT_CAPTCHA_CONFIG,
-    seed,
-  );
+  const scene =
+    version === "v17"
+      ? generateStochasticReadableScene(DEFAULT_CAPTCHA_CONFIG, seed)
+      : generateChallengeScene(
+          version === "v15b"
+            ? humanTunedConfig(DEFAULT_CAPTCHA_CONFIG)
+            : DEFAULT_CAPTCHA_CONFIG,
+          seed,
+        );
   const segmentIndex = Math.floor(
     source.targetFrame / scene.segmentFrames,
   );
   const encodeStartedAt = performance.now();
   const webm =
-    version === "v16" || version === "v16b"
+    version === "v16" || version === "v16b" || version === "v17"
       ? await renderRegenerativeMotionSegment({
           scene,
           segmentIndex,
           wasmBinary: await readCodec(),
           profile:
-            version === "v16b"
+            version === "v17"
+              ? V17_STOCHASTIC_READABLE_PROFILE
+              : version === "v16b"
               ? V16B_READABLE_REGENERATIVE_PROFILE
               : undefined,
         })

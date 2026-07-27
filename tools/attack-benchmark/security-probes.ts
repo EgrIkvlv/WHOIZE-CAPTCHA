@@ -18,8 +18,10 @@ import {
 import {
   createReadableRegenerativeChallenge,
   createRegenerativeMotionChallenge,
+  createStochasticReadableChallenge,
   readableRegenerativePublicChallenge,
   regenerativeMotionPublicChallenge,
+  stochasticReadablePublicChallenge,
 } from "../../apps/captcha-versions/server/regenerative-motion-service.ts";
 
 export async function runClientExposureAudit() {
@@ -270,6 +272,52 @@ export async function runReadableRegenerativeExposureAudit() {
     exactOccupancyFramesExposed: false,
     conclusion:
       "v1.6b exposes playback metadata and its variant label only; readable target lifetimes, background lifetimes, local flow, and mask remain server-side.",
+  };
+}
+
+export async function runStochasticReadableExposureAudit() {
+  const runtime = globalThis as typeof globalThis & {
+    __whoizeCaptchaRecords?: Map<string, unknown>;
+  };
+  runtime.__whoizeCaptchaRecords = new Map();
+  const { record } = await createStochasticReadableChallenge({
+    config: DEFAULT_CAPTCHA_CONFIG,
+    sessionHash: "stochastic-readable-exposure-audit",
+    now: 1_800_000_000_000,
+  });
+  const publicChallenge = stochasticReadablePublicChallenge(record);
+  const serialized = JSON.stringify(publicChallenge);
+  const forbiddenFields = [
+    "scene",
+    "frames",
+    "positions",
+    "trajectory",
+    "visualSeed",
+    "velocity",
+    "start",
+    "radius",
+    "density",
+    "dotSize",
+    "coherence",
+    "mask",
+    "particles",
+    "lifetimes",
+    "profile",
+  ];
+  const exposedPrivateFields = forbiddenFields.filter((field) =>
+    serialized.includes(`"${field}"`),
+  );
+  return {
+    probeId: "stochastic-readable-client-exposure",
+    passed:
+      publicChallenge.transport === "webm-only" &&
+      publicChallenge.variant === "stochastic-readable" &&
+      exposedPrivateFields.length === 0,
+    publicFields: Object.keys(publicChallenge),
+    exposedPrivateFields,
+    exactOccupancyFramesExposed: false,
+    conclusion:
+      "v1.7 exposes playback metadata and its variant label only; the compact radius, full stochastic trajectory, particle lifetimes, and target mask remain server-side.",
   };
 }
 

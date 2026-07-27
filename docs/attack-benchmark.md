@@ -191,7 +191,7 @@ documentation.
   is present before verification.
 - v1.3 exposure finding: the complete exact occupancy sequence is present in
   client state and is sufficient for the successful temporal solvers above.
-- v1.4/v1.5/v1.5b/v1.6/v1.6b exposure finding: only decoded WebM pixels and
+- v1.4/v1.5/v1.5b/v1.6/v1.6b/v1.7 exposure finding: only decoded WebM pixels and
   public playback metadata reach the client; private scene and exact occupancy
   arrays are absent.
 - Challenge replay: rejected after a successful verification.
@@ -331,3 +331,39 @@ frame-difference shortcut from the rejected first profile is absent.
 The remaining question is empirical usability. v1.6b should be compared with
 v1.6 using human completion time, miss rate, and perceived strain before either
 version replaces the current main challenge.
+
+## v1.7 compact stochastic-path production WebM comparison
+
+The first v1.7 candidate combined an approximately 18% smaller target with a
+smooth private random path, but all target points persisted for 14–20 frames.
+That made the silhouette clearer while giving coherent flow and tracking a
+66.7% pass rate. The candidate was rejected before publication.
+
+The published experiment keeps the compact target and non-looping stochastic
+path, but splits the temporal signal. Most target particles live 5–9 frames and
+30% live 14–20 frames. Background particles live 3–7 frames, 48% regenerate
+immediately, and 18% become 12–18 frame anchors. The comparison used 24
+identical seeds, production VP8/WebM, FFmpeg gray8 decoding, and the private hit
+test.
+
+| Decoded production WebM attack | v1.6b success | v1.7 success | v1.7 median error | v1.7 median solver time |
+| --- | ---: | ---: | ---: | ---: |
+| Random click | 4.2% | 0.0% | 210.8 px | 0.01 ms |
+| Single-frame density | 16.7% | 16.7% | 145.6 px | 1.98 ms |
+| Two-frame difference | 0.0% | 8.3% | 232.7 px | 3.34 ms |
+| Temporal persistence | 16.7% | 25.0% | 105.8 px | 13.45 ms |
+| Coherent flow | 4.2% | 8.3% | 149.9 px | 145.81 ms |
+| Multi-frame tracking | 12.5% | 8.3% | 118.8 px | 1,032.90 ms |
+| Public-shape template | 16.7% | 8.3% | 192.3 px | 62.82 ms |
+
+Median one-second transport costs were:
+
+- v1.6b: 1,244 KiB, 1,315 ms encode, 75 ms decode;
+- v1.7: 1,245 KiB, 1,321 ms encode, 75 ms decode.
+
+The random three-attempt hit probability fell to 8.27% in this target mix.
+Future-position unpredictability did not itself stop current-frame solvers;
+the mixed background anchors were necessary to remove the 66.7% flow shortcut.
+The final v1.7 result deliberately accepts a higher 25% persistence attack in
+exchange for a potentially clearer target. Human completion time and miss rate
+must now decide whether that trade is useful.

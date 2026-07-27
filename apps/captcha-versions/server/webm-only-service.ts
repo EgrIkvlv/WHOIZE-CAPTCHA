@@ -59,17 +59,19 @@ export async function createWebmOnlyChallenge({
   sessionHash,
   namespace = "webm-v14",
   tokenPrefix = "webm14",
+  createScene = generateChallengeScene,
   now = Date.now(),
 }: {
   config: CaptchaConfig;
   sessionHash: string;
   namespace?: string;
   tokenPrefix?: string;
+  createScene?: (config: CaptchaConfig, seed: number) => ChallengeScene;
   now?: number;
 }) {
   const id = createOpaqueToken(tokenPrefix);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const scene = generateChallengeScene(config, seed);
+  const scene = createScene(config, seed);
   const expiresAt = now + config.durationSeconds * 1000;
   const record: WebmOnlyChallengeRecord = {
     id,

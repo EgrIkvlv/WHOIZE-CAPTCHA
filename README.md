@@ -57,7 +57,8 @@ research applications:
 - `apps/captcha-versions` — runnable preserved implementations and comparison
   data for client Canvas, server APNG, server WebM, sparse final-frame,
   browser-blur, dynamic WebM-only, matched-motion decoy, and human-tuned decoy
-  builds, plus the regenerative-motion and readable-regenerative experiments;
+  builds, plus the regenerative-motion, readable-regenerative, and compact
+  stochastic-path experiments;
 - `apps/control-plane` — an open reference implementation for shared research
   configuration.
 
@@ -67,7 +68,7 @@ The deployed site has four connected surfaces:
 - `/versions` — a runnable archive comparing the client Canvas, server APNG,
   server WebM, sparse final-frame, browser-blur, dynamic WebM-only, and
   matched-motion decoy implementations, including the human-tuned v1.5b and
-  regenerative v1.6 and readable v1.6b branches;
+  regenerative v1.6, readable v1.6b, and compact stochastic v1.7 branches;
 - `/lab` — the original perception laboratory for tuning the signal;
 - `/admin` — an authenticated server control plane for shared CAPTCHA
   configuration.
@@ -80,6 +81,18 @@ them in place. Each entry records its actual resolution, dot density, frame
 rate, traffic profile, server cost, security boundary, advantages, and known
 limitations. This provides reproducible baselines for later `v1.x`
 experiments.
+
+Version `v1.7` tests the proposed smaller-object strategy without relying on a
+loop or predictable reflected line. The private server record stores a smooth
+stochastic path whose speed and curvature change throughout the challenge.
+The radius is about 18% smaller than the configured baseline. Most target
+particles live 5–9 frames, while 30% form 14–20 frame visual anchors; 18% of
+background particles receive comparable long lifetimes so persistence is not
+unique to the target. In the 24-seed production-codec comparison, temporal
+persistence passed 25%, while frame difference, coherent flow, tracking, and
+shape-template attacks each passed 8.3%. This is a measured
+security-for-readability experiment, not a replacement for the current main
+CAPTCHA.
 
 Version `v1.6b` is the readable correction to v1.6. Target particles now
 persist for 8–12 frames with smaller internal motion, while background

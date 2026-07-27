@@ -1,11 +1,14 @@
 import {
   inShape,
   shapeAreaRatio,
+  type CaptchaConfig,
 } from "@whoize/captcha-core";
 import {
   encodeWebmFrames,
+  generateChallengeScene,
   positionAtFrame,
   type ChallengeScene,
+  type Point,
 } from "../../server-captcha/server/challenge-engine.ts";
 
 const DOT_COLOR = [16, 17, 15, 255] as const;
@@ -21,6 +24,12 @@ export type RegenerativeMotionProfile = {
   backgroundDirectionJitter: number;
   internalMotionMin: number;
   internalMotionMax: number;
+  targetAnchorRatio?: number;
+  targetAnchorLifetimeMin?: number;
+  targetAnchorLifetimeMax?: number;
+  backgroundAnchorRatio?: number;
+  backgroundAnchorLifetimeMin?: number;
+  backgroundAnchorLifetimeMax?: number;
 };
 
 export const V16_REGENERATIVE_MOTION_PROFILE: RegenerativeMotionProfile = {
@@ -45,6 +54,24 @@ export const V16B_READABLE_REGENERATIVE_PROFILE: RegenerativeMotionProfile = {
   backgroundDirectionJitter: 0.95,
   internalMotionMin: 0.028,
   internalMotionMax: 0.078,
+};
+
+export const V17_STOCHASTIC_READABLE_PROFILE: RegenerativeMotionProfile = {
+  freshBackgroundRatio: 0.48,
+  backgroundLifetimeMin: 3,
+  backgroundLifetimeMax: 7,
+  targetLifetimeMin: 5,
+  targetLifetimeMax: 9,
+  backgroundTileSize: 56,
+  backgroundDirectionJitter: 1.08,
+  internalMotionMin: 0.022,
+  internalMotionMax: 0.062,
+  targetAnchorRatio: 0.3,
+  targetAnchorLifetimeMin: 14,
+  targetAnchorLifetimeMax: 20,
+  backgroundAnchorRatio: 0.18,
+  backgroundAnchorLifetimeMin: 12,
+  backgroundAnchorLifetimeMax: 18,
 };
 
 function mulberry32(seed: number) {
@@ -102,6 +129,104 @@ function wrappedCoordinate(value: number, maximum: number) {
   return ((value % maximum) + maximum) % maximum;
 }
 
+function normalizeAngle(value: number) {
+  return Math.atan2(Math.sin(value), Math.cos(value));
+}
+
+function interpolateAngle(from: number, to: number, amount: number) {
+  return from + normalizeAngle(to - from) * amount;
+}
+
+function createStochasticTrajectory(scene: ChallengeScene) {
+  const random = mulberry32(scene.visualSeed ^ 0x17c0ffee);
+  const margin = scene.radius + 18;
+  const center = { x: scene.width / 2, y: scene.height / 2 };
+  const positions: Point[] = [];
+  let position = { ...scene.start };
+  let heading = Math.atan2(scene.velocity.y, scene.velocity.x);
+  let turnRate = 0;
+  let desiredTurnRate = 0;
+  const baseSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
+  let speed = baseSpeed;
+  let desiredSpeed = baseSpeed;
+  let nextSteeringFrame = 0;
+
+  for (
+    let frameIndex = 0;
+    frameIndex < scene.durationFrames;
+    frameIndex += 1
+  ) {
+    positions.push({ ...position });
+    if (frameIndex >= nextSteeringFrame) {
+      desiredTurnRate = (random() * 2 - 1) * 1.45;
+      desiredSpeed = baseSpeed * (0.76 + random() * 0.48);
+      nextSteeringFrame =
+        frameIndex + Math.round(scene.fps * (0.28 + random() * 0.46));
+    }
+
+    const edgeDistance = Math.min(
+      position.x - margin,
+      scene.width - margin - position.x,
+      position.y - margin,
+      scene.height - margin - position.y,
+    );
+    if (edgeDistance < 58) {
+      const inwardHeading = Math.atan2(
+        center.y - position.y,
+        center.x - position.x,
+      );
+      const inwardWeight = Math.min(0.22, (58 - edgeDistance) / 230);
+      heading = interpolateAngle(heading, inwardHeading, inwardWeight);
+      desiredTurnRate *= 0.72;
+    }
+
+    turnRate += (desiredTurnRate - turnRate) * 0.075;
+    speed += (desiredSpeed - speed) * 0.055;
+    heading = normalizeAngle(heading + turnRate / scene.fps);
+    position = {
+      x: position.x + (Math.cos(heading) * speed) / scene.fps,
+      y: position.y + (Math.sin(heading) * speed) / scene.fps,
+    };
+
+    if (position.x < margin || position.x > scene.width - margin) {
+      position.x = Math.max(margin, Math.min(scene.width - margin, position.x));
+      heading = normalizeAngle(Math.PI - heading + (random() - 0.5) * 0.32);
+      desiredTurnRate *= -0.45;
+    }
+    if (position.y < margin || position.y > scene.height - margin) {
+      position.y = Math.max(margin, Math.min(scene.height - margin, position.y));
+      heading = normalizeAngle(-heading + (random() - 0.5) * 0.32);
+      desiredTurnRate *= -0.45;
+    }
+  }
+
+  return positions;
+}
+
+export function stochasticReadableConfig(config: CaptchaConfig): CaptchaConfig {
+  const radiusMin = Math.max(46, Math.round(config.radiusMin * 0.82));
+  const radiusMax = Math.max(
+    radiusMin + 4,
+    Math.round(config.radiusMax * 0.82),
+  );
+  return {
+    ...config,
+    radiusMin,
+    radiusMax,
+  };
+}
+
+export function generateStochasticReadableScene(
+  config: CaptchaConfig,
+  seed: number,
+) {
+  const scene = generateChallengeScene(stochasticReadableConfig(config), seed);
+  return {
+    ...scene,
+    trajectory: createStochasticTrajectory(scene),
+  };
+}
+
 function drawSquare(pixels: Uint8Array, scene: ChallengeScene, cell: number) {
   const x = cell % scene.width;
   const y = Math.floor(cell / scene.width);
@@ -143,13 +268,29 @@ export function createRegenerativeMotionOccupancyRenderer(
     const backgroundOccupied = new Set<number>();
 
     for (const slotSeed of backgroundSlots) {
+      const slotRatio = (slotSeed & 0xffff) / 0xffff;
+      const anchor =
+        slotRatio < (profile.backgroundAnchorRatio ?? 0);
       const permanentlyFresh =
-        (slotSeed & 0xffff) / 0xffff < profile.freshBackgroundRatio;
+        !anchor &&
+        slotRatio <
+          (profile.backgroundAnchorRatio ?? 0) +
+            profile.freshBackgroundRatio;
       const life = lifecycle(
         globalFrameIndex,
         slotSeed,
-        permanentlyFresh ? 1 : profile.backgroundLifetimeMin,
-        permanentlyFresh ? 1 : profile.backgroundLifetimeMax,
+        permanentlyFresh
+          ? 1
+          : anchor
+            ? (profile.backgroundAnchorLifetimeMin ??
+              profile.backgroundLifetimeMin)
+            : profile.backgroundLifetimeMin,
+        permanentlyFresh
+          ? 1
+          : anchor
+            ? (profile.backgroundAnchorLifetimeMax ??
+              profile.backgroundLifetimeMax)
+            : profile.backgroundLifetimeMax,
       );
       const random = mulberry32(
         (slotSeed ^ Math.imul(life.cycle + 1, 0x9e3779b1)) >>> 0,
@@ -194,11 +335,17 @@ export function createRegenerativeMotionOccupancyRenderer(
 
     const targetOccupied = new Set<number>();
     for (const slotSeed of targetSlots) {
+      const anchor =
+        (slotSeed & 0xffff) / 0xffff < (profile.targetAnchorRatio ?? 0);
       const life = lifecycle(
         globalFrameIndex,
         slotSeed,
-        profile.targetLifetimeMin,
-        profile.targetLifetimeMax,
+        anchor
+          ? (profile.targetAnchorLifetimeMin ?? profile.targetLifetimeMin)
+          : profile.targetLifetimeMin,
+        anchor
+          ? (profile.targetAnchorLifetimeMax ?? profile.targetLifetimeMax)
+          : profile.targetLifetimeMax,
       );
       const random = mulberry32(
         (slotSeed ^ Math.imul(life.cycle + 1, 0x165667b1)) >>> 0,

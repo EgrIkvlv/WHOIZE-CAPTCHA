@@ -31,6 +31,7 @@ export type ChallengeScene = {
   start: Point;
   velocity: Point;
   visualSeed: number;
+  trajectory?: Point[];
 };
 
 type WebmEncoder = {
@@ -100,6 +101,11 @@ function reflectedCoordinate(
 }
 
 export function positionAtFrame(scene: ChallengeScene, frameIndex: number) {
+  const trajectoryPoint = scene.trajectory?.[
+    Math.max(0, Math.min(scene.durationFrames - 1, Math.floor(frameIndex)))
+  ];
+  if (trajectoryPoint) return trajectoryPoint;
+
   const margin = scene.radius + 18;
   const seconds = frameIndex / scene.fps;
   return {
