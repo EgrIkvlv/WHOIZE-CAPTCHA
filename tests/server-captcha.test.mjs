@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { DEFAULT_CAPTCHA_CONFIG } from "../packages/captcha-core/src/index.ts";
+import {
+  DEFAULT_CAPTCHA_CONFIG,
+  inShape,
+  shapeAreaRatio,
+} from "../packages/captcha-core/src/index.ts";
 import {
   positionAtFrame,
   renderChallengeSegment,
@@ -666,6 +670,30 @@ test("keeps v1.8 readable target and fragment decoys behind WebM", async () => {
   const occupancyRenderer = createReadableDecoyOccupancyRenderer(record.scene);
   assert.equal(occupancyRenderer(0).length, record.scene.density);
   assert.notDeepEqual(occupancyRenderer(0), occupancyRenderer(1));
+  const densityFrame = 90;
+  const targetCenter = positionAtFrame(record.scene, densityFrame);
+  const targetScale =
+    1 + Math.sin((densityFrame / record.scene.fps) * 2.2) * 0.018;
+  const targetCells = [...occupancyRenderer(densityFrame)].filter((cell) => {
+    const x = cell % record.scene.width;
+    const y = Math.floor(cell / record.scene.width);
+    return inShape(
+      record.scene.shape,
+      (x - targetCenter.x) / (record.scene.radius * targetScale),
+      (y - targetCenter.y) / (record.scene.radius * targetScale),
+    );
+  }).length;
+  const expectedTargetCells =
+    (record.scene.density *
+      record.scene.radius *
+      record.scene.radius *
+      targetScale *
+      targetScale *
+      4 *
+      shapeAreaRatio(record.scene.shape)) /
+    (record.scene.width * record.scene.height);
+  assert.ok(targetCells >= expectedTargetCells * 0.92);
+  assert.ok(targetCells <= expectedTargetCells * 1.08);
   assert.equal(
     (
       await readReadableDecoySegment({

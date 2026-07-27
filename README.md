@@ -86,12 +86,14 @@ experiments.
 Version `v1.8` deliberately resets the optimization target toward human
 readability. A stable 54–68 px requested silhouette follows a private
 stochastic path, while four separated irregular blobs move with comparable
-size, speed, and persistence. The remaining background uses 58% fresh points
-and 2–5 frame local motion. In the 24-seed production-codec benchmark, the
-shape template passed 33.3%, frame difference 29.2%, coherent flow 25%, and
-tracking 25%. This is weaker than v1.6–v1.7 against the present bots by design;
-its purpose is to restore a target a person can actually see and then measure
-the resulting usability-security trade.
+moving mass, speed, and persistence. Point budgets are proportional to each
+mask's real area, overlapping regions are clipped, and scale changes adjust
+point count, keeping the target and decoys near background density in a frozen
+frame. The remaining background uses 58% fresh points and 2–5 frame local
+motion. In the 24-seed exact-frame benchmark, single-frame density passed 0%;
+after production VP8 decoding it passed 16.7% with a 162.1 px median error.
+Two-frame difference remains the main weakness at 50%. This branch prioritizes
+human readability while making the static density shortcut non-systematic.
 
 Version `v1.7` tests the proposed smaller-object strategy without relying on a
 loop or predictable reflected line. The private server record stores a smooth

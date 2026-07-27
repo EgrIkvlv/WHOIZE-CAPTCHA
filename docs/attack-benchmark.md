@@ -370,11 +370,14 @@ must now decide whether that trade is useful.
 
 ## v1.8 readable motion-decoy production WebM comparison
 
-v1.8 stops trying to make the target statistically indistinguishable from the
-background. The requested 54–68 px geometric silhouette uses stable points and
-a private non-looping stochastic path. Four private irregular blob masks use
-similar radii, persistence, speeds, independent stochastic paths, and early
-separation. The background is 58% fresh with 2–5 frame motion elsewhere.
+v1.8 keeps a readable 54–68 px geometric silhouette on a private non-looping
+stochastic path. Four private irregular blob masks use comparable moving area,
+persistence, speeds, independent stochastic paths, and early separation. Point
+budgets are proportional to each mask's real area, overlapping masks do not
+stack points, and small scale changes adjust point count. Across 24 exact
+frames, the target contained 97.9% of the globally expected local density on
+average (96.0–100.0%), and the single-frame density baseline passed 0/24. The
+background is 58% fresh with 2–5 frame motion elsewhere.
 
 The first candidate used small fragmented decoys. Exact-cell attacks looked
 weak, but VP8 decoding made the larger stable target a unique low-change
@@ -385,20 +388,22 @@ shortcut.
 | Decoded production WebM attack | v1.7 success | v1.8 success | v1.8 median error | v1.8 median solver time |
 | --- | ---: | ---: | ---: | ---: |
 | Random click | 0.0% | 0.0% | 209.3 px | 0.01 ms |
-| Single-frame density | 4.2% | 8.3% | 86.1 px | 1.86 ms |
-| Two-frame difference | 4.2% | 29.2% | 62.8 px | 3.21 ms |
-| Temporal persistence | 20.8% | 20.8% | 73.0 px | 11.49 ms |
-| Coherent flow | 8.3% | 25.0% | 70.6 px | 143.82 ms |
-| Multi-frame tracking | 8.3% | 25.0% | 69.4 px | 1,005.69 ms |
-| Public-shape template | 8.3% | 33.3% | 82.7 px | 59.34 ms |
+| Single-frame density | 8.3% | 16.7% | 162.1 px | 1.88 ms |
+| Two-frame difference | 12.5% | 50.0% | 61.9 px | 3.31 ms |
+| Temporal persistence | 20.8% | 29.2% | 66.0 px | 11.64 ms |
+| Coherent flow | 4.2% | 33.3% | 61.8 px | 144.65 ms |
+| Multi-frame tracking | 12.5% | 41.7% | 60.2 px | 1,014.80 ms |
+| Public-shape template | 12.5% | 8.3% | 169.7 px | 58.28 ms |
 
 Median one-second transport costs were:
 
-- v1.7: 1,264 KiB, 1,273 ms encode, 81 ms decode;
-- v1.8: 1,179 KiB, 1,340 ms encode, 73 ms decode.
+- v1.7: 1,247 KiB, 1,330 ms encode, 77 ms decode;
+- v1.8: 1,205 KiB, 1,276 ms encode, 70 ms decode.
 
-The result is intentionally not a security improvement over v1.7. It restores
-a stable human-readable target while keeping simple motion localization below
-one-third in this baseline suite. Human completion time, miss rate, and
-perceived strain now determine whether this branch is a better product
-direction.
+The density-matched source removes the deterministic frozen-frame darkness
+shortcut. The decoded density solver still landed inside the target 4/24 times,
+but its 162.1 px median error and 0/24 exact-frame result indicate that it is
+selecting VP8/noise fluctuations rather than a consistently denser target.
+Temporal attacks remain materially stronger: two-frame difference passed 50%.
+Human completion time, miss rate, and perceived strain now determine whether
+this branch is a better product direction before temporal hardening resumes.

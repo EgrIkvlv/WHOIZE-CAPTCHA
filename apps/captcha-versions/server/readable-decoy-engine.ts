@@ -21,6 +21,7 @@ type ReadableDecoy = {
   radius: number;
   path: Point[];
   mask: FragmentMask;
+  basePointCount: number;
   points: Point[];
   phase: number;
 };
@@ -78,6 +79,18 @@ function pointInFragmentMask(mask: FragmentMask, random: () => number) {
   return point;
 }
 
+function fragmentMaskAreaRatio(mask: FragmentMask) {
+  let meanSquaredRadius = 0;
+  for (let index = 0; index < mask.radial.length; index += 1) {
+    const current = mask.radial[index];
+    const next = mask.radial[(index + 1) % mask.radial.length];
+    meanSquaredRadius +=
+      (current * current + current * next + next * next) /
+      (3 * mask.radial.length);
+  }
+  return (Math.PI / 4) * meanSquaredRadius;
+}
+
 function pathSeparationScore({
   scene,
   radius,
@@ -105,10 +118,7 @@ function pathSeparationScore({
   return smallestRatio;
 }
 
-function createReadableDecoys(
-  scene: ChallengeScene,
-  pointCount: number,
-) {
+function createReadableDecoys(scene: ChallengeScene) {
   const random = mulberry32(scene.visualSeed ^ 0x18dec0);
   const targetPath =
     scene.trajectory ??
@@ -122,16 +132,22 @@ function createReadableDecoys(
   const targetSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
 
   for (let index = 0; index < V18_READABLE_DECOY_COUNT; index += 1) {
+    const maskSeed = (random() * 0xffffffff) >>> 0;
+    const maskRandom = mulberry32(maskSeed ^ 0xb10b);
+    const mask = createFragmentMask(maskRandom);
+    const maskRatio = fragmentMaskAreaRatio(mask);
+    const targetArea =
+      scene.radius * scene.radius * 4 * shapeAreaRatio(scene.shape);
+    const radius =
+      Math.sqrt(targetArea / (4 * maskRatio)) * (0.94 + random() * 0.12);
     let best:
       | {
           radius: number;
           path: Point[];
           score: number;
-          seed: number;
         }
       | undefined;
     for (let attempt = 0; attempt < 100; attempt += 1) {
-      const radius = scene.radius * (0.9 + random() * 0.14);
       const margin = radius + 18;
       const angle = random() * Math.PI * 2;
       const speed = targetSpeed * (0.9 + random() * 0.2);
@@ -155,18 +171,28 @@ function createReadableDecoys(
         existing,
       });
       if (!best || score > best.score) {
-        best = { radius, path, score, seed };
+        best = { radius, path, score };
       }
       if (score >= 0.88) break;
     }
     if (!best) continue;
-    const maskRandom = mulberry32(best.seed ^ 0xb10b);
-    const mask = createFragmentMask(maskRandom);
+    const pointCount = Math.max(
+      1,
+      Math.round(
+        (scene.density *
+          best.radius *
+          best.radius *
+          4 *
+          maskRatio) /
+          (scene.width * scene.height),
+      ),
+    );
     decoys.push({
       radius: best.radius,
       path: best.path,
       mask,
-      points: Array.from({ length: pointCount }, () =>
+      basePointCount: pointCount,
+      points: Array.from({ length: Math.ceil(pointCount * 1.06) }, () =>
         pointInFragmentMask(mask, maskRandom),
       ),
       phase: maskRandom() * Math.PI * 2,
@@ -211,14 +237,11 @@ export function createReadableDecoyOccupancyRenderer(scene: ChallengeScene) {
   const targetRatio =
     (scene.radius * scene.radius * 4 * shapeAreaRatio(scene.shape)) /
     (scene.width * scene.height);
-  const targetPointCount = Math.max(
-    190,
-    Math.floor(scene.density * targetRatio),
-  );
-  const targetPoints = Array.from({ length: targetPointCount }, () =>
+  const targetPointCount = Math.max(1, Math.round(scene.density * targetRatio));
+  const targetPoints = Array.from({ length: Math.ceil(targetPointCount * 1.04) }, () =>
     pointInShape(scene, targetRandom),
   );
-  const decoys = createReadableDecoys(scene, targetPointCount);
+  const decoys = createReadableDecoys(scene);
   const backgroundRandom = mulberry32(scene.visualSeed ^ 0x18bacc);
   const targetSpeed = Math.hypot(scene.velocity.x, scene.velocity.y);
   const backgroundSlots = Array.from(
@@ -230,16 +253,28 @@ export function createReadableDecoyOccupancyRenderer(scene: ChallengeScene) {
     const seconds = globalFrameIndex / scene.fps;
     const targetCenter = positionAtFrame(scene, globalFrameIndex);
     const targetScale = 1 + Math.sin(seconds * 2.2) * 0.018;
+    const visibleTargetPointCount = Math.round(
+      targetPointCount * targetScale * targetScale,
+    );
     const decoyStates = decoys.map((decoy) => ({
       ...decoy,
       center: decoy.path[
         Math.max(0, Math.min(decoy.path.length - 1, globalFrameIndex))
       ],
       scale: 1 + Math.sin(seconds * 1.9 + decoy.phase) * 0.025,
+      visiblePointCount: Math.round(
+        decoy.basePointCount *
+          (1 + Math.sin(seconds * 1.9 + decoy.phase) * 0.025) ** 2,
+      ),
     }));
     const occupied = new Set<number>();
 
-    for (const point of targetPoints) {
+    for (
+      let pointIndex = 0;
+      pointIndex < visibleTargetPointCount;
+      pointIndex += 1
+    ) {
+      const point = targetPoints[pointIndex];
       const x = Math.round(
         targetCenter.x + point.x * scene.radius * targetScale,
       );
@@ -252,14 +287,38 @@ export function createReadableDecoyOccupancyRenderer(scene: ChallengeScene) {
       );
     }
 
-    for (const decoy of decoyStates) {
-      for (const point of decoy.points) {
+    for (let decoyIndex = 0; decoyIndex < decoyStates.length; decoyIndex += 1) {
+      const decoy = decoyStates[decoyIndex];
+      for (
+        let pointIndex = 0;
+        pointIndex < decoy.visiblePointCount;
+        pointIndex += 1
+      ) {
+        const point = decoy.points[pointIndex];
         const x = Math.round(
           decoy.center.x + point.x * decoy.radius * decoy.scale,
         );
         const y = Math.round(
           decoy.center.y + point.y * decoy.radius * decoy.scale,
         );
+        if (
+          inShape(
+            scene.shape,
+            (x - targetCenter.x) / (scene.radius * targetScale),
+            (y - targetCenter.y) / (scene.radius * targetScale),
+          )
+        ) {
+          continue;
+        }
+        const overlapsEarlierDecoy = decoyStates
+          .slice(0, decoyIndex)
+          .some((earlier) =>
+            insideFragmentMask(earlier.mask, {
+              x: (x - earlier.center.x) / (earlier.radius * earlier.scale),
+              y: (y - earlier.center.y) / (earlier.radius * earlier.scale),
+            }),
+          );
+        if (overlapsEarlierDecoy) continue;
         occupied.add(
           Math.max(0, Math.min(scene.height - 1, y)) * scene.width +
             Math.max(0, Math.min(scene.width - 1, x)),

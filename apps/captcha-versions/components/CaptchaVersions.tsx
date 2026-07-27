@@ -441,24 +441,25 @@ const COPY = {
         version: "v1.8",
         subtitle: "Clear target · four shapeless moving clusters",
         summary:
-          "A stable geometric silhouette moves on a private stochastic path. Four separated irregular blobs travel with comparable size, speed, and persistence, while the remaining background rapidly regenerates.",
+          "A stable geometric silhouette moves on a private stochastic path. Target, decoys, and background now use the same local dot density; four irregular blobs retain comparable moving mass without becoming dark static islands.",
         architecture:
           "Readable private target · fragment motion decoys · VP8/WebM only · server verification",
         metrics: [
           ["Frame", "640×360 · 48 fps"],
           ["Target", "54–68 px · stable silhouette"],
           ["Decoys", "4 irregular moving blobs"],
+          ["Density", "Target / decoys ≈ background"],
           ["Path", "Continuous · stochastic · non-looping"],
           ["Background", "58% fresh · 2–5 frame flows"],
-          ["Attacks", "8.3–33.3% across 24 WebM"],
+          ["Attacks", "8.3–50.0% across 24 WebM"],
         ],
         pros: [
           "Restores a complete geometric silhouette for human vision",
+          "A frozen frame no longer reveals moving regions as darker islands",
           "Several moving regions prevent motion energy from identifying one target",
-          "Target and decoy paths remain private and separated early",
         ],
         cons: [
-          "Shape recognition becomes the expected primary attack",
+          "Two-frame difference is now the strongest baseline attack at 50%",
           "Four moving blobs may still add visual search load",
           "Human readability must be confirmed before further security tuning",
         ],
@@ -476,7 +477,7 @@ const COPY = {
       webm16: ["High / regenerative", "No", "≈ 1.25 MB/s", "≈ 1.33 s/segment", "Non-looping", "CV: 16.7% best"],
       webm16b: ["High / readable", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Non-looping", "CV: 16.7% best"],
       webm17: ["Compact / mixed memory", "No", "≈ 1.25 MB/s", "≈ 1.32 s/segment", "Stochastic / no loop", "CV: 25.0% best"],
-      webm18: ["Clear / multi-cluster", "No", "≈ 1.18 MB/s", "≈ 1.34 s/segment", "Stochastic / no loop", "CV: 33.3% best"],
+      webm18: ["Clear / density-matched", "No", "≈ 1.21 MB/s", "≈ 1.28 s/segment", "Stochastic / no loop", "CV: 50.0% best"],
     },
   },
   ru: {
@@ -896,24 +897,25 @@ const COPY = {
         version: "v1.8",
         subtitle: "Ясная цель · четыре бесформенных движущихся кластера",
         summary:
-          "Устойчивый геометрический силуэт движется по приватной случайной траектории. Четыре разделённых неправильных blob-кластера перемещаются с похожим размером, скоростью и устойчивостью, а остальной фон быстро пересобирается.",
+          "Устойчивый геометрический силуэт движется по приватной случайной траектории. Цель, decoy и фон теперь используют одинаковую локальную плотность точек; четыре неправильных blob сохраняют сопоставимую движущуюся массу, не превращаясь в тёмные статические островки.",
         architecture:
           "Читаемая приватная цель · фрагментированные motion-decoy · только VP8/WebM · серверная проверка",
         metrics: [
           ["Кадр", "640×360 · 48 fps"],
           ["Цель", "54–68 px · устойчивый силуэт"],
           ["Decoy", "4 неправильных движущихся blob"],
+          ["Плотность", "Цель / decoy ≈ фон"],
           ["Путь", "Непрерывный · случайный · без цикла"],
           ["Фон", "58% новый · flow 2–5 кадров"],
-          ["Атаки", "8.3–33.3% на 24 WebM"],
+          ["Атаки", "8.3–50.0% на 24 WebM"],
         ],
         pros: [
           "Возвращает цельный геометрический силуэт для человеческого зрения",
+          "На замороженном кадре движущиеся области больше не выглядят темнее фона",
           "Несколько движущихся областей не позволяют энергии движения сразу выдать цель",
-          "Траектории цели и decoy приватны и поначалу разделены",
         ],
         cons: [
-          "Распознавание формы становится ожидаемой основной атакой",
+          "Разность двух кадров теперь является сильнейшей baseline-атакой с 50%",
           "Четыре движущихся blob всё ещё увеличивают визуальную нагрузку",
           "Читаемость нужно подтвердить до дальнейшего усиления защиты",
         ],
@@ -931,7 +933,7 @@ const COPY = {
       webm16: ["Высокое / regenerative", "Нет", "≈ 1.25 МБ/с", "≈ 1.33 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm16b: ["Высокое / читаемое", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Без цикла", "CV: 16.7% лучший"],
       webm17: ["Компактное / смешанная память", "Нет", "≈ 1.25 МБ/с", "≈ 1.32 с/сегмент", "Случайное / без цикла", "CV: 25.0% лучший"],
-      webm18: ["Ясное / несколько кластеров", "Нет", "≈ 1.18 МБ/с", "≈ 1.34 с/сегмент", "Случайное / без цикла", "CV: 33.3% лучший"],
+      webm18: ["Ясное / равная плотность", "Нет", "≈ 1.21 МБ/с", "≈ 1.28 с/сегмент", "Случайное / без цикла", "CV: 50.0% лучший"],
     },
   },
 } as const;
