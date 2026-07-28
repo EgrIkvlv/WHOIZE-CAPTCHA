@@ -195,7 +195,9 @@ button {
     rgba(242, 241, 234, 0.94);
 }
 
-.version-card.version-webm18 {
+.version-card.version-webm18a,
+.version-card.version-webm18b,
+.version-card.version-webm18c {
   background:
     radial-gradient(circle at 80% 20%, rgba(182, 240, 58, 0.25), transparent 25%),
     radial-gradient(circle at 17% 76%, rgba(255, 106, 77, 0.1), transparent 22%),
@@ -210,7 +212,9 @@ button {
 .version-card.version-webm16 .version-card-body,
 .version-card.version-webm16b .version-card-body,
 .version-card.version-webm17 .version-card-body,
-.version-card.version-webm18 .version-card-body {
+.version-card.version-webm18a .version-card-body,
+.version-card.version-webm18b .version-card-body,
+.version-card.version-webm18c .version-card-body {
   padding: 9px 0 6px;
 }
 
@@ -221,7 +225,9 @@ button {
 .version-card.version-webm16 .version-index,
 .version-card.version-webm16b .version-index,
 .version-card.version-webm17 .version-index,
-.version-card.version-webm18 .version-index {
+.version-card.version-webm18a .version-index,
+.version-card.version-webm18b .version-index,
+.version-card.version-webm18c .version-index {
   font-size: 29px;
 }
 
@@ -232,7 +238,9 @@ button {
 .version-card.version-webm16 h2,
 .version-card.version-webm16b h2,
 .version-card.version-webm17 h2,
-.version-card.version-webm18 h2 {
+.version-card.version-webm18a h2,
+.version-card.version-webm18b h2,
+.version-card.version-webm18c h2 {
   margin-top: 10px;
   font-size: clamp(21px, 1.7vw, 26px);
   line-height: 0.94;
@@ -245,7 +253,9 @@ button {
 .version-card.version-webm16 .version-card-body p,
 .version-card.version-webm16b .version-card-body p,
 .version-card.version-webm17 .version-card-body p,
-.version-card.version-webm18 .version-card-body p {
+.version-card.version-webm18a .version-card-body p,
+.version-card.version-webm18b .version-card-body p,
+.version-card.version-webm18c .version-card-body p {
   min-height: 26px;
   margin-top: 5px;
   font-size: 7px;
